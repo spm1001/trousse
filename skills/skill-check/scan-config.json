@@ -1,0 +1,9 @@
+{
+  "email_domains_high_risk": ["@itv.com", "@itv.co.uk"],
+  "path_usernames": ["modha", "sameer"],
+  "company_terms": [
+    "ITV", "MIT", "myitv", "Panel+", "Adalyser", "BARB",
+    "HITAG", "Halo", "LDC", "GeoX", "FTVA"
+  ],
+  "person_names": ["Sameer", "Caroline", "Kate Waters", "Alex Mayfield"]
+}
