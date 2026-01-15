@@ -264,13 +264,14 @@ SKILL_UPDATED=0
 
 for skill_dir in "$SCRIPT_DIR/skills/"*/; do
     skill_name=$(basename "$skill_dir")
+    skill_path="${skill_dir%/}"  # Remove trailing slash
     target="$HOME/.claude/skills/$skill_name"
 
     if [[ -L "$target" ]]; then
         # Existing symlink — remove and recreate
         if [[ "$DRY_RUN" != true ]]; then
             rm "$target"
-            ln -s "$skill_dir" "$target"
+            ln -s "$skill_path" "$target"
         fi
         SKILL_UPDATED=$((SKILL_UPDATED + 1))
         SKILL_COUNT=$((SKILL_COUNT + 1))
@@ -281,7 +282,7 @@ for skill_dir in "$SCRIPT_DIR/skills/"*/; do
     else
         # New symlink
         if [[ "$DRY_RUN" != true ]]; then
-            ln -s "$skill_dir" "$target"
+            ln -s "$skill_path" "$target"
         fi
         SKILL_COUNT=$((SKILL_COUNT + 1))
     fi
@@ -339,20 +340,26 @@ if [[ "$DRY_RUN" != true ]]; then
         echo '{}' > "$SETTINGS_FILE"
     fi
 
-    # Check if hooks already configured
-    if ! grep -q '"hooks"' "$SETTINGS_FILE" 2>/dev/null; then
-        # Add hooks configuration using jq if available, otherwise use simple append
-        if command -v jq &>/dev/null; then
-            HOOK_PATH="$HOME/.claude/hooks/session-start.sh"
-            jq --arg hook "$HOOK_PATH" '. + {hooks: {SessionStart: [{matcher: "", hooks: [{type: "command", command: $hook}]}]}}' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            ok "Hooks registered in settings.json"
+    if command -v jq &>/dev/null; then
+        HOOK_PATH="$HOME/.claude/hooks/session-start.sh"
+
+        # Check if our specific hook is already registered (not just any hooks)
+        if jq -e ".hooks.SessionStart[]?.hooks[]? | select(.command == \"$HOOK_PATH\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
+            ok "Hooks already configured"
         else
-            warn "jq not available — manual hook registration needed"
-            echo "  Add to ~/.claude/settings.json:"
-            echo '  "hooks": {"SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh"}]}]}'
+            # Merge new hook into existing structure (preserve other hooks)
+            jq --arg hook "$HOOK_PATH" '
+                .hooks.SessionStart = ((.hooks.SessionStart // []) + [{
+                    matcher: "",
+                    hooks: [{type: "command", command: $hook}]
+                }])
+            ' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            ok "Hooks registered in settings.json"
         fi
     else
-        ok "Hooks already configured"
+        warn "jq not available — manual hook registration needed"
+        echo "  Add to ~/.claude/settings.json:"
+        echo '  "hooks": {"SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh"}]}]}'
     fi
 else
     echo "  Would register hooks in settings.json"
@@ -373,12 +380,41 @@ echo "  • $SKILL_COUNT skills  → ~/.claude/skills/"
 echo "  • $SCRIPT_COUNT scripts → ~/.claude/scripts/"
 echo "  • $HOOK_COUNT hooks    → ~/.claude/hooks/"
 echo ""
-echo -e "${YELLOW}IMPORTANT:${NC} Restart Claude Code for skills to load."
+
+# What you got - explain the value
+echo -e "${BLUE}What you now have:${NC}"
+echo ""
+echo "  Session lifecycle (runs automatically):"
+echo "    • On startup: time, handoffs, and ready work shown"
+echo "    • /open  — Resume context from previous session"
+echo "    • /close — Create handoff for next session"
+echo "    • /ground — Mid-session checkpoint when things drift"
+echo ""
+echo "  Utilities:"
+echo "    • /diagram, /screenshot, /picture — Visual tools"
+echo "    • /filing — Organize files (PARA method)"
+echo "    • /server-checkup — Linux server management"
+echo ""
+
+echo -e "${YELLOW}NEXT STEP:${NC} Restart Claude Code to activate."
 echo "  Run: /exit then start claude again"
 echo ""
-echo "Verify installation:"
-echo "  ./install.sh --verify"
-echo ""
+
+# Quick verification (silent unless errors)
+if [[ "$DRY_RUN" != true ]]; then
+    VERIFY_ERRORS=0
+    for skill in beads close diagram filing github-cleanup ground open picture screenshot server-checkup session-closing session-grounding session-opening setup skill-check; do
+        if [[ ! -L "$HOME/.claude/skills/$skill" ]] && [[ ! -d "$HOME/.claude/skills/$skill" ]]; then
+            VERIFY_ERRORS=$((VERIFY_ERRORS + 1))
+        fi
+    done
+    if [[ $VERIFY_ERRORS -eq 0 ]]; then
+        ok "Quick verify: All core skills present"
+    else
+        warn "Quick verify: $VERIFY_ERRORS skills missing — run ./install.sh --verify for details"
+    fi
+    echo ""
+fi
 
 # Optional tools (platform-aware)
 echo "Optional tools (not installed):"

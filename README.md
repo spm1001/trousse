@@ -1,68 +1,73 @@
 # claude-suite
 
-Behavioral skills for Claude Code. Point a fresh Claude here and say "help me install."
+Behavioral skills for Claude Code. One command to install, restart to activate.
 
-## What's Included
-
-**Session Lifecycle** — Structured handoffs between sessions
-- `/open` — Start session with context from previous work
-- `/ground` — Mid-session checkpoint when things feel off
-- `/close` — End session with reflection and handoff
-
-**Issue Tracking** — Multi-session work with dependencies
-- `beads` — Track work across sessions (requires [bd CLI](https://github.com/beads-dev/bd))
-
-**Utilities**
-- `diagram` — Create diagrams with iterative render-and-check
-- `screenshot` — Capture screen to verify changes
-- `filing` — Organize files with PARA-influenced structure
-- `github-cleanup` — Audit and clean GitHub repos
-- `picture` — Generate images with AI
-- `server-checkup` — Linux server management
-- `skill-check` — Validate skills before sharing
-- `sprite` — Manage Sprites.dev remote VMs
-- `setup` — Install these skills on a fresh machine
-
-## Quick Install
+## Install
 
 ```bash
-# Clone this repo
-gh repo clone spm1001/claude-suite ~/Repos/claude-suite
-
-# Ask Claude to set up
-# In Claude Code, say: "help me install from ~/Repos/claude-suite"
+git clone https://github.com/spm1001/claude-suite ~/Repos/claude-suite
+cd ~/Repos/claude-suite
+./install.sh
 ```
 
-Or manually:
+Then restart Claude Code (`/exit` → `claude`).
+
+## What You Get
+
+**Session lifecycle** — runs automatically after install:
+- On startup: Time, previous handoffs, and ready work shown
+- `/open` — Resume context from previous session
+- `/close` — Create handoff for next session
+- `/ground` — Mid-session checkpoint when things drift
+
+**Issue tracking** — for work spanning multiple sessions:
+- `beads` — Track work with dependencies (requires [bd CLI](https://github.com/beads-dev/bd))
+
+**Utilities:**
+- `/diagram` — Create diagrams with iterative render-and-check
+- `/screenshot` — Capture screen to verify changes
+- `/filing` — Organize files (PARA method)
+- `/picture` — Generate images with AI
+- `/server-checkup` — Linux server management
+- `/github-cleanup` — Audit repos, find stale forks
+- `/sprite` — Manage Sprites.dev remote VMs
+
+## Verify Installation
+
 ```bash
-# Create directories
-mkdir -p ~/.claude/skills
-
-# Symlink all skills
-for skill in ~/Repos/claude-suite/skills/*/; do
-    ln -sf "$skill" ~/.claude/skills/
-done
-
-# Restart Claude to load new skills
+./install.sh --verify
 ```
 
-## Optional Tool Repos
+## Optional Tools
 
-These provide CLI/MCP integrations with co-located skills:
+These provide CLI integrations with their own skills:
 
 | Repo | What it adds |
 |------|--------------|
 | [todoist-gtd](https://github.com/spm1001/todoist-gtd) | GTD-flavored Todoist integration |
 | [claude-mem](https://github.com/spm1001/claude-mem) | Search past Claude sessions |
 
-## Architecture
+## Troubleshooting
 
-This repo contains **behavioral skills** — patterns, workflows, and knowledge that don't require their own CLI.
+**Skills don't appear in Claude?**
+Restart required. Run `/exit` then start `claude` again.
 
-**Tool skills** (CLI + skill together) live in their own repos:
-- CLI and skill evolve together for better ergonomics
-- Install separately as needed
+**Hooks not firing?**
+Check `~/.claude/settings.json` has a `hooks` section. Run `./install.sh --verify`.
 
-## Contributing
+**Missing dependencies?**
+Install.sh checks for `jq`. On Mac: `brew install jq`. On Linux: `apt install jq`.
 
-Skills welcome. Run `/skill-check` before submitting to validate structure.
+## Updating
+
+```bash
+cd ~/Repos/claude-suite
+git pull
+# Symlinks automatically point to updated content
+```
+
+## Uninstall
+
+```bash
+./install.sh --uninstall
+```
