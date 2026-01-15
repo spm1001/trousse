@@ -65,20 +65,20 @@ for skill_dir in "$SCRIPT_DIR/skills/"*/; do
         # Existing symlink — remove and recreate
         rm "$target"
         ln -s "$skill_dir" "$target"
-        ((SKILL_COUNT++))
+        SKILL_COUNT=$((SKILL_COUNT + 1))
     elif [[ -d "$target" ]]; then
         # Existing real directory — skip with warning
         warn "Skipping $skill_name (existing directory, not symlink)"
-        ((SKILL_SKIPPED++))
+        SKILL_SKIPPED=$((SKILL_SKIPPED + 1))
     else
         # New symlink
         ln -s "$skill_dir" "$target"
-        ((SKILL_COUNT++))
+        SKILL_COUNT=$((SKILL_COUNT + 1))
     fi
 done
 
 ok "Symlinked $SKILL_COUNT skills"
-[[ $SKILL_SKIPPED -gt 0 ]] && warn "Skipped $SKILL_SKIPPED (existing directories)"
+[[ $SKILL_SKIPPED -gt 0 ]] && warn "Skipped $SKILL_SKIPPED (existing directories)" || true
 
 # Symlink scripts
 info "Symlinking scripts..."
@@ -92,7 +92,7 @@ if [[ -d "$SCRIPT_DIR/scripts" ]]; then
 
         # Always overwrite symlinks for scripts
         ln -sf "$script" "$target"
-        ((SCRIPT_COUNT++))
+        SCRIPT_COUNT=$((SCRIPT_COUNT + 1))
     done
 fi
 
@@ -110,7 +110,7 @@ if [[ -d "$SCRIPT_DIR/hooks" ]]; then
 
         # Always overwrite symlinks for hooks
         ln -sf "$hook" "$target"
-        ((HOOK_COUNT++))
+        HOOK_COUNT=$((HOOK_COUNT + 1))
     done
 fi
 
