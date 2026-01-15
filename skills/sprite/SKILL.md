@@ -214,48 +214,6 @@ Things discovered through use that may not be obvious:
 | `claude -p` needs PTY for output | Use `script -q /dev/null -c "..."` wrapper |
 | Sprite Claude ≠ local Claude | Fresh sprite has no skills/config until setup |
 
-## Memory Integration
-
-Sprites can access shared memory via `claude-mem` — a searchable index of past sessions, handoffs, and beads. Memory syncs through Turso (SQLite edge database), so searches on a sprite pull context from all machines.
-
-**The memory follows the human, not the machine.**
-
-### Setup on Sprite
-
-```bash
-# 1. Clone and install
-git clone https://github.com/spm1001/claude-mem.git ~/Repos/claude-mem
-cd ~/Repos/claude-mem && uv sync
-
-# 2. Set credentials (add to ~/.bashrc for persistence)
-export TURSO_CLAUDE_MEMORY_URL="libsql://claude-memory-spm1001.aws-eu-west-1.turso.io"
-export TURSO_CLAUDE_MEMORY_TOKEN="<token-from-keychain-on-mac>"
-
-# 3. Test
-cd ~/Repos/claude-mem && uv run mem status
-```
-
-### What Works on Sprites
-
-| Command | Purpose |
-|---------|---------|
-| `mem search "query"` | FTS5 search across all sources |
-| `mem status` | Database stats |
-| `mem drill <id>` | Deep dive into specific source |
-| `mem recent` | Recently indexed sources |
-
-### What NOT to Do on Sprites
-
-- `mem scan` — source files live on Mac, not sprite
-- `mem backfill` — requires API key and source data
-- `mem migrate-turso` — already migrated
-
-### Value on Sprites
-
-- Search memory from remote dev environments
-- Access learnings from Mac sessions while working remotely
-- Resume work with full handoff context on any machine
-
 ## Docs
 
 - [sprites.dev/api](https://sprites.dev/api) — Official API documentation (comprehensive)
