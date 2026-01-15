@@ -1,21 +1,24 @@
 ---
 name: sprite
 user-invocable: false
-description: Manages Sprites.dev remote Ubuntu VMs with checkpoint/restore. Use BEFORE running sprite CLI commands when unsure of syntax or workflow. Triggers on 'sprite', 'create a sprite', 'checkpoint', 'remote dev', 'sprites.dev', 'bootstrap sprite', 'proxy port'. Complements server-checkup for remote machine management. (user)
+description: Manages Sprites.dev remote Ubuntu VMs with checkpoint/restore. **Load this skill BEFORE any sprite exec, bootstrap, or troubleshooting.** Triggers on 'sprite', 'create a sprite', 'checkpoint', 'remote dev', 'sprites.dev', 'bootstrap sprite', 'proxy port', 'sprite exec'. Complements server-checkup for remote machine management. (user)
 ---
 
 # Sprite Skill
 
 Manage [Sprites.dev](https://sprites.dev/) remote development environments — persistent Ubuntu VMs with checkpoint/restore from Fly.io.
 
-## When to Use
+## When to Load This Skill
 
-- Setting up a new sprite for development
-- Running commands on remote sprites
-- Creating or restoring checkpoints
-- Bootstrapping ~/.claude config on a sprite
-- Proxying ports to access services running on sprites
-- Troubleshooting sprite auth or connectivity issues
+**Load before ANY of these operations:**
+- `sprite exec` — critical patterns for output capture
+- Bootstrap/setup workflows — many gotchas
+- Running Claude Code on sprites — requires PTY trick
+- Troubleshooting connectivity or auth issues
+
+**Safe without skill:**
+- `sprite list`, `sprite checkpoint list` — simple read operations
+- `sprite console` — interactive, you'll see what happens
 
 ## When NOT to Use
 
@@ -170,6 +173,33 @@ print(output.decode())
 
 **API Base:** `https://api.sprites.dev/v1/` with `Authorization: Bearer $SPRITES_TOKEN`
 
+## Running Claude on Sprites (Critical)
+
+**Problem:** `sprite exec` + `claude -p` produces no output. Claude needs a TTY.
+
+**Solution:** Use the `script` command to create a pseudo-TTY:
+
+```bash
+# This captures output correctly
+sprite exec -s my-sprite bash -c 'script -q /dev/null -c "claude -p \"your prompt here\"" 2>&1'
+
+# Example: Ask sprite-Claude to list skills
+sprite exec -s my-sprite bash -c 'script -q /dev/null -c "claude -p \"What skills do I have?\"" 2>&1'
+```
+
+**Why this works:** The `script` command creates a PTY (pseudo-terminal). Claude's `-p` mode requires a TTY for output — without it, the command exits successfully but produces nothing.
+
+**For interactive sessions:** Use `sprite console` instead, then run `claude` normally inside.
+
+**Multi-turn conversations:** Use `--continue` flag:
+```bash
+# First message
+sprite exec -s my-sprite bash -c 'script -q /dev/null -c "claude -p \"Start a project\"" 2>&1'
+
+# Continue conversation
+sprite exec -s my-sprite bash -c 'script -q /dev/null -c "claude -p \"Add tests\" --continue" 2>&1'
+```
+
 ## Empirical Learnings
 
 Things discovered through use that may not be obvious:
@@ -181,6 +211,8 @@ Things discovered through use that may not be obvious:
 | HTTPS + gh credential helper works | Use HTTPS URLs, not SSH |
 | Auth survives checkpoints | Checkpoint after `gh auth login` to preserve |
 | `sprite use` avoids `-s` flag | Set once per directory, simpler commands |
+| `claude -p` needs PTY for output | Use `script -q /dev/null -c "..."` wrapper |
+| Sprite Claude ≠ local Claude | Fresh sprite has no skills/config until setup |
 
 ## Memory Integration
 
@@ -240,6 +272,8 @@ cd ~/Repos/claude-mem && uv run mem status
 | Checkpoint not found | Checkpoints are per-sprite, can't cross-restore |
 | Command not found in exec | Pass full command to bash: `sprite exec bash -c "..."` |
 | Port not accessible | Use `sprite proxy <port>` to tunnel locally |
+| `claude -p` returns empty output | Use PTY wrapper: `script -q /dev/null -c "claude -p ..."` |
+| Sprite-Claude missing skills | Run setup on sprite — it's a fresh environment |
 
 ## Anti-Patterns
 
@@ -250,3 +284,5 @@ cd ~/Repos/claude-mem && uv run mem status
 | Run `sprite exec "multi word command"` | Use `sprite exec bash -c "..."` | exec needs command as separate args |
 | Skip `gh auth login` on fresh sprite | Always auth first | Private repos won't clone without it |
 | Manually specify `-s` every time | Use `sprite use <name>` first | Sets default for directory |
+| Run `sprite exec claude -p "..."` directly | Wrap with `script -q /dev/null -c "..."` | Claude needs TTY for output |
+| Assume sprite-Claude has your config | Set up skills/config on sprite first | Sprites start fresh |
