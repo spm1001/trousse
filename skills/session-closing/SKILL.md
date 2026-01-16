@@ -1,6 +1,7 @@
 ---
 name: session-closing
 description: End-of-session ritual. Reflect while context is rich, then seal. Triggers on /close, 'wrap up', 'let's finish', or context nearly full. Pairs with /open and /ground. (user)
+user-invocable: false
 ---
 
 # /close
@@ -104,19 +105,10 @@ Share your observations directly:
 
 ### User co-reflects + selects ritual
 
-Immediately after sharing observations, present a combined AskUserQuestion. This captures the user's response to your observations AND selects which deeper reflections you should answer:
+Immediately after sharing observations, present a combined AskUserQuestion. This captures which deeper reflections you should answer:
 
 ```
 AskUserQuestion([
-  {
-    header: "Your take",
-    question: "What do you think?",
-    multiSelect: false,
-    options: [
-      { label: "Nothing to add", description: "Your reflections captured it" },
-      { label: "Let me share...", description: "I have something to add" }
-    ]
-  },
   {
     header: "Looking Back",
     question: "Which backward reflections should I answer?",
@@ -142,7 +134,7 @@ AskUserQuestion([
 ])
 ```
 
-The "Your take" question comes first — user responds to what's on screen before selecting the ritual. Option 3 ("Type something") provides free text input.
+Option 3 ("Type something") for either question provides free text input.
 
 ### Claude answers selected questions
 

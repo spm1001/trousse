@@ -4,6 +4,7 @@ description: >
   Mid-session checkpoint when things feel squiffy. Anchor to what matters, reset for the second half.
   Triggers on /ground, 'let's take stock', 'where are we'. **Claude should proactively offer this**
   when user seems lost, TodoWrite is stale, or drift is visible. Pairs with /open and /close. (user)
+user-invocable: false
 ---
 
 # /ground

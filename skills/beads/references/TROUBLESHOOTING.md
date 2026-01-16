@@ -478,8 +478,78 @@ If the **bd-issue-tracking skill** provides incorrect guidance:
 | Database errors on Google Drive | Move to local filesystem |
 | JSONL file missing | Start daemon once: `bd daemon &` |
 | Dependencies backwards (MCP) | Update to v0.15.0+, use `issue_id/depends_on_id` correctly |
-| Hub corrupted / wrong prefixes | See "Hub Recovery Workflow" in SKILL.md |
-| `--rename-on-import` damage | **NEVER use this flag** — see SKILL.md "Dangerous Commands" |
+| Hub corrupted / wrong prefixes | See Hub Recovery Workflow below |
+| `--rename-on-import` damage | **NEVER use this flag** — see Hub Recovery Workflow |
+
+---
+
+## Hub Recovery Workflow
+
+**When the hub is corrupted** (wrong prefixes, duplicate issues, pollution from `--rename-on-import`), follow this exact sequence. Order matters.
+
+**Symptoms of hub corruption:**
+- `bd list` shows issues with wrong prefixes (e.g., `claude-go-` issues that are really `infra-openwrt-`)
+- Issue counts suddenly much higher than expected
+- Same issue appears with multiple prefixes
+
+**Recovery steps:**
+
+```bash
+# 1. STOP everything — prevent further pollution
+cd ~/Repos/claude-beads
+bd daemon --stop
+
+# 2. Find clean commit in git history
+git log --oneline .beads/issues.jsonl | head -20
+# Look for commit BEFORE corruption (check dates, issue counts)
+git show <commit>:.beads/issues.jsonl | wc -l  # Verify count looks right
+
+# 3. Remove ALL state files (critical — sync_base.jsonl persists corruption)
+rm -f .beads/beads.db .beads/beads.db-* .beads/sync_base.jsonl
+
+# 4. Remove config.yaml TEMPORARILY (prevents hydration from polluted repos)
+mv .beads/config.yaml /tmp/hub-config.yaml.bak
+
+# 5. Restore clean JSONL from git
+git checkout <clean-commit> -- .beads/issues.jsonl
+
+# 6. Rebuild database WITHOUT multi-repo hydration
+bd init --prefix Repos --from-jsonl --quiet --no-daemon
+
+# 7. Verify clean state
+bd list -n 0 --all --no-daemon --json | jq 'length'
+bd list -n 0 --all --no-daemon --json | jq -r '.[].id' | cut -d'-' -f1-2 | sort | uniq -c | sort -rn | head -10
+
+# 8. Fix each polluted additional repo (repeat for each)
+cd ~/Repos/<polluted-repo>
+bd daemon --stop
+rm -f .beads/beads.db .beads/sync_base.jsonl
+# Find clean commit, extract ONLY correct-prefix issues
+git show <clean-commit>:.beads/issues.jsonl | grep '"id":"<prefix>-' > /tmp/clean.jsonl
+cp /tmp/clean.jsonl .beads/issues.jsonl
+bd init --prefix <prefix> --from-jsonl --quiet --no-daemon
+
+# 9. Return to hub, restore config, force push everything
+cd ~/Repos/claude-beads
+mv /tmp/hub-config.yaml.bak .beads/config.yaml
+git add .beads/issues.jsonl && git commit -m "Restore hub from pre-corruption state"
+git push --force-with-lease
+
+# 10. Force push each fixed repo
+cd ~/Repos/<each-repo>
+git add .beads/issues.jsonl && git commit -m "Restore clean issues"
+git push --force-with-lease
+```
+
+**Key insights from Jan 2026 recovery:**
+
+1. **`sync_base.jsonl` is hidden state** — even after restoring issues.jsonl, 3-way merge uses sync_base. Must delete it.
+
+2. **Multi-repo hydration happens on init** — even with `--from-jsonl`, if config.yaml exists, bd pulls from additional repos. Must remove config temporarily.
+
+3. **Pollution is bidirectional** — hub pulls from repos, repos pull from hub. One polluted repo re-infects everything. Must fix ALL before restoring config.
+
+4. **`bd list` has default limit** — shows only 50 issues. Use `-n 0` for full count during verification.
 
 ---
 

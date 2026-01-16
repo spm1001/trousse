@@ -6,6 +6,7 @@ description: >
   at what's available, or after cd'ing to a different project.
   Triggers on /open, 'what were we working on', 'where did we leave off'.
   Pairs with /ground and /close. (user)
+user-invocable: false
 ---
 
 # /open
@@ -75,14 +76,31 @@ Act           → Draw-down to TodoWrite
 
 ## 2. Gather
 
-Context comes from hook output (already in your context at session start).
+**Pattern: Notifications to stdout, content on disk.**
 
-If re-orienting mid-session or after cd:
+Hook output at session start shows what exists:
+```
+📋 Handoffs: 9 available, latest 23h ago
+   Index: ~/.claude/.session-context/handoffs.txt
+📦 Beads: 8 ready
+   Context: ~/.claude/.session-context/beads.txt
+📰 News: available
+   File: ~/.claude/.update-news
+```
+
+**To get actual content, read the files:**
+
+| What | File |
+|------|------|
+| Handoff index | `~/.claude/.session-context/handoffs.txt` |
+| Specific handoff | Path from index (e.g., `~/.claude/handoffs/.../9ac230b1.md`) |
+| Beads context | `~/.claude/.session-context/beads.txt` |
+| News | `~/.claude/.update-news` |
+
+If re-orienting mid-session or after cd, re-run the script:
 ```bash
 ~/.claude/scripts/open-context.sh
 ```
-
-Outputs: TIME, HANDOFF, BEADS (ready + recently closed), UPDATE_NEWS, TODOIST prompt.
 
 ### Script Failure Handling
 
@@ -91,66 +109,58 @@ Outputs: TIME, HANDOFF, BEADS (ready + recently closed), UPDATE_NEWS, TODOIST pr
 1. **STOP.** Do not continue with partial context.
 2. **Tell the user:** "The open-context.sh script failed. This usually means a broken symlink."
 3. **Diagnose:** Run `~/.claude/scripts/check-symlinks.sh` to identify the issue.
-4. **Fix before continuing:** The script provides critical context — proceeding without it means missing handoffs, beads, and update news.
-
-**Why this matters:** Silent script failures caused 54 sessions to run without context (Jan 3-10 2026). The /open felt "janky" but continued anyway. Never repeat this.
 
 ---
 
 ## 3. Orient
 
-Synthesize what matters from context:
+**Read files based on what notifications indicate, then synthesize.**
+
+### Reading Pattern
+
+1. **Check handoff index** — read `~/.claude/.session-context/handoffs.txt`
+2. **Read most recent handoff** — path is in the index, read the actual `.md` file
+3. **Check beads context** — read `~/.claude/.session-context/beads.txt` for hierarchy + ready
+4. **News if relevant** — read `~/.claude/.update-news` if user asks or it's actionable
+
+### Synthesize What Matters
 
 - **Handoff** — Done, Next, Gotchas from previous session
-- **Beads hierarchy** — show the `BEADS_HIERARCHY` block directly, don't re-summarize it. The pre-computation happened so you wouldn't have to interpret.
+- **Beads hierarchy** — from beads.txt, show directly to user
 - **Beads ready** — what's unblocked
 - **Commands** — if handoff has a Commands section, offer to run them
-- **Update news** — if actionable items (e.g., `bd upgrade review`, `gh release view`), offer them
-- **Scope mismatches** — if handoff "Next" doesn't match `bd ready`, flag it
+- **Scope mismatches** — if handoff "Next" doesn't match ready beads, flag it
 
 ### Orphaned Local Handoffs
 
-When `ORPHANED_HANDOFFS=true` in script output:
+When stdout shows orphaned `.handoff*` files:
 
 1. **Tell the user:** "Found local .handoff* files — these are invisible to /open"
-2. **Offer to rescue:** "Want me to move them to the central location so /open can find them?"
+2. **Offer to rescue:** "Want me to move them to the central location?"
 3. **If yes:** `mv .handoff* ~/.claude/handoffs/<encoded-path>/`
-
-**Why this matters (Jan 2026):** Some Claudes wrote handoffs locally instead of centrally. These contained valuable context but were invisible — /open showed stale handoffs instead.
 
 ### Multiple Handoffs
 
-When `HANDOFF_MULTIPLE=true` in script output, multiple sessions have written handoffs to this folder. The script shows a picker list like:
+When handoff index shows multiple entries, present choices to user:
 
-```
-  1. 51d17dc5 · 42m ago
-     MIT Contract Stewardship work
-
-  2. a3f82b1c · 3h ago
-     DCMS RFI response drafting
-```
-
-**Present this to user and ask which to continue.** Don't assume most recent is correct — parallel sessions may have different workstreams.
-
-Use AskUserQuestion:
 ```
 AskUserQuestion([{
   header: "Handoff",
   question: "Multiple handoffs found. Which workstream to continue?",
   options: [
-    { label: "1. MIT Contract...", description: "42 minutes ago" },
-    { label: "2. DCMS RFI...", description: "3 hours ago" },
+    { label: "9ac230b1", description: "23h ago — Removed --local bypass..." },
+    { label: "a6317919", description: "yesterday — Added raw_text to FTS..." },
     { label: "Start fresh", description: "Ignore existing handoffs" }
   ],
   multiSelect: false
 }])
 ```
 
-The script still shows the most recent handoff content as default — if user confirms that one, no re-read needed.
+Then read the selected handoff file.
 
 ### Single Handoff (default)
 
-Present concisely: "Previous session did X. Next suggested: Y. Z beads ready. Any @Claude items."
+Read the handoff, present concisely: "Previous session did X. Next suggested: Y. Z beads ready."
 
 ---
 
@@ -221,7 +231,7 @@ When user says "the email thing", "that feature", or similar:
 | Phase | /open | /ground | /close |
 |-------|-------|---------|--------|
 | **G**ate | Load beads, offer todoist | Load beads if not loaded | — |
-| **G**ather | Hook output (or script) | Todos, beads, drift | Todos, beads, git, drift |
+| **G**ather | Notifications (stdout) → Read files | Todos, beads, drift | Todos, beads, git, drift |
 | **O**rient | "Where we left off" | "What's drifted" | Reflect (AskUserQuestion) |
 | **D**ecide | User picks direction | Continue or adjust | Crystallize actions (STOP) |
 | **A**ct | Draw-down → TodoWrite | Update beads, reset | Execute, handoff, commit |
