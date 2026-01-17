@@ -81,26 +81,39 @@ Act           → Draw-down to TodoWrite
 Hook output at session start shows what exists:
 ```
 📋 Handoffs: 9 available, latest 23h ago
-   Index: ~/.claude/.session-context/handoffs.txt
+   Index: ~/.claude/.session-context/<encoded-cwd>/handoffs.txt
 📦 Beads: 8 ready
-   Context: ~/.claude/.session-context/beads.txt
+   Context: ~/.claude/.session-context/<encoded-cwd>/beads.txt
 📰 News: available
    File: ~/.claude/.update-news
 ```
+
+**Context files are per-project.** The `<encoded-cwd>` is the working directory with `/` and `.` replaced by `-` (e.g., `-Users-modha-Repos-claude-suite`).
 
 **To get actual content, read the files:**
 
 | What | File |
 |------|------|
-| Handoff index | `~/.claude/.session-context/handoffs.txt` |
+| Handoff index | `~/.claude/.session-context/<encoded-cwd>/handoffs.txt` |
 | Specific handoff | Path from index (e.g., `~/.claude/handoffs/.../9ac230b1.md`) |
-| Beads context | `~/.claude/.session-context/beads.txt` |
+| Beads context | `~/.claude/.session-context/<encoded-cwd>/beads.txt` |
 | News | `~/.claude/.update-news` |
 
-If re-orienting mid-session or after cd, re-run the script:
+**To compute the path:** `echo "$(pwd -P)" | tr '/.' '-'` → use as subdirectory name.
+
+### Missing or Stale Context
+
+**If context files don't exist for current directory**, regenerate them:
 ```bash
 ~/.claude/scripts/open-context.sh
 ```
+
+This happens when:
+- Session started in a different directory (hook ran there, not here)
+- First time in this project
+- After cd'ing to a different project mid-session
+
+**Check first:** `[ -d ~/.claude/.session-context/$(pwd -P | tr '/.' '-') ]`
 
 ### Script Failure Handling
 
@@ -118,9 +131,15 @@ If re-orienting mid-session or after cd, re-run the script:
 
 ### Reading Pattern
 
-1. **Check handoff index** — read `~/.claude/.session-context/handoffs.txt`
+First, compute the context directory:
+```bash
+CONTEXT_DIR=~/.claude/.session-context/$(pwd -P | tr '/.' '-')
+```
+
+Then read:
+1. **Check handoff index** — read `$CONTEXT_DIR/handoffs.txt` (if missing, run `~/.claude/scripts/open-context.sh` first)
 2. **Read most recent handoff** — path is in the index, read the actual `.md` file
-3. **Check beads context** — read `~/.claude/.session-context/beads.txt` for hierarchy + ready
+3. **Check beads context** — read `$CONTEXT_DIR/beads.txt` for hierarchy + ready
 4. **News if relevant** — read `~/.claude/.update-news` if user asks or it's actionable
 
 ### Synthesize What Matters
@@ -228,11 +247,11 @@ When user says "the email thing", "that feature", or similar:
 
 ## Mirrors (GODAR)
 
-| Phase | /open | /ground | /close |
-|-------|-------|---------|--------|
-| **G**ate | Load beads, offer todoist | Load beads if not loaded | — |
-| **G**ather | Notifications (stdout) → Read files | Todos, beads, drift | Todos, beads, git, drift |
-| **O**rient | "Where we left off" | "What's drifted" | Reflect (AskUserQuestion) |
-| **D**ecide | User picks direction | Continue or adjust | Crystallize actions (STOP) |
-| **A**ct | Draw-down → TodoWrite | Update beads, reset | Execute, handoff, commit |
-| **R**emember | — | Optional: memory skill | Captured in handoff |
+| Phase | /open | /close |
+|-------|-------|--------|
+| **G**ate | Load beads, offer todoist | — |
+| **G**ather | Notifications (stdout) → Read files | Todos, beads, git, drift |
+| **O**rient | "Where we left off" | Reflect (AskUserQuestion) |
+| **D**ecide | User picks direction | Crystallize actions (STOP) |
+| **A**ct | Draw-down → TodoWrite | Execute, handoff, commit |
+| **R**emember | — | Captured in handoff |

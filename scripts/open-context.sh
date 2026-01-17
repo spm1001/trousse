@@ -6,7 +6,10 @@
 set -e
 
 # === PATHS ===
-CONTEXT_DIR="$HOME/.claude/.session-context"
+BASE_CONTEXT_DIR="$HOME/.claude/.session-context"
+CWD=$(pwd -P)
+ENCODED_PATH=$(echo "$CWD" | tr '/.' '-')
+CONTEXT_DIR="$BASE_CONTEXT_DIR/$ENCODED_PATH"
 mkdir -p "$CONTEXT_DIR"
 
 # === SELF-VALIDATION ===
@@ -71,9 +74,7 @@ fi
 
 # --- HANDOFFS ---
 ARCHIVE_DIR="$HOME/.claude/handoffs"
-CWD=$(pwd -P)
 NOW=$(date +%s)
-ENCODED_PATH=$(echo "$CWD" | tr '/.' '-')
 PROJECT_FOLDER="$ARCHIVE_DIR/$ENCODED_PATH"
 HANDOFF_INDEX="$CONTEXT_DIR/handoffs.txt"
 
@@ -83,7 +84,8 @@ if [ -d "$PROJECT_FOLDER" ]; then
 
     if [ "$HANDOFF_COUNT" -gt 0 ]; then
         # Write index file with metadata
-        > "$HANDOFF_INDEX"
+        echo "# Generated for: $CWD" > "$HANDOFF_INDEX"
+        echo "" >> "$HANDOFF_INDEX"
         echo "$HANDOFF_FILES" | while IFS= read -r f; do
             [ -z "$f" ] && continue
             FILE_TIME=$(stat -f '%m' "$f" 2>/dev/null || stat -c '%Y' "$f" 2>/dev/null)
@@ -141,6 +143,7 @@ if [ -d ".beads" ]; then
     # Write beads context to file
     {
         echo "# Beads Context (generated $(date '+%Y-%m-%d %H:%M'))"
+        echo "# Generated for: $CWD"
         echo ""
         echo "## Ready Work"
         echo "$READY_OUTPUT"

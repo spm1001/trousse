@@ -189,7 +189,6 @@ bd ready
 
 **At /open:** Portfolio can inform where to focus
 **At /close:** Portfolio shows impact of session's work
-**At /ground:** Portfolio helps reset if drifted into wrong project
 
 ## Filtering
 

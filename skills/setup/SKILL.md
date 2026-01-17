@@ -20,7 +20,7 @@ Install Claude behavioral skills with one command.
 ## What Gets Installed
 
 **Behavioral skills** (all installed together):
-- Session lifecycle: `/open`, `/ground`, `/close`
+- Session lifecycle: `/open`, `/close`
 - Issue tracking: `beads`
 - Utilities: diagram, screenshot, filing, github-cleanup, picture, server-checkup, skill-check, sprite, dbt
 

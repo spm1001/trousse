@@ -120,7 +120,7 @@ if [[ "$VERIFY_ONLY" == true ]]; then
 
     # Check skills
     info "Checking skills..."
-    for skill in beads close diagram filing github-cleanup ground open picture screenshot server-checkup session-closing session-grounding session-opening setup skill-check; do
+    for skill in beads close diagram filing github-cleanup open picture screenshot server-checkup session-closing session-opening setup skill-check; do
         if [[ -L "$HOME/.claude/skills/$skill" ]]; then
             target=$(readlink "$HOME/.claude/skills/$skill")
             if [[ -d "$target" ]]; then
@@ -388,7 +388,6 @@ echo "  Session lifecycle (runs automatically):"
 echo "    • On startup: time, handoffs, and ready work shown"
 echo "    • /open  — Resume context from previous session"
 echo "    • /close — Create handoff for next session"
-echo "    • /ground — Mid-session checkpoint when things drift"
 echo ""
 echo "  Utilities:"
 echo "    • /diagram, /screenshot, /picture — Visual tools"
@@ -403,7 +402,7 @@ echo ""
 # Quick verification (silent unless errors)
 if [[ "$DRY_RUN" != true ]]; then
     VERIFY_ERRORS=0
-    for skill in beads close diagram filing github-cleanup ground open picture screenshot server-checkup session-closing session-grounding session-opening setup skill-check; do
+    for skill in beads close diagram filing github-cleanup open picture screenshot server-checkup session-closing session-opening setup skill-check; do
         if [[ ! -L "$HOME/.claude/skills/$skill" ]] && [[ ! -d "$HOME/.claude/skills/$skill" ]]; then
             VERIFY_ERRORS=$((VERIFY_ERRORS + 1))
         fi

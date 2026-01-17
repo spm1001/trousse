@@ -18,7 +18,6 @@ Then restart Claude Code (`/exit` → `claude`).
 - On startup: Time, previous handoffs, and ready work shown
 - `/open` — Resume context from previous session
 - `/close` — Create handoff for next session
-- `/ground` — Mid-session checkpoint when things drift
 
 **Issue tracking** — for work spanning multiple sessions:
 - `beads` — Track work with dependencies (requires [bd CLI](https://github.com/beads-dev/bd))
