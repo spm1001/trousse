@@ -51,6 +51,7 @@ Manage [Sprites.dev](https://sprites.dev/) remote development environments — p
 - Wake instantly on any command
 - Checkpoints capture full filesystem state (milliseconds, copy-on-write)
 - Pre-installed: Claude Code, gh, Python, Node.js, Go
+- **NOT pre-installed:** uv, bd (beads), locale config, Ghostty terminfo
 
 **Sprite States:**
 - `cold` — Hibernated, no resources consumed
@@ -65,18 +66,32 @@ Fresh sprites have `gh` but not authenticated:
 # 1. Authenticate with GitHub (one-time, interactive)
 gh auth login
 
-# 2. Clone config (HTTPS works with gh auth)
+# 2. CRITICAL: Enable git credential helper for uv/pip
+gh auth setup-git
+
+# 3. Fix locale (prevents "can't set locale" errors)
+sudo locale-gen en_US.UTF-8
+echo 'export LANG=en_US.UTF-8' >> ~/.bashrc
+echo 'export LC_ALL=en_US.UTF-8' >> ~/.bashrc
+
+# 4. Install uv (not pre-installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 5. Install bd/beads (if using beads workflow)
+curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
+
+# 6. Clone config (HTTPS works with gh auth)
 rm -rf ~/.claude
 git clone --recurse-submodules https://github.com/spm1001/claude-config.git ~/.claude
 
-# 3. Run setup
+# 7. Run setup
 cd ~/.claude && ./scripts/setup-machine.sh
 
-# 4. Set up shared memory (optional but recommended)
+# 8. Set up shared memory (optional but recommended)
 # See "Memory Integration" section below
 
-# 5. Checkpoint so you don't repeat this
-sprite checkpoint create
+# 9. Checkpoint so you don't repeat this
+sprite checkpoint create --comment "Fresh setup with gh, uv, bd, locale"
 ```
 
 ## Common Workflows
@@ -207,12 +222,16 @@ Things discovered through use that may not be obvious:
 | Finding | Implication |
 |---------|-------------|
 | Fresh sprites have `gh` but not authenticated | Need `gh auth login` before cloning private repos |
+| `gh auth` ≠ git credential helper | Must run `gh auth setup-git` for uv/pip to access private repos |
+| uv uses libgit2, not git CLI | Won't inherit git config; needs credential helper explicitly configured |
 | Checkpoints are per-sprite | Can't restore sprite-A's checkpoint to sprite-B |
 | HTTPS + gh credential helper works | Use HTTPS URLs, not SSH |
 | Auth survives checkpoints | Checkpoint after `gh auth login` to preserve |
 | `sprite use` avoids `-s` flag | Set once per directory, simpler commands |
 | `claude -p` needs PTY for output | Use `script -q /dev/null -c "..."` wrapper |
 | Sprite Claude ≠ local Claude | Fresh sprite has no skills/config until setup |
+| Locale not configured by default | Causes "can't set locale" warnings on many commands |
+| Ghostty terminfo missing | Terminal rendering issues if using Ghostty locally |
 
 ## Docs
 
@@ -227,11 +246,34 @@ Things discovered through use that may not be obvious:
 |-------|-----|
 | "Permission denied (publickey)" | Use HTTPS not SSH, or run `gh auth login` |
 | "could not read Username" | Run `gh auth login` to configure credential helper |
+| `uv tool install` fails on private repo | Run `gh auth setup-git` — uv needs credential helper |
+| "can't set the locale" warnings | `sudo locale-gen en_US.UTF-8` + add LANG/LC_ALL to .bashrc |
+| Ghostty terminal rendering issues | Install terminfo (see Ghostty section below) |
 | Checkpoint not found | Checkpoints are per-sprite, can't cross-restore |
 | Command not found in exec | Pass full command to bash: `sprite exec bash -c "..."` |
 | Port not accessible | Use `sprite proxy <port>` to tunnel locally |
 | `claude -p` returns empty output | Use PTY wrapper: `script -q /dev/null -c "claude -p ..."` |
 | Sprite-Claude missing skills | Run setup on sprite — it's a fresh environment |
+| beads "legacy database" error | Run `bd migrate --update-repo-id` in project directory |
+
+## Ghostty Terminal Support
+
+If using [Ghostty](https://ghostty.org/) locally, sprites won't have the `xterm-ghostty` terminfo entry. This causes rendering issues.
+
+**Fix:** Copy terminfo from local machine to sprite:
+
+```bash
+# From local machine (one-time per sprite)
+infocmp -x xterm-ghostty > /tmp/ghostty.terminfo
+
+# Copy to sprite and install
+cat /tmp/ghostty.terminfo | sprite exec -s my-sprite bash -c 'cat > /tmp/ghostty.terminfo && tic -x /tmp/ghostty.terminfo'
+
+# Verify
+sprite exec -s my-sprite infocmp xterm-ghostty
+```
+
+**Alternative:** Set `TERM=xterm-256color` in sprite's shell config as a fallback.
 
 ## Anti-Patterns
 
@@ -241,6 +283,7 @@ Things discovered through use that may not be obvious:
 | Try to restore checkpoint across sprites | Each sprite has its own checkpoints | Checkpoints are per-sprite storage |
 | Run `sprite exec "multi word command"` | Use `sprite exec bash -c "..."` | exec needs command as separate args |
 | Skip `gh auth login` on fresh sprite | Always auth first | Private repos won't clone without it |
+| Assume `gh auth` enables uv/pip access | Run `gh auth setup-git` after login | uv uses libgit2, needs explicit credential helper |
 | Manually specify `-s` every time | Use `sprite use <name>` first | Sets default for directory |
 | Run `sprite exec claude -p "..."` directly | Wrap with `script -q /dev/null -c "..."` | Claude needs TTY for output |
 | Assume sprite-Claude has your config | Set up skills/config on sprite first | Sprites start fresh |
