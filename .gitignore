@@ -1,0 +1,16 @@
+# Environment
+.env
+.env.*
+.env.local
+
+# OS
+.DS_Store
+
+# Editor
+*.swp
+*~
+
+# Python
+__pycache__/
+*.pyc
+.venv/
