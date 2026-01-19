@@ -1,289 +1,243 @@
 ---
 name: sprite
-user-invocable: false
-description: Manages Sprites.dev remote Ubuntu VMs with checkpoint/restore. **Load this skill BEFORE any sprite exec, bootstrap, or troubleshooting.** Triggers on 'sprite', 'create a sprite', 'checkpoint', 'remote dev', 'sprites.dev', 'bootstrap sprite', 'proxy port', 'sprite exec'. Complements server-checkup for remote machine management. (user)
+description: Controls InnerClaude instances on Sprites.dev VMs for testing workflows, install patterns, and Claude-to-Claude interaction. INVOKE BEFORE any 'sprite exec', 'inner Claude', 'test this workflow', 'Claude controlling Claude', or remote VM operations. Provides the critical tmux+pipe-pane pattern that makes OuterClaude/InnerClaude interaction work. Also covers checkpoint/restore and bootstrap. (user)
 ---
 
 # Sprite Skill
 
-Manage [Sprites.dev](https://sprites.dev/) remote development environments — persistent Ubuntu VMs with checkpoint/restore from Fly.io.
+Manage [Sprites.dev](https://sprites.dev/) remote VMs with checkpoint/restore — and critically, **control an InnerClaude from OuterClaude**.
 
-## When to Load This Skill
+## When to Use
 
-**Load before ANY of these operations:**
-- `sprite exec` — critical patterns for output capture
-- Bootstrap/setup workflows — many gotchas
-- Running Claude Code on sprites — requires PTY trick
-- Troubleshooting connectivity or auth issues
-
-**Safe without skill:**
-- `sprite list`, `sprite checkpoint list` — simple read operations
-- `sprite console` — interactive, you'll see what happens
+- **OuterClaude/InnerClaude pattern** — Testing workflows, install flows, or any scenario where Claude controls Claude
+- **Remote development** — Running code on persistent Ubuntu VMs
+- **Checkpoint/restore workflows** — Snapshotting and restoring VM state
+- **Bootstrap new sprites** — First-time setup with auth and tools
 
 ## When NOT to Use
 
-- Local development (just use terminal directly)
-- Anthropic's Claude Code Web (different product, ephemeral VMs)
-- Server administration on non-sprite machines (use server-checkup)
+- **Local development** — Just use terminal directly
+- **Simple sprite commands** — `sprite list`, `sprite console` don't need this skill
+- **Claude Code Web** — Different product (ephemeral VMs, not Sprites.dev)
+- **Non-sprite servers** — Use server-checkup skill instead
+
+---
+
+## OuterClaude Pattern (Primary Use Case)
+
+This pattern enables **you (OuterClaude)** to operate an **InnerClaude** on a sprite as if you were the human user. Use for testing workflows, install patterns, or Claude-to-Claude interaction.
+
+### Mental Model
+
+**You (OuterClaude) are the user. InnerClaude is a CLI tool you're operating.**
+
+This framing is critical:
+- When you see InnerClaude's output → you're reading what a human would see
+- When you send input → you're typing what a human would type
+- Resist the instinct to "be" InnerClaude — you're operating it
+
+### The Working Loop
+
+```bash
+# 1. Create tmux session on sprite
+sprite exec bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
+
+# 2. Set up environment (NVM required for Claude to run)
+sprite exec bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
+sleep 3
+
+# 3. Start Claude interactively (NOT -p mode)
+sprite exec bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
+
+# 4. CRITICAL: Set up pipe-pane for output capture (capture-pane doesn't work!)
+sprite exec bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
+sleep 15
+
+# 5. Read captured output
+sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
+```
+
+### Why pipe-pane, Not capture-pane
+
+**`tmux capture-pane` does NOT work** for Claude's interactive UI. Claude uses the alternate screen buffer which `capture-pane` misses entirely.
+
+| Method | Works? | Why |
+|--------|--------|-----|
+| `capture-pane -p` | ❌ | Misses alternate screen buffer |
+| `capture-pane -a` | ❌ | Returns "no alternate screen" |
+| `pipe-pane "cat > file"` | ✅ | Captures all output including alternate screen |
+
+### Sending Input
+
+```bash
+# Send text to InnerClaude
+sprite exec bash -c 'tmux send-keys -t innerClaude "your message here" Enter'
+
+# Submit/approve (press Enter)
+sprite exec bash -c 'tmux send-keys -t innerClaude Enter'
+
+# Navigate options
+sprite exec bash -c 'tmux send-keys -t innerClaude Down'   # Next option
+sprite exec bash -c 'tmux send-keys -t innerClaude Up'     # Previous option
+
+# Cancel dialog
+sprite exec bash -c 'tmux send-keys -t innerClaude Escape'
+```
+
+### Recognizing Prompts
+
+| Prompt Type | Visual Markers | How to Respond |
+|-------------|----------------|----------------|
+| **Workspace trust** | "Do you trust the files in this folder?" | `Enter` (select Yes) |
+| **AskUserQuestion** | `☐ {header}` + numbered options with `❯` | `Enter` (current) or `Down`/`Up` then `Enter` |
+| **Write permission** | "Do you want to create {file}?" | `Enter` (Yes) |
+| **Edit permission** | "Do you want to edit {file}?" | `Enter` (Yes) |
+| **Bash permission** | "Do you want to proceed?" | `Enter` (Yes) |
+| **Ready for input** | `❯ ` prompt at bottom | Send your next message |
+
+### Response Codes
+
+| Input | Meaning |
+|-------|---------|
+| `Enter` | Select highlighted option (default) |
+| `1`, `2`, `3` | Explicit option selection |
+| `n` | No/deny |
+| `Escape` | Cancel dialog |
+
+### Auth Setup
+
+If InnerClaude shows "OAuth token expired" or "Please run /login":
+
+```bash
+# Run setup-token in a tmux session
+sprite exec bash -c 'tmux send-keys -t innerClaude "/exit" Enter'
+sprite exec bash -c 'tmux send-keys -t innerClaude "claude setup-token" Enter'
+
+# Capture the auth URL from output, open it for the user
+# After user authorizes, paste the code back:
+sprite exec bash -c 'tmux send-keys -t innerClaude "AUTH_CODE_HERE" Enter'
+
+# Or use environment variable for subsequent sessions:
+export CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
+```
+
+### Complete Example: Test an Install Flow
+
+```bash
+# 1. Restore to virgin snapshot
+sprite restore v11
+
+# 2. Start InnerClaude session
+sprite exec bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
+sprite exec bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
+sleep 3
+sprite exec bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
+sprite exec bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
+sleep 20
+
+# 3. Handle workspace trust dialog
+sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -50'  # See the dialog
+sprite exec bash -c 'tmux send-keys -t innerClaude Enter'              # Approve
+sleep 15
+
+# 4. Send install prompt
+sprite exec bash -c '> /tmp/claude-output.txt'  # Clear output
+sprite exec bash -c 'tmux send-keys -t innerClaude "Help me install X from github.com/repo" Enter'
+sleep 2
+sprite exec bash -c 'tmux send-keys -t innerClaude Enter'  # Submit
+sleep 30
+
+# 5. Monitor and respond to permission prompts
+sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
+# See permission prompt → approve with Enter
+sprite exec bash -c 'tmux send-keys -t innerClaude Enter'
+
+# 6. Cleanup
+sprite exec bash -c 'tmux kill-session -t innerClaude'
+```
+
+### Common Pitfalls
+
+| Pitfall | Fix |
+|---------|-----|
+| Using `-p` mode for interactive dialogs | Use tmux + interactive `claude` instead |
+| Using `capture-pane` instead of `pipe-pane` | Claude's UI needs `pipe-pane` |
+| Not sourcing NVM before running `claude` | Add NVM setup to session init |
+| Sending Enter before prompt renders | Always `sleep` then capture before responding |
+| Forgetting to submit prompts | After typing text, send `Enter` separately |
+| OAuth token expired | Use `CLAUDE_CODE_OAUTH_TOKEN` env var or run `claude setup-token` |
+
+---
 
 ## Quick Reference
 
-| Command | What it does |
-|---------|--------------|
+| Command | Purpose |
+|---------|---------|
 | `sprite list` | List all sprites |
-| `sprite create <name>` | Create new sprite |
-| `sprite use <name>` | Activate sprite for current directory |
-| `sprite exec <cmd>` | Run command (uses active sprite) |
-| `sprite exec -s <name> <cmd>` | Run command on specific sprite |
-| `sprite console` | Interactive shell |
+| `sprite use <name>` | Set default sprite for directory |
+| `sprite exec <cmd>` | Run command on active sprite |
+| `sprite console` | Interactive shell (for humans) |
 | `sprite checkpoint create` | Snapshot current state |
 | `sprite checkpoint list` | List checkpoints |
 | `sprite restore <id>` | Restore to checkpoint |
-| `sprite proxy <port>` | Forward local port to sprite |
-| `sprite url` | Show sprite's public URL |
-| `sprite url update --auth public` | Make URL publicly accessible |
-| `sprite destroy` | Delete current sprite |
-| `sprite upgrade` | Update CLI to latest version |
+| `sprite proxy <port>` | Forward port locally |
 
-## What Sprites Are
+**For detailed command reference:** See [references/commands.md](references/commands.md)
 
-- Persistent Ubuntu VMs with auto-hibernate (no charge when sleeping)
-- Wake instantly on any command
-- Checkpoints capture full filesystem state (milliseconds, copy-on-write)
-- Pre-installed: Claude Code, gh, Python, Node.js, Go
-- **NOT pre-installed:** uv, bd (beads), locale config, Ghostty terminfo
+---
 
-**Sprite States:**
-- `cold` — Hibernated, no resources consumed
-- `warm` — Waking up
-- `running` — Active, executing commands
+## Setup & Bootstrap
 
-## First-Time Setup (per sprite)
+Fresh sprites need authentication and tool setup before use.
 
-Fresh sprites have `gh` but not authenticated:
-
-```bash
-# 1. Authenticate with GitHub (one-time, interactive)
-gh auth login
-
-# 2. CRITICAL: Enable git credential helper for uv/pip
-gh auth setup-git
-
-# 3. Fix locale (prevents "can't set locale" errors)
-sudo locale-gen en_US.UTF-8
-echo 'export LANG=en_US.UTF-8' >> ~/.bashrc
-echo 'export LC_ALL=en_US.UTF-8' >> ~/.bashrc
-
-# 4. Install uv (not pre-installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 5. Install bd/beads (if using beads workflow)
-curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
-
-# 6. Clone config (HTTPS works with gh auth)
-rm -rf ~/.claude
-git clone --recurse-submodules https://github.com/spm1001/claude-config.git ~/.claude
-
-# 7. Run setup
-cd ~/.claude && ./scripts/setup-machine.sh
-
-# 8. Set up shared memory (optional but recommended)
-# See "Memory Integration" section below
-
-# 9. Checkpoint so you don't repeat this
-sprite checkpoint create --comment "Fresh setup with gh, uv, bd, locale"
-```
-
-## Common Workflows
-
-### Bootstrap a new sprite
+**Quick bootstrap:**
 ```bash
 sprite create my-sprite
-sprite use my-sprite                    # Activate for current directory
-sprite exec gh auth login               # Follow browser auth flow
-sprite exec bash -c "rm -rf ~/.claude && git clone --recurse-submodules https://github.com/spm1001/claude-config.git ~/.claude && ~/.claude/scripts/setup-machine.sh"
-sprite checkpoint create
+sprite use my-sprite
+sprite exec gh auth login          # GitHub auth (interactive)
+sprite exec gh auth setup-git      # Enable credential helper
+sprite checkpoint create --comment "Fresh with gh auth"
 ```
 
-### Run commands on sprite
-```bash
-# Single command (after `sprite use`)
-sprite exec ls -la
+**For full setup guide:** See [references/setup.md](references/setup.md)
 
-# With explicit sprite
-sprite exec -s my-sprite ls -la
-
-# Multi-command (use bash -c)
-sprite exec bash -c "cd ~/Repos/foo && git pull && npm test"
-```
-
-### Access a web server on sprite
-```bash
-# Start server on sprite
-sprite exec -s my-sprite bash -c "cd ~/app && npm start"
-
-# In another terminal, proxy the port
-sprite proxy 3000
-
-# Now access http://localhost:3000 locally
-```
-
-### Make sprite publicly accessible
-```bash
-sprite url                      # Show current URL
-sprite url update --auth public # Make public (no auth required)
-sprite url update --auth sprite # Restore auth requirement
-```
-
-### Sync config changes
-```bash
-sprite exec bash -c "cd ~/.claude && git pull origin main"
-```
-
-## Exec Options
-
-The exec API supports several parameters:
-
-| Parameter | Description |
-|-----------|-------------|
-| `tty` | Enable TTY mode (interactive, detachable) |
-| `env` | Set environment variables (`KEY=VALUE`) |
-| `max_run_after_disconnect` | How long command runs after disconnect |
-| `rows`, `cols` | Terminal dimensions |
-
-TTY sessions persist after disconnect — start a dev server, disconnect, reconnect later.
-
-## Network Policy
-
-Sprites support DNS-based outbound filtering:
-
-```bash
-# Via API - restrict to specific domains
-sprite api POST /v1/sprites/{name}/policy/network \
-  -d '{"rules": [{"domain": "github.com", "action": "allow"}]}'
-```
-
-Use for security-sensitive environments where you need to restrict network access.
-
-## SDKs
-
-Programmatic access beyond the CLI:
-
-| Language | Package | Install |
-|----------|---------|---------|
-| Python | `sprites-py` | `pip install sprites-py` |
-| Node.js | `@fly/sprites` | `npm install @fly/sprites` |
-| Go | `sprites-go` | `go get github.com/superfly/sprites-go` |
-| Elixir | `sprites-ex` | `{:sprites, github: "superfly/sprites-ex"}` |
-
-**Python example:**
-```python
-import os
-from sprites import SpritesClient
-
-client = SpritesClient(os.environ["SPRITE_TOKEN"])
-output = client.sprite("my-sprite").command("ls", "-la").output()
-print(output.decode())
-```
-
-**API Base:** `https://api.sprites.dev/v1/` with `Authorization: Bearer $SPRITES_TOKEN`
-
-## Running Claude on Sprites (Critical)
-
-**Problem:** `sprite exec` + `claude -p` produces no output. Claude needs a TTY.
-
-**Solution:** Use the `script` command to create a pseudo-TTY:
-
-```bash
-# This captures output correctly
-sprite exec -s my-sprite bash -c 'script -q /dev/null -c "claude -p \"your prompt here\"" 2>&1'
-
-# Example: Ask sprite-Claude to list skills
-sprite exec -s my-sprite bash -c 'script -q /dev/null -c "claude -p \"What skills do I have?\"" 2>&1'
-```
-
-**Why this works:** The `script` command creates a PTY (pseudo-terminal). Claude's `-p` mode requires a TTY for output — without it, the command exits successfully but produces nothing.
-
-**For interactive sessions:** Use `sprite console` instead, then run `claude` normally inside.
-
-**Multi-turn conversations:** Use `--continue` flag:
-```bash
-# First message
-sprite exec -s my-sprite bash -c 'script -q /dev/null -c "claude -p \"Start a project\"" 2>&1'
-
-# Continue conversation
-sprite exec -s my-sprite bash -c 'script -q /dev/null -c "claude -p \"Add tests\" --continue" 2>&1'
-```
-
-## Empirical Learnings
-
-Things discovered through use that may not be obvious:
-
-| Finding | Implication |
-|---------|-------------|
-| Fresh sprites have `gh` but not authenticated | Need `gh auth login` before cloning private repos |
-| `gh auth` ≠ git credential helper | Must run `gh auth setup-git` for uv/pip to access private repos |
-| uv uses libgit2, not git CLI | Won't inherit git config; needs credential helper explicitly configured |
-| Checkpoints are per-sprite | Can't restore sprite-A's checkpoint to sprite-B |
-| HTTPS + gh credential helper works | Use HTTPS URLs, not SSH |
-| Auth survives checkpoints | Checkpoint after `gh auth login` to preserve |
-| `sprite use` avoids `-s` flag | Set once per directory, simpler commands |
-| `claude -p` needs PTY for output | Use `script -q /dev/null -c "..."` wrapper |
-| Sprite Claude ≠ local Claude | Fresh sprite has no skills/config until setup |
-| Locale not configured by default | Causes "can't set locale" warnings on many commands |
-| Ghostty terminfo missing | Terminal rendering issues if using Ghostty locally |
-
-## Docs
-
-- [sprites.dev/api](https://sprites.dev/api) — Official API documentation (comprehensive)
-- [sprites.dev](https://sprites.dev/) — Main site, features overview
-- [community.fly.io](https://community.fly.io/) — Fly.io forum (search "sprites")
-- CLI has good `--help`: `sprite --help`, `sprite checkpoint --help`
+---
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| "Permission denied (publickey)" | Use HTTPS not SSH, or run `gh auth login` |
-| "could not read Username" | Run `gh auth login` to configure credential helper |
-| `uv tool install` fails on private repo | Run `gh auth setup-git` — uv needs credential helper |
-| "can't set the locale" warnings | `sudo locale-gen en_US.UTF-8` + add LANG/LC_ALL to .bashrc |
-| Ghostty terminal rendering issues | Install terminfo (see Ghostty section below) |
-| Checkpoint not found | Checkpoints are per-sprite, can't cross-restore |
-| Command not found in exec | Pass full command to bash: `sprite exec bash -c "..."` |
-| Port not accessible | Use `sprite proxy <port>` to tunnel locally |
-| `claude -p` returns empty output | Use PTY wrapper: `script -q /dev/null -c "claude -p ..."` |
-| Sprite-Claude missing skills | Run setup on sprite — it's a fresh environment |
-| beads "legacy database" error | Run `bd migrate --update-repo-id` in project directory |
+| `capture-pane` shows nothing | Use `pipe-pane` instead — see OuterClaude Pattern |
+| Claude won't start in tmux | Source NVM first — see Working Loop |
+| "OAuth token expired" | Set `CLAUDE_CODE_OAUTH_TOKEN` or run `claude setup-token` |
+| "Permission denied (publickey)" | Use HTTPS URLs, run `gh auth login` |
+| `claude -p` returns empty | Use PTY wrapper: `script -q /dev/null -c "claude -p ..."` |
 
-## Ghostty Terminal Support
+**For full troubleshooting guide:** See [references/troubleshooting.md](references/troubleshooting.md)
 
-If using [Ghostty](https://ghostty.org/) locally, sprites won't have the `xterm-ghostty` terminfo entry. This causes rendering issues.
-
-**Fix:** Copy terminfo from local machine to sprite:
-
-```bash
-# From local machine (one-time per sprite)
-infocmp -x xterm-ghostty > /tmp/ghostty.terminfo
-
-# Copy to sprite and install
-cat /tmp/ghostty.terminfo | sprite exec -s my-sprite bash -c 'cat > /tmp/ghostty.terminfo && tic -x /tmp/ghostty.terminfo'
-
-# Verify
-sprite exec -s my-sprite infocmp xterm-ghostty
-```
-
-**Alternative:** Set `TERM=xterm-256color` in sprite's shell config as a fallback.
+---
 
 ## Anti-Patterns
 
 | Don't | Do Instead | Why |
 |-------|------------|-----|
-| Use SSH URLs for git clone | Use HTTPS URLs | gh credential helper works with HTTPS |
-| Try to restore checkpoint across sprites | Each sprite has its own checkpoints | Checkpoints are per-sprite storage |
-| Run `sprite exec "multi word command"` | Use `sprite exec bash -c "..."` | exec needs command as separate args |
-| Skip `gh auth login` on fresh sprite | Always auth first | Private repos won't clone without it |
-| Assume `gh auth` enables uv/pip access | Run `gh auth setup-git` after login | uv uses libgit2, needs explicit credential helper |
-| Manually specify `-s` every time | Use `sprite use <name>` first | Sets default for directory |
-| Run `sprite exec claude -p "..."` directly | Wrap with `script -q /dev/null -c "..."` | Claude needs TTY for output |
-| Assume sprite-Claude has your config | Set up skills/config on sprite first | Sprites start fresh |
+| Use `capture-pane` for Claude UI | Use `pipe-pane` | Alternate screen buffer not captured |
+| Run `claude` without NVM setup | Source NVM first in tmux | Node won't be in PATH |
+| Use `-p` mode for interactive testing | Use tmux + interactive `claude` | Can't handle dialogs |
+| Assume OAuth persists across restores | Export `CLAUDE_CODE_OAUTH_TOKEN` | Checkpoints may have stale tokens |
+| Use SSH URLs for git | Use HTTPS URLs | gh credential helper needs HTTPS |
+| Skip `gh auth setup-git` | Always run after `gh auth login` | uv/pip need credential helper |
+
+---
+
+## Integration with Other Skills
+
+**Complements:**
+- **server-checkup** — For non-sprite Linux servers
+- **claude-go (google-workspace skill)** — Shares interaction patterns (tmux send-keys)
+
+**Virgin Snapshot Pattern:**
+Maintain a checkpoint with Anthropic + GitHub auth but no customizations. Restore before each test:
+```bash
+sprite restore v11  # Your virgin checkpoint ID
+```
