@@ -36,6 +36,23 @@ This framing is critical:
 - When you send input → you're typing what a human would type
 - Resist the instinct to "be" InnerClaude — you're operating it
 
+### Prerequisites: Authentication
+
+**Claude needs a valid OAuth token to start.** Without it, Claude exits silently — no error message, no node process, just an empty output file.
+
+**Critical insight:** Checkpoints don't persist environment variables. Even if you created a checkpoint right after authenticating, the token won't be there on restore. You must export it fresh every time.
+
+**Before starting the Working Loop, you need a token.** Either:
+1. **Get one from the user:** Ask them to provide `CLAUDE_CODE_OAUTH_TOKEN`
+2. **Run setup-token flow:** See [Auth Setup](#auth-setup) section below
+
+**To verify auth will work before starting:**
+```bash
+sprite exec bash -c 'export NVM_DIR="/.sprite/languages/node/nvm" && . "$NVM_DIR/nvm.sh" && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=<token> && claude --version'
+```
+
+If this returns a version number, auth is good. If it says "Invalid API key", the token is expired/invalid.
+
 ### The Working Loop
 
 ```bash
@@ -46,16 +63,29 @@ sprite exec bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
 sprite exec bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
 sleep 3
 
-# 3. Start Claude interactively (NOT -p mode)
+# 3. CRITICAL: Export OAuth token INSIDE the tmux session
+# Without this, Claude exits silently with no error
+sprite exec bash -c 'tmux send-keys -t innerClaude "export CLAUDE_CODE_OAUTH_TOKEN=<your-token>" Enter'
+sleep 1
+
+# 4. Start Claude interactively (NOT -p mode)
 sprite exec bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
 
-# 4. CRITICAL: Set up pipe-pane for output capture (capture-pane doesn't work!)
+# 5. Set up pipe-pane for output capture (capture-pane doesn't work!)
 sprite exec bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
-sleep 15
+sleep 25  # Claude needs 20-30 seconds to fully start
 
-# 5. Read captured output (strings filters escape codes into readable text)
+# 6. Verify Claude started (should be >1000 bytes if running)
+sprite exec bash -c 'wc -c /tmp/claude-output.txt'
+
+# 7. Read captured output (strings filters escape codes into readable text)
 sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
 ```
+
+**Diagnostic: If output file is tiny (<500 bytes):**
+- Check for node process: `sprite exec bash -c 'ps aux | grep node'`
+- If no node process → auth failed. Token is invalid/expired.
+- Re-run setup-token flow or get fresh token from user.
 
 ### Why pipe-pane, Not capture-pane
 
@@ -126,6 +156,10 @@ export CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
 ### Complete Example: Test an Install Flow
 
 ```bash
+# 0. Get OAuth token from user first (required!)
+# Ask: "Please provide your CLAUDE_CODE_OAUTH_TOKEN"
+TOKEN="sk-ant-oat01-..."  # User provides this
+
 # 1. Restore to virgin snapshot
 sprite restore v11
 
@@ -133,28 +167,38 @@ sprite restore v11
 sprite exec bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
 sprite exec bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
 sleep 3
+
+# 3. CRITICAL: Export token inside tmux session
+sprite exec bash -c "tmux send-keys -t innerClaude 'export CLAUDE_CODE_OAUTH_TOKEN=$TOKEN' Enter"
+sleep 1
+
+# 4. Start Claude and set up capture
 sprite exec bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
 sprite exec bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
-sleep 20
+sleep 25
 
-# 3. Handle workspace trust dialog
+# 5. Verify Claude started
+sprite exec bash -c 'wc -c /tmp/claude-output.txt'  # Should be >1000 bytes
+sprite exec bash -c 'ps aux | grep node | grep -v grep'  # Should show claude process
+
+# 6. Handle workspace trust dialog
 sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -50'  # See the dialog
 sprite exec bash -c 'tmux send-keys -t innerClaude Enter'              # Approve
 sleep 15
 
-# 4. Send install prompt
+# 7. Send install prompt
 sprite exec bash -c '> /tmp/claude-output.txt'  # Clear output
 sprite exec bash -c 'tmux send-keys -t innerClaude "Help me install X from github.com/repo" Enter'
 sleep 2
 sprite exec bash -c 'tmux send-keys -t innerClaude Enter'  # Submit
 sleep 30
 
-# 5. Monitor and respond to permission prompts
+# 8. Monitor and respond to permission prompts
 sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
 # See permission prompt → approve with Enter
 sprite exec bash -c 'tmux send-keys -t innerClaude Enter'
 
-# 6. Cleanup
+# 9. Cleanup
 sprite exec bash -c 'tmux kill-session -t innerClaude'
 ```
 
@@ -162,12 +206,15 @@ sprite exec bash -c 'tmux kill-session -t innerClaude'
 
 | Pitfall | Fix |
 |---------|-----|
+| **Token not exported in tmux session** | Export `CLAUDE_CODE_OAUTH_TOKEN` INSIDE the tmux session, not just outer shell |
+| Claude starts but output file stays tiny | Auth failed silently. Check `ps aux | grep node` — no process means bad token |
 | Using `-p` mode for interactive dialogs | Use tmux + interactive `claude` instead |
 | Using `capture-pane` instead of `pipe-pane` | Claude's UI needs `pipe-pane` |
 | Not sourcing NVM before running `claude` | Add NVM setup to session init |
 | Sending Enter before prompt renders | Always `sleep` then capture before responding |
 | Forgetting to submit prompts | After typing text, send `Enter` separately |
-| OAuth token expired | Use `CLAUDE_CODE_OAUTH_TOKEN` env var or run `claude setup-token` |
+| OAuth token expired | Tokens expire within ~24h. Re-run setup-token or get fresh token |
+| Assuming checkpoint has valid auth | Checkpoints don't persist env vars. Export token fresh every time |
 
 ---
 
@@ -209,11 +256,30 @@ sprite checkpoint create --comment "Fresh with gh auth"
 
 | Issue | Fix |
 |-------|-----|
+| **Output file tiny, no node process** | Auth failed silently. Token must be exported INSIDE tmux session |
 | `capture-pane` shows nothing | Use `pipe-pane` instead — see OuterClaude Pattern |
 | Claude won't start in tmux | Source NVM first — see Working Loop |
-| "OAuth token expired" | Set `CLAUDE_CODE_OAUTH_TOKEN` or run `claude setup-token` |
+| "OAuth token expired" or "Invalid API key" | Get fresh token. Run setup-token flow or ask user for token |
 | "Permission denied (publickey)" | Use HTTPS URLs, run `gh auth login` |
 | `claude -p` returns empty | Use PTY wrapper: `script -q /dev/null -c "claude -p ..."` |
+
+### Quick Diagnostic Sequence
+
+When InnerClaude isn't working:
+
+```bash
+# 1. Is there a node process?
+sprite exec bash -c 'ps aux | grep node | grep -v grep'
+# No output = Claude never started (usually auth)
+
+# 2. What's in the output file?
+sprite exec bash -c 'wc -c /tmp/claude-output.txt'
+# <500 bytes = Claude exited immediately
+
+# 3. Can Claude start at all with this token?
+sprite exec bash -c 'export NVM_DIR="/.sprite/languages/node/nvm" && . "$NVM_DIR/nvm.sh" && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=<token> && script -q /dev/null -c "claude -p \"hello\"" 2>&1'
+# "Invalid API key" = token expired/invalid
+```
 
 **For full troubleshooting guide:** See [references/troubleshooting.md](references/troubleshooting.md)
 
