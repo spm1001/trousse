@@ -7,6 +7,39 @@ description: Controls InnerClaude instances on Sprites.dev VMs for testing workf
 
 Manage [Sprites.dev](https://sprites.dev/) remote VMs with checkpoint/restore — and critically, **control an InnerClaude from OuterClaude**.
 
+## Quick Start: Ask InnerClaude Something
+
+**Copy-paste this.** Tested Jan 2026.
+
+```bash
+# Get token from Mac Keychain (or ask user for one)
+TOKEN=$(security find-generic-password -a claude-sprite -s CLAUDE_CODE_OAUTH_TOKEN -w)
+
+# Create tmux session and start Claude (literal paths, no escaping!)
+sprite exec -tty bash -c 'tmux kill-session -t innerClaude 2>/dev/null; tmux new-session -d -s innerClaude -x 150 -y 50'
+sprite exec -tty bash -c "tmux send-keys -t innerClaude 'source /.sprite/languages/node/nvm/nvm.sh && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=$TOKEN && export TERM=xterm-256color && claude' Enter"
+sprite exec -tty bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
+sleep 25
+
+# Approve workspace trust dialog
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'
+sleep 15
+
+# Send your message (TWO ENTERS to submit!)
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "Write a haiku about recursion" Enter Enter'
+sleep 30
+
+# Read response
+sprite exec -tty bash -c 'cat /tmp/claude-output.txt | strings | tail -60'
+
+# Cleanup
+sprite exec -tty bash -c 'tmux kill-session -t innerClaude'
+```
+
+**Key gotchas:** Use literal NVM path (no `$NVM_DIR`), TWO Enters to submit messages, `security` runs on local Mac not sprite.
+
+---
+
 ## When to Use
 
 - **OuterClaude/InnerClaude pattern** — Testing workflows, install flows, or any scenario where Claude controls Claude
@@ -43,42 +76,45 @@ This framing is critical:
 **Critical insight:** Checkpoints don't persist environment variables. Even if you created a checkpoint right after authenticating, the token won't be there on restore. You must export it fresh every time.
 
 **Before starting the Working Loop, you need a token.** Either:
-1. **Get one from the user:** Ask them to provide `CLAUDE_CODE_OAUTH_TOKEN`
-2. **Run setup-token flow:** See [Auth Setup](#auth-setup) section below
+1. **Retrieve from Keychain (local Mac):** `security find-generic-password -a claude-sprite -s CLAUDE_CODE_OAUTH_TOKEN -w`
+2. **Get one from the user:** Ask them to provide `CLAUDE_CODE_OAUTH_TOKEN`
+3. **Run setup-token flow on sprite:** See [Auth Setup](#auth-setup) section below
+
+**To store a token in Keychain (recommended, runs on your Mac not the sprite):**
+```bash
+# Run locally on Mac (OuterClaude side) — NOT on the sprite!
+security add-generic-password -a "claude-sprite" -s "CLAUDE_CODE_OAUTH_TOKEN" -w "<your-token>" -U
+```
 
 **To verify auth will work before starting:**
 ```bash
-sprite exec bash -c 'export NVM_DIR="/.sprite/languages/node/nvm" && . "$NVM_DIR/nvm.sh" && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=<token> && claude --version'
+sprite exec -tty bash -c 'source /.sprite/languages/node/nvm/nvm.sh && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=<token> && claude --version'
 ```
 
 If this returns a version number, auth is good. If it says "Invalid API key", the token is expired/invalid.
 
 ### The Working Loop
 
+**ESCAPING WARNING:** Variable expansion like `$NVM_DIR` gets mangled through multiple shell layers. Always use **literal paths** to avoid escaping hell.
+
 ```bash
 # 1. Create tmux session on sprite (use -tty for proper TTY allocation!)
 sprite exec -tty bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
 
-# 2. Set up environment (NVM required for Claude to run)
-sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
-sleep 3
+# 2. Set up environment + token + start Claude IN ONE COMMAND
+# CRITICAL: Use literal path /.sprite/languages/node/nvm/nvm.sh (no $NVM_DIR variable!)
+# Fetch token locally on Mac, then interpolate into the sprite command
+TOKEN=$(security find-generic-password -a claude-sprite -s CLAUDE_CODE_OAUTH_TOKEN -w)
+sprite exec -tty bash -c "tmux send-keys -t innerClaude 'source /.sprite/languages/node/nvm/nvm.sh && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=$TOKEN && export TERM=xterm-256color && claude' Enter"
 
-# 3. CRITICAL: Export OAuth token INSIDE the tmux session
-# Without this, Claude exits silently with no error
-sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export CLAUDE_CODE_OAUTH_TOKEN=<your-token>" Enter'
-sleep 1
-
-# 4. Start Claude interactively (NOT -p mode)
-sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
-
-# 5. Set up pipe-pane for output capture (capture-pane doesn't work!)
+# 3. Set up pipe-pane for output capture (capture-pane doesn't work!)
 sprite exec -tty bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
 sleep 25  # Claude needs 20-30 seconds to fully start
 
-# 6. Verify Claude started (should be >1000 bytes if running)
+# 4. Verify Claude started (should be >1000 bytes if running)
 sprite exec -tty bash -c 'wc -c /tmp/claude-output.txt'
 
-# 7. Read captured output (strings filters escape codes into readable text)
+# 5. Read captured output (strings filters escape codes into readable text)
 sprite exec -tty bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
 ```
 
@@ -101,16 +137,26 @@ sprite exec -tty bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
 
 ### Sending Input
 
+**TWO-ENTER PATTERN:** Claude's input box requires TWO Enters:
+1. First Enter after your text → moves to new line in input box
+2. Second Enter → actually submits the message
+
 ```bash
-# Send text to InnerClaude
+# Send text to InnerClaude (types text + newline, but DOES NOT submit yet!)
 sprite exec -tty bash -c 'tmux send-keys -t innerClaude "your message here" Enter'
 
-# Submit/approve (press Enter)
+# THEN submit with a second Enter
 sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'
 
-# Navigate options
+# Or combine: type, newline, then submit
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "your message here" Enter Enter'
+
+# Navigate options (for dialogs/AskUserQuestion)
 sprite exec -tty bash -c 'tmux send-keys -t innerClaude Down'   # Next option
 sprite exec -tty bash -c 'tmux send-keys -t innerClaude Up'     # Previous option
+
+# Approve dialog (single Enter works for dialogs - they're already focused)
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'
 
 # Cancel dialog
 sprite exec -tty bash -c 'tmux send-keys -t innerClaude Escape'
@@ -153,52 +199,50 @@ sprite exec -tty bash -c 'tmux send-keys -t innerClaude "AUTH_CODE_HERE" Enter'
 export CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
 ```
 
-### Complete Example: Test an Install Flow
+### Complete Example: Interactive Session
+
+This is the full annotated version of Quick Start. Use when you need to understand what's happening or debug issues.
 
 ```bash
-# 0. Get OAuth token from user first (required!)
-# Ask: "Please provide your CLAUDE_CODE_OAUTH_TOKEN"
-TOKEN="sk-ant-oat01-..."  # User provides this
+# 0. Get token from local Mac Keychain (this runs on YOUR machine, not the sprite!)
+TOKEN=$(security find-generic-password -a claude-sprite -s CLAUDE_CODE_OAUTH_TOKEN -w)
+# If that fails, ask user for token: TOKEN="sk-ant-oat01-..."
 
-# 1. Restore to virgin snapshot
-sprite restore v11
+# 1. (Optional) Restore to virgin snapshot for clean test
+# sprite restore v11
 
-# 2. Start InnerClaude session (use -tty throughout!)
-sprite exec -tty bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
-sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
-sleep 3
+# 2. Create fresh tmux session
+sprite exec -tty bash -c 'tmux kill-session -t innerClaude 2>/dev/null; tmux new-session -d -s innerClaude -x 150 -y 50'
 
-# 3. CRITICAL: Export token inside tmux session
-sprite exec -tty bash -c "tmux send-keys -t innerClaude 'export CLAUDE_CODE_OAUTH_TOKEN=$TOKEN' Enter"
-sleep 1
+# 3. Start Claude with NVM + token IN ONE COMMAND (use literal path, no $NVM_DIR!)
+sprite exec -tty bash -c "tmux send-keys -t innerClaude 'source /.sprite/languages/node/nvm/nvm.sh && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=$TOKEN && export TERM=xterm-256color && claude' Enter"
 
-# 4. Start Claude and set up capture
-sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
+# 4. Set up pipe-pane capture and wait for startup
 sprite exec -tty bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
 sleep 25
 
-# 5. Verify Claude started
-sprite exec -tty bash -c 'wc -c /tmp/claude-output.txt'  # Should be >1000 bytes
-sprite exec -tty bash -c 'ps aux | grep node | grep -v grep'  # Should show claude process
+# 5. Verify Claude started (should be >1000 bytes)
+sprite exec -tty bash -c 'wc -c /tmp/claude-output.txt'
 
-# 6. Handle workspace trust dialog
-sprite exec -tty bash -c 'cat /tmp/claude-output.txt | strings | tail -50'  # See the dialog
-sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'              # Approve
+# 6. Check for workspace trust dialog and approve
+sprite exec -tty bash -c 'cat /tmp/claude-output.txt | strings | tail -50'
+# If you see "Do you trust the files in this folder?" → approve it:
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'
 sleep 15
 
-# 7. Send install prompt
-sprite exec -tty bash -c '> /tmp/claude-output.txt'  # Clear output
-sprite exec -tty bash -c 'tmux send-keys -t innerClaude "Help me install X from github.com/repo" Enter'
-sleep 2
-sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'  # Submit
+# 7. Clear output and send your message (TWO ENTERS to submit!)
+sprite exec -tty bash -c '> /tmp/claude-output.txt'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "Your prompt here" Enter Enter'
 sleep 30
 
-# 8. Monitor and respond to permission prompts
+# 8. Read the response
 sprite exec -tty bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
-# See permission prompt → approve with Enter
-sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'
 
-# 9. Cleanup
+# 9. For multi-turn: approve permission prompts as needed
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'  # Approve permission
+# Repeat steps 7-9 for additional turns
+
+# 10. Cleanup
 sprite exec -tty bash -c 'tmux kill-session -t innerClaude'
 ```
 
@@ -206,15 +250,17 @@ sprite exec -tty bash -c 'tmux kill-session -t innerClaude'
 
 | Pitfall | Fix |
 |---------|-----|
+| **`$NVM_DIR` escaping breaks** | Use literal path `/.sprite/languages/node/nvm/nvm.sh` — no variables! |
+| **Message doesn't submit** | Need TWO Enters: first adds newline, second submits. Use `Enter Enter` |
 | **Token not exported in tmux session** | Export `CLAUDE_CODE_OAUTH_TOKEN` INSIDE the tmux session, not just outer shell |
 | Claude starts but output file stays tiny | Auth failed silently. Check `ps aux | grep node` — no process means bad token |
 | Using `-p` mode for interactive dialogs | Use tmux + interactive `claude` instead |
 | Using `capture-pane` instead of `pipe-pane` | Claude's UI needs `pipe-pane` |
 | Not sourcing NVM before running `claude` | Add NVM setup to session init |
 | Sending Enter before prompt renders | Always `sleep` then capture before responding |
-| Forgetting to submit prompts | After typing text, send `Enter` separately |
-| OAuth token expired | Tokens expire within ~24h. Re-run setup-token or get fresh token |
+| OAuth token expired | Long-lived tokens (setup-token) last ~1 year. Store in Keychain |
 | Assuming checkpoint has valid auth | Checkpoints don't persist env vars. Export token fresh every time |
+| `security` command on sprite | That's macOS — fetch token locally, then pass to sprite |
 
 ---
 
@@ -276,8 +322,10 @@ sprite exec -tty bash -c 'ps aux | grep node | grep -v grep'
 sprite exec -tty bash -c 'wc -c /tmp/claude-output.txt'
 # <500 bytes = Claude exited immediately
 
-# 3. Can Claude start at all with this token?
-sprite exec -tty bash -c 'export NVM_DIR="/.sprite/languages/node/nvm" && . "$NVM_DIR/nvm.sh" && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=<token> && claude -p "hello" 2>&1'
+# 3. Can Claude start at all with this token? (use literal path!)
+# Fetch token locally (Mac), then pass to sprite
+TOKEN=$(security find-generic-password -a claude-sprite -s CLAUDE_CODE_OAUTH_TOKEN -w)
+sprite exec -tty bash -c "source /.sprite/languages/node/nvm/nvm.sh && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=$TOKEN && claude -p 'hello' 2>&1"
 # "Invalid API key" = token expired/invalid
 ```
 
@@ -308,10 +356,13 @@ sprite exec -tty bash -c 'tty'  # Should show /dev/pts/0 or similar
 
 | Don't | Do Instead | Why |
 |-------|------------|-----|
+| Use `$NVM_DIR` variable in send-keys | Use literal `/.sprite/languages/node/nvm/nvm.sh` | Escaping hell across shell layers |
+| Send message with single Enter | Use `Enter Enter` (type + submit) | First Enter is newline, second submits |
 | Use `capture-pane` for Claude UI | Use `pipe-pane` | Alternate screen buffer not captured |
 | Run `claude` without NVM setup | Source NVM first in tmux | Node won't be in PATH |
 | Use `-p` mode for interactive testing | Use tmux + interactive `claude` | Can't handle dialogs |
 | Assume OAuth persists across restores | Export `CLAUDE_CODE_OAUTH_TOKEN` | Checkpoints may have stale tokens |
+| Run `security` on the sprite | Fetch token locally, pass to sprite | `security` is macOS, sprite is Linux |
 | Use SSH URLs for git | Use HTTPS URLs | gh credential helper needs HTTPS |
 | Skip `gh auth setup-git` | Always run after `gh auth login` | uv/pip need credential helper |
 
