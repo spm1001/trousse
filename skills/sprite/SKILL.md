@@ -56,34 +56,34 @@ If this returns a version number, auth is good. If it says "Invalid API key", th
 ### The Working Loop
 
 ```bash
-# 1. Create tmux session on sprite
-sprite exec bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
+# 1. Create tmux session on sprite (use -tty for proper TTY allocation!)
+sprite exec -tty bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
 
 # 2. Set up environment (NVM required for Claude to run)
-sprite exec bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
 sleep 3
 
 # 3. CRITICAL: Export OAuth token INSIDE the tmux session
 # Without this, Claude exits silently with no error
-sprite exec bash -c 'tmux send-keys -t innerClaude "export CLAUDE_CODE_OAUTH_TOKEN=<your-token>" Enter'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export CLAUDE_CODE_OAUTH_TOKEN=<your-token>" Enter'
 sleep 1
 
 # 4. Start Claude interactively (NOT -p mode)
-sprite exec bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
 
 # 5. Set up pipe-pane for output capture (capture-pane doesn't work!)
-sprite exec bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
+sprite exec -tty bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
 sleep 25  # Claude needs 20-30 seconds to fully start
 
 # 6. Verify Claude started (should be >1000 bytes if running)
-sprite exec bash -c 'wc -c /tmp/claude-output.txt'
+sprite exec -tty bash -c 'wc -c /tmp/claude-output.txt'
 
 # 7. Read captured output (strings filters escape codes into readable text)
-sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
+sprite exec -tty bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
 ```
 
 **Diagnostic: If output file is tiny (<500 bytes):**
-- Check for node process: `sprite exec bash -c 'ps aux | grep node'`
+- Check for node process: `sprite exec -tty bash -c 'ps aux | grep node'`
 - If no node process → auth failed. Token is invalid/expired.
 - Re-run setup-token flow or get fresh token from user.
 
@@ -103,17 +103,17 @@ sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
 
 ```bash
 # Send text to InnerClaude
-sprite exec bash -c 'tmux send-keys -t innerClaude "your message here" Enter'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "your message here" Enter'
 
 # Submit/approve (press Enter)
-sprite exec bash -c 'tmux send-keys -t innerClaude Enter'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'
 
 # Navigate options
-sprite exec bash -c 'tmux send-keys -t innerClaude Down'   # Next option
-sprite exec bash -c 'tmux send-keys -t innerClaude Up'     # Previous option
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Down'   # Next option
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Up'     # Previous option
 
 # Cancel dialog
-sprite exec bash -c 'tmux send-keys -t innerClaude Escape'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Escape'
 ```
 
 ### Recognizing Prompts
@@ -142,12 +142,12 @@ If InnerClaude shows "OAuth token expired" or "Please run /login":
 
 ```bash
 # Run setup-token in a tmux session
-sprite exec bash -c 'tmux send-keys -t innerClaude "/exit" Enter'
-sprite exec bash -c 'tmux send-keys -t innerClaude "claude setup-token" Enter'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "/exit" Enter'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "claude setup-token" Enter'
 
 # Capture the auth URL from output, open it for the user
 # After user authorizes, paste the code back:
-sprite exec bash -c 'tmux send-keys -t innerClaude "AUTH_CODE_HERE" Enter'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "AUTH_CODE_HERE" Enter'
 
 # Or use environment variable for subsequent sessions:
 export CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
@@ -163,43 +163,43 @@ TOKEN="sk-ant-oat01-..."  # User provides this
 # 1. Restore to virgin snapshot
 sprite restore v11
 
-# 2. Start InnerClaude session
-sprite exec bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
-sprite exec bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
+# 2. Start InnerClaude session (use -tty throughout!)
+sprite exec -tty bash -c 'tmux new-session -d -s innerClaude -x 150 -y 50'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export NVM_DIR=\"/.sprite/languages/node/nvm\" && . \"\$NVM_DIR/nvm.sh\" && nvm use default" Enter'
 sleep 3
 
 # 3. CRITICAL: Export token inside tmux session
-sprite exec bash -c "tmux send-keys -t innerClaude 'export CLAUDE_CODE_OAUTH_TOKEN=$TOKEN' Enter"
+sprite exec -tty bash -c "tmux send-keys -t innerClaude 'export CLAUDE_CODE_OAUTH_TOKEN=$TOKEN' Enter"
 sleep 1
 
 # 4. Start Claude and set up capture
-sprite exec bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
-sprite exec bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "export TERM=xterm-256color && claude" Enter'
+sprite exec -tty bash -c 'tmux pipe-pane -t innerClaude "cat > /tmp/claude-output.txt"'
 sleep 25
 
 # 5. Verify Claude started
-sprite exec bash -c 'wc -c /tmp/claude-output.txt'  # Should be >1000 bytes
-sprite exec bash -c 'ps aux | grep node | grep -v grep'  # Should show claude process
+sprite exec -tty bash -c 'wc -c /tmp/claude-output.txt'  # Should be >1000 bytes
+sprite exec -tty bash -c 'ps aux | grep node | grep -v grep'  # Should show claude process
 
 # 6. Handle workspace trust dialog
-sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -50'  # See the dialog
-sprite exec bash -c 'tmux send-keys -t innerClaude Enter'              # Approve
+sprite exec -tty bash -c 'cat /tmp/claude-output.txt | strings | tail -50'  # See the dialog
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'              # Approve
 sleep 15
 
 # 7. Send install prompt
-sprite exec bash -c '> /tmp/claude-output.txt'  # Clear output
-sprite exec bash -c 'tmux send-keys -t innerClaude "Help me install X from github.com/repo" Enter'
+sprite exec -tty bash -c '> /tmp/claude-output.txt'  # Clear output
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude "Help me install X from github.com/repo" Enter'
 sleep 2
-sprite exec bash -c 'tmux send-keys -t innerClaude Enter'  # Submit
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'  # Submit
 sleep 30
 
 # 8. Monitor and respond to permission prompts
-sprite exec bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
+sprite exec -tty bash -c 'cat /tmp/claude-output.txt | strings | tail -100'
 # See permission prompt → approve with Enter
-sprite exec bash -c 'tmux send-keys -t innerClaude Enter'
+sprite exec -tty bash -c 'tmux send-keys -t innerClaude Enter'
 
 # 9. Cleanup
-sprite exec bash -c 'tmux kill-session -t innerClaude'
+sprite exec -tty bash -c 'tmux kill-session -t innerClaude'
 ```
 
 ### Common Pitfalls
@@ -261,7 +261,7 @@ sprite checkpoint create --comment "Fresh with gh auth"
 | Claude won't start in tmux | Source NVM first — see Working Loop |
 | "OAuth token expired" or "Invalid API key" | Get fresh token. Run setup-token flow or ask user for token |
 | "Permission denied (publickey)" | Use HTTPS URLs, run `gh auth login` |
-| `claude -p` returns empty | Use PTY wrapper: `script -q /dev/null -c "claude -p ..."` |
+| `claude -p` returns empty | Use `sprite exec -tty` to allocate a PTY |
 
 ### Quick Diagnostic Sequence
 
@@ -269,40 +269,38 @@ When InnerClaude isn't working:
 
 ```bash
 # 1. Is there a node process?
-sprite exec bash -c 'ps aux | grep node | grep -v grep'
+sprite exec -tty bash -c 'ps aux | grep node | grep -v grep'
 # No output = Claude never started (usually auth)
 
 # 2. What's in the output file?
-sprite exec bash -c 'wc -c /tmp/claude-output.txt'
+sprite exec -tty bash -c 'wc -c /tmp/claude-output.txt'
 # <500 bytes = Claude exited immediately
 
 # 3. Can Claude start at all with this token?
-sprite exec bash -c 'export NVM_DIR="/.sprite/languages/node/nvm" && . "$NVM_DIR/nvm.sh" && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=<token> && script -q /dev/null -c "claude -p \"hello\"" 2>&1'
+sprite exec -tty bash -c 'export NVM_DIR="/.sprite/languages/node/nvm" && . "$NVM_DIR/nvm.sh" && nvm use default && export CLAUDE_CODE_OAUTH_TOKEN=<token> && claude -p "hello" 2>&1'
 # "Invalid API key" = token expired/invalid
 ```
 
 **For full troubleshooting guide:** See [references/troubleshooting.md](references/troubleshooting.md)
 
-### Known Issue: pipe-pane May Not Capture Output (Jan 2026)
+### TTY Allocation: Use `-tty` Flag (Jan 2026)
 
-**Symptom:** pipe-pane captures your *input* to InnerClaude but not InnerClaude's *responses*. You see your keystrokes in the output file but Claude's UI output is missing. InnerClaude shows "0 tokens" for extended periods.
+**The fix:** Always use `sprite exec -tty` when running commands that need TTY allocation (tmux, Claude, interactive tools).
 
-**Root cause:** The `sprite exec bash -c 'tmux ...'` chain doesn't allocate a proper PTY. InnerClaude reports `TTY=not a tty` and `stty: Inappropriate ioctl for device`.
-
-**Diagnostic:**
 ```bash
-sprite exec bash -c 'tmux send-keys -t innerClaude "tty" Enter'
-# If it returns "not a tty", output capture won't work reliably
-```
-
-**Potential fix (untested):** Use `sprite exec -tty` to allocate a pseudo-TTY:
-```bash
+# CORRECT: -tty allocates a PTY
 sprite exec -tty bash -c 'tmux new-session -d -s innerClaude ...'
+
+# WRONG: no TTY, pipe-pane won't capture output
+sprite exec bash -c 'tmux new-session -d -s innerClaude ...'
 ```
 
-**Workaround:** Human attaches directly via `sprite console` then `tmux attach -t innerClaude`. This establishes a proper terminal connection.
+**What `-tty` does:** Allocates `/dev/pts/X` so pipe-pane can capture both input AND output. Without it, you see keystrokes going in but Claude's responses are missing.
 
-**Status:** Open. The `-tty` flag exists but hasn't been tested with the full OuterClaude pattern.
+**Diagnostic (if output capture fails):**
+```bash
+sprite exec -tty bash -c 'tty'  # Should show /dev/pts/0 or similar
+```
 
 ---
 
