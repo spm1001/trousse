@@ -59,6 +59,8 @@ If no brand specified, use sensible defaults:
 ```
 This keeps lines together as one selectable object in editors like Inkscape. (Note: Affinity breaks this apart on import — see `references/svg-interop.md`.)
 
+**CRITICAL:** Never create separate unlinked `<text>` elements for lines that belong together semantically. If "New stories / to tell" is one label, it's one group — always. Ungrouped lines become editing nightmares.
+
 ### 4. Render to PNG
 
 ```bash
@@ -132,7 +134,11 @@ If issues found, fix and render again. Iterate until satisfied. Only then show u
 - Orphan element → add connector line or align to something
 - Low contrast → boost to #e2e8f0 minimum for text on dark backgrounds
 
-### 8. Show User
+### 8. Completeness Check
+
+Before showing user, ask: **what's missing from the domain?** You're visualising someone's mental model — have you captured all the key elements they'd expect to see? If the diagram is about "data partnerships" and you only listed two when there are three, the user will notice. This isn't about design; it's about content accuracy.
+
+### 9. Show User
 
 ```bash
 open -a "Google Chrome" /tmp/chart.png
@@ -160,8 +166,19 @@ Circle labels, box labels — keep clear space from edges. Position labels at "c
 - If there's empty space at bottom, elements are undersized or poorly positioned
 - Scale elements uniformly to fill — never stretch text (aspect ratio is sacred)
 
+### Scatter, Don't Stack
+When placing multiple detail items within a region (e.g., items inside a Venn circle), **scatter them organically** to fill the territory. Don't default to neat vertical stacks or bullet-list layouts — that's document thinking, not visual thinking. Let items breathe and occupy the space naturally. Stacking looks rigid; scattering looks designed.
+
 ### Display Text Capitalisation
 Labels and titles get consistent Title Case capitalisation.
+
+### Label Specificity
+Review labels for specificity before finalising. Bare nouns often need modification to land:
+- "Naming" → "Consistent Naming"
+- "SME-friendly" → "SME-friendly tools"
+- "Models" → "Better predictive models"
+
+Ask: would someone unfamiliar with the context understand what this means? If not, add the adjective.
 
 ### Chesterton's Fence
 Before removing any element, ask: "What job is this doing?"
@@ -179,6 +196,9 @@ Visual metaphors have rules. Breaking them breaks comprehension:
 - Tree: children below parents
 
 If your visual breaks the metaphor's rules, the viewer's mental model breaks.
+
+### Less Is More (Especially Overlaps)
+Not every region needs a label. In Venn diagrams, if an overlap's meaning is self-evident from the surrounding content, **leave it empty**. Labelling everything creates noise. The unlabelled center can be more powerful than a forced "synergy" label. Ask: does this label add meaning, or am I labelling because I feel I should?
 
 ### No Orphan Elements
 Everything needs a visual relationship to something else:
