@@ -20,10 +20,9 @@ beads has extensive reference material. To avoid reading all files:
 - **Molecules, wisps, protos** → `references/MOLECULES.md` (v0.34.0+)
 - **Formulas, gates, activity** → `references/MOLECULES.md` (v0.36.0+)
 - **Cross-project dependencies** → `references/MOLECULES.md` (v0.34.0+)
-- **Portfolio view / hub / central database** → `references/PORTFOLIO.md` + `~/.claude/scripts/beads-portfolio.sh` (all beads across repos)
-- **Hub hygiene / archiving** → "Database Hygiene" section in this file (Archive Pattern subsection)
-- **Dangerous commands / hub corruption** → "Dangerous Commands" in this file, "Hub Recovery Workflow" in references/TROUBLESHOOTING.md
-- **bd delete not working / zombie repos** → "The bd delete Resurrection Problem" in this file
+- **Portfolio view (cross-project)** → Run `~/.claude/scripts/beads-portfolio.sh` (read-only aggregation)
+- **Database hygiene / archiving** → "Database Hygiene" section in this file
+- **Dangerous commands** → "Dangerous Commands" section in this file
 - **Full GTD portfolio view** → Run `~/.claude/scripts/beads-portfolio.sh` (health checks, auto-archive, clean view)
 
 Read SKILL.md first, then load specific references as needed.
@@ -63,7 +62,7 @@ bd is a graph-based issue tracker for persistent memory across sessions, designe
 - Project has a `.beads/` directory (project-local database), OR
 - `~/.beads/` exists (global fallback database for any directory)
 
-**Hub (central database):** `~/Repos/.beads` aggregates all project beads. From there: `bd list` shows all, `bd activity --town` shows cross-project feed. See `references/PORTFOLIO.md`.
+**Portfolio view:** Run `~/.claude/scripts/beads-portfolio.sh` to see all beads across repos (read-only aggregation).
 
 ### NOT in Google Drive (Cloud-Synced Folders)
 
@@ -204,126 +203,51 @@ bd compact --prune --older-than 30
 
 ### Archive Pattern (Preserve History)
 
-When you want to reduce hub size but **keep history searchable**, archive before deleting:
+When a repo's beads grow large, archive closed issues before deleting:
 
 ```bash
 # 1. Export closed issues to dated archive file
-cd ~/Repos
-bd list --status closed --json | jq -c '.[]' > ~/.beads-archive/$(date +%Y-%m)-hub-closed.jsonl
+mkdir -p ~/.beads-archive
+bd list --status closed --json | jq -c '.[]' >> ~/.beads-archive/$(date +%Y-%m)-$(basename $PWD).jsonl
 
-# 2. Delete from hub (creates tombstones)
-bd list --status closed --json | jq -r '.[].id' > /tmp/to-archive.txt
-bd delete --from-file /tmp/to-archive.txt --cascade --force
+# 2. Delete closed issues
+bd list --status closed --json | jq -r '.[].id' | xargs -I {} bd delete {} --force
 
-# 3. Verify reduction
-bd stats --json | jq '.summary | {total, open, closed}'
+# 3. Export clean state
+bd export -o .beads/issues.jsonl --force
+git add .beads/issues.jsonl && git commit -m "Archive closed issues"
 ```
 
-**Archive location:** `~/.beads-archive/` — JSONL files by month, searchable with grep/jq.
-
-**When to archive:**
-- Hub exceeds 200 issues
-- Before major cleanup
-- Quarterly housekeeping
+**Archive location:** `~/.beads-archive/` — JSONL files by month and repo, searchable with grep/jq.
 
 **Searching archives:**
 ```bash
-# Find issue by ID
 grep "issue-id" ~/.beads-archive/*.jsonl
-
-# Search titles
 jq -r 'select(.title | test("keyword"; "i")) | "\(.id): \(.title)"' ~/.beads-archive/*.jsonl
 ```
 
-**Key insight:** Archives preserve the full issue JSON — descriptions, designs, notes, acceptance criteria. Tombstones only keep summaries. Archive when history matters.
+## Dangerous Commands — Avoid
 
-### Archiving Policy (Hub Hygiene)
+| Command | Why | Alternative |
+|---------|-----|-------------|
+| `bd sync --rename-on-import` | Renames ALL issues to wrong prefix | Never use. If sync fails, investigate manually. |
+| `bd init` inside `.beads/` directory | Creates nested `.beads/.beads/` | Always run `bd init` from project root |
+| `bd --db ... create/update` | Easy to hit wrong database | `cd ~/Repos/target && bd create/update` instead |
 
-**Archive closed issues from the hub regularly.** This is not optional — it prevents the hub from growing unbounded and keeps `bd ready` responsive.
+### Deleting Issues Properly
 
-**Triggers for archiving:**
-- Hub exceeds 200 total issues
-- Before any major cleanup or recovery operation
-- Monthly housekeeping (minimum)
-
-**The archive directory:** `~/.beads-archive/` should exist and contain dated JSONL files.
+`bd delete` removes from the SQLite DB but not from `issues.jsonl`. For permanent deletion:
 
 ```bash
-# Verify archive location exists
-mkdir -p ~/.beads-archive
-
-# Archive all closed issues from hub
-cd ~/Repos/claude-beads
-bd list --status closed -n 0 --json | jq -c '.[]' >> ~/.beads-archive/$(date +%Y-%m)-hub-closed.jsonl
-
-# Then delete from hub
-bd list --status closed -n 0 --json | jq -r '.[].id' | xargs -I {} bd delete {} --force
-```
-
-**Why archiving matters:** Without archiving, closed issues accumulate in the hub. When corruption happens (and it will), restoring from git history brings back ALL issues including ones you thought were gone. Regular archiving keeps the working set small.
-
-## Dangerous Commands — NEVER USE
-
-**These commands cause data corruption that spreads across the hub topology.**
-
-| Command | Why It's Dangerous | What Happens |
-|---------|-------------------|--------------|
-| `bd sync --rename-on-import` | Renames ALL issues to current repo's prefix | Issues from other repos get wrong prefix, corrupts hub and all additional repos |
-| `bd init` inside `.beads/` directory | Creates nested `.beads/.beads/` | Database confusion, daemon errors |
-| Creating issues in hub repo | Wrong prefix, won't route | Issues orphaned, pollute hub |
-| `bd delete` alone (without JSONL cleanup) | Only removes from DB, not JSONL | Issues resurrect on next sync, daemon recreates directories |
-
-### The `--rename-on-import` Disaster (Jan 2026)
-
-**What it does:** When `bd sync` fails with "prefix mismatch", this flag seems like a fix. **It is not.** It imports ALL issues from JSONL and renames their IDs to match the current repo's prefix.
-
-**Example disaster:**
-```bash
-# Hub has issues: claude-go-1, infra-openwrt-5, skill-beads-3
-# You're in claude-go repo, sync fails with prefix error
-bd sync --rename-on-import  # DON'T DO THIS
-
-# Result: ALL hub issues renamed to claude-go-*
-# infra-openwrt-5 → claude-go-5 (WRONG)
-# skill-beads-3 → claude-go-3 (WRONG)
-# Hub now corrupted, pollution spreads on next sync
-```
-
-**Correct response to prefix mismatch:** See [Hub Recovery Workflow](references/TROUBLESHOOTING.md#hub-recovery-workflow).
-
-### The `bd delete` Resurrection Problem (Jan 2026)
-
-**`bd delete` only removes from SQLite DB — not from JSONL.** On next daemon sync, deleted issues get re-imported from JSONL, and the daemon recreates target directories.
-
-**Symptoms:**
-- Deleted folders keep reappearing with empty `.beads/issues.jsonl`
-- `bd delete` appears to work but issues return after sync
-- "Zombie" repos that won't stay dead
-
-**Full cleanup requires:**
-```bash
-# 1. Archive first (if you want history)
-bd list -n 0 --json | jq -c '.[] | select(.id | test("^PREFIX-"))' >> ~/.beads-archive/$(date +%Y-%m)-cleanup.jsonl
-
-# 2. Delete from DB
+# 1. Delete from DB
 bd delete PREFIX-xxx --force
 
-# 3. Remove from JSONL manually
-cd .beads
-cp issues.jsonl issues.jsonl.bak
-grep -v '"id":"PREFIX-' issues.jsonl.bak > issues.jsonl
+# 2. Export clean state to JSONL
+bd export -o .beads/issues.jsonl --force
 
-# 4. Clean sync_base.jsonl too
-cp sync_base.jsonl sync_base.jsonl.bak
-grep -v '"id":"PREFIX-' sync_base.jsonl.bak > sync_base.jsonl
-
-# 5. Reimport and commit
-bd import -i issues.jsonl --force
-rm *.bak
-git add -A && git commit -m "Remove orphaned issues from JSONL"
+# 3. Commit
+git add .beads/issues.jsonl && git commit -m "Remove issue PREFIX-xxx"
 ```
-
-**Why this happens:** The daemon treats JSONL as authoritative source. DB deletes don't propagate to JSONL until explicit export, but sync imports from JSONL first.
 
 ## When to File Issues
 
@@ -684,9 +608,9 @@ bd dep add dependent issue-kept
 bd delete issue-dup --force
 ```
 
-### Hub Recovery
+### Database Recovery
 
-If the hub is corrupted (wrong prefixes, duplicate issues), see [references/TROUBLESHOOTING.md](references/TROUBLESHOOTING.md#hub-recovery-workflow) for the full recovery workflow.
+If a repo's beads are corrupted (wrong prefixes, duplicate issues), see [references/TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) for recovery patterns.
 
 ## Statistics and Monitoring
 
@@ -724,19 +648,19 @@ bd automatically selects the appropriate database:
 - Working with multiple databases (e.g., project database + reference database)
 
 **Cross-project writes (Claude coordination):**
-When filing a bead to another project, use `--db` instead of cd'ing:
+To modify another project's beads, `cd` to that repo first. This ensures you're working with the correct database and prefix.
 
 ```bash
-# WRONG: cd loses your context
-cd ~/Repos/other-project
-bd create "Issue from session in project-a"
-# Now you're in wrong directory, reading wrong beads
+# To file/modify beads in another repo:
+cd ~/Repos/other-project && bd create "Issue discovered while working elsewhere" -p 1
 
-# RIGHT: stay put, specify database (glob for the .db file)
-bd --db ~/Repos/other-project/.beads/*.db create "Issue from session in project-a"
+# To reorganize another repo's beads:
+cd ~/Repos/itv-slides-formatter && bd update itv-slides-formatter-x9d --parent itv-slides-formatter-bzd
 ```
 
-This keeps your working directory stable and avoids reading the wrong project's beads. The glob `*.db` finds the database regardless of prefix name.
+**Why cd, not --db?** The `--db` flag is error-prone for writes — wrong paths, wrong prefixes, pollution. Being "in" the repo makes the target explicit. Use `--db` only for read-only queries.
+
+**Note:** Working directory doesn't persist between Bash calls, so always chain: `cd ~/Repos/X && bd command`
 
 **Moving issues between repos:**
 Issues can't truly "move" — the prefix IS the identity. When relocating an issue:
@@ -747,33 +671,31 @@ Issues can't truly "move" — the prefix IS the identity. When relocating an iss
 
 That's it. No alias files, no infrastructure. Just a note in the description so future Claudes can trace lineage.
 
-## Cross-Project Hub
+## Portfolio View (Cross-Project)
 
-A beads hub at `~/Repos/claude-beads` aggregates issues from multiple project repos.
-
-**Pattern:** Read from hub, write to project repos.
+To see all beads across repos, use the portfolio script:
 
 ```bash
-# View all work across projects
-cd ~/Repos/claude-beads && bd ready
-
-# Create/close issues in their home repo
-cd ~/Repos/mcp-google-workspace && bd create "Fix bug" -p 1
+~/.claude/scripts/beads-portfolio.sh
 ```
 
-**When to use the hub:**
-- Getting oriented ("what's ready across all projects?")
-- Finding blocked work across repos
-- Cross-project dependency visibility
+This reads from all repos and displays a unified view. **It never writes** — just aggregates for visibility.
 
-**When to use project-local:**
-- Creating new issues (they belong to a specific project)
-- Closing issues (close where they live)
-- Detailed work on a single project
+**Key principle: Per-repo databases are authoritative.**
+- Each repo's `.beads/` is the source of truth
+- No sync between repos (sync caused corruption)
+- Portfolio script reads on-demand, not continuously
 
-The hub pulls from projects via multi-repo hydration. Changes in project repos appear in the hub automatically.
+**To modify beads:** Always `cd` to the target repo first:
+```bash
+cd ~/Repos/itv-slides-formatter && bd update ...   # Correct
+bd --db ~/Repos/itv-slides-formatter/...           # Avoid for writes
+```
 
-**Do NOT create issues while in claude-beads** — they'll get the wrong prefix and won't route to any project.
+**Cross-project visibility without cross-project sync:**
+- Portfolio shows what's ready across all projects
+- You pick which project to focus on
+- Work happens in that project's database only
 
 ## Bootstrap and Initialization
 
