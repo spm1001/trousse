@@ -225,6 +225,31 @@ grep "issue-id" ~/.beads-archive/*.jsonl
 jq -r 'select(.title | test("keyword"; "i")) | "\(.id): \(.title)"' ~/.beads-archive/*.jsonl
 ```
 
+### Monthly Maintenance Routine
+
+Run monthly to keep beads healthy across all repos:
+
+```bash
+# 1. Portfolio view — see what's active
+~/.claude/scripts/beads-portfolio.sh
+
+# 2. For each active repo, sync JSONL with DB
+for repo in ~/Repos/*/.beads; do
+  cd "$(dirname "$repo")"
+  bd export -o .beads/issues.jsonl --force 2>/dev/null
+  git add .beads/issues.jsonl 2>/dev/null
+done
+
+# 3. Commit any changes
+cd ~/Repos && for d in *; do
+  [ -d "$d/.beads" ] && cd "$d" && git diff --quiet .beads/issues.jsonl || \
+    git commit -m "Sync beads JSONL with database" .beads/issues.jsonl 2>/dev/null
+  cd ~/Repos
+done
+```
+
+**Why this matters:** The database (`.db`) and JSONL can drift. Periodic export ensures JSONL (which is git-tracked and backed up) matches the database.
+
 ## Dangerous Commands — Avoid
 
 | Command | Why | Alternative |
