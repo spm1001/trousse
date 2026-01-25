@@ -20,6 +20,21 @@ Three reviewers, three lenses. Dispatch in parallel, synthesize findings.
 
 **Not for:** Quick fixes under 50 lines, exploratory spikes, throwaway scripts (unless they stopped being throwaway).
 
+## Beyond Code Review
+
+The three-lens pattern works for more than code. The underlying structure (hindsight/craft/foresight) applies to any artifact worth reviewing thoroughly:
+
+| Domain | Epimetheus asks | Metis asks | Prometheus asks |
+|--------|-----------------|------------|-----------------|
+| **Documentation** | What's stale or misleading? | Is it clear and well-structured? | Does it serve future readers? |
+| **Architecture** | What's fragile or debt-laden? | Does it follow good patterns? | Does it enable what we're building toward? |
+| **Process** | What's broken or painful? | Is it efficient and clear? | Will it scale with the team? |
+| **CLAUDE.md** | What's wrong or outdated? | Is it well-organized? | What should future Claude know? |
+
+**Discovered Jan 2026:** Used titans pattern to review claude-suite itself for CLAUDE.md updates. The three lenses surfaced different categories of findings — infrastructure bugs (Epimetheus), stale references (Metis), undocumented contracts (Prometheus) — that a single-pass review would have missed.
+
+**When adapting:** Adjust the reviewer briefs for the domain. The output structure (findings, assumptions, could-not-assess, questions) remains useful regardless of what you're reviewing.
+
 ## The Triad
 
 | Titan | Lens | Question | Focus |

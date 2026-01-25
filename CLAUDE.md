@@ -2,6 +2,38 @@
 
 Learnings from developing and maintaining the behavioral skills.
 
+## Compatibility
+
+**Tested with Claude Code:** 2.1.x
+**Minimum required:** 2.0 (hooks API)
+**settings.json format:** As of Jan 2026
+
+## GODAR Pattern
+
+Session lifecycle skills follow GODAR:
+- **Gather** — Collect context (run scripts, read files)
+- **Orient** — Synthesize what matters
+- **Decide** — Present choices to user
+- **Act** — Execute selected actions
+- **Remember** — Persist for future sessions
+
+This pattern ensures systematic context transfer between sessions. See `/open` and `/close` skill implementations.
+
+## Hook Architecture
+
+**Output contract:** Hooks output *pointers* to content, not content itself. This avoids token bloat.
+
+| Output To | Purpose |
+|-----------|---------|
+| stdout | Notifications Claude receives directly (brief) |
+| Files | Content Claude reads on demand via Read tool |
+
+**Section format:** `=== SECTION ===` markers allow parsing specific parts.
+
+**Hook chain:**
+- `hooks/session-start.sh` → calls `scripts/open-context.sh`
+- `scripts/close-context.sh` ← called by session-closing skill
+
 ## Titans Review Process
 
 The `/titans` (or `/review`) skill dispatches three parallel Opus reviewers with different lenses:
@@ -18,23 +50,80 @@ The `/titans` (or `/review`) skill dispatches three parallel Opus reviewers with
 
 **Self-review is valuable:** The titans skill reviewing itself found real issues (stale paths, PII in scanner config). Self-blindness is real.
 
+**Dispatch mechanism:** Uses `Task` tool with `subagent_type: "explore-opus"`. Partial failures are handled gracefully — if one reviewer fails, synthesis proceeds with available outputs.
+
 ## Context Encoding Scheme
 
-**Critical infrastructure, underdocumented.**
+**Critical infrastructure — divergence causes data loss.**
 
 The pattern `$(pwd -P | tr '/.' '-')` converts paths to directory-safe names for handoff routing:
 - `/Users/modha/Repos/claude-suite` → `-Users-modha-Repos-claude-suite`
 - Both `/` and `.` are replaced (`.` because hidden directories would create `.`-prefixed encoded names)
 
 This encoding is used in:
-- `~/.claude/.session-context/<encoded>/` — per-project context files
-- `~/.claude/handoffs/<encoded>/` — per-project handoff archives
+- `~/.claude/.session-context/<encoded>/` — per-project context files (cache, can regenerate)
+- `~/.claude/handoffs/<encoded>/` — per-project handoff archives (permanent)
+
+**Canonical location:** `scripts/open-context.sh:11` and `scripts/close-context.sh:133`
 
 **If this encoding changes, handoffs become orphaned.** Any migration would need to move existing directories.
+
+## Skill Architecture
+
+### Skill Taxonomy
+
+| Type | Trigger | Example |
+|------|---------|---------|
+| User-invocable | Slash command | `/diagram`, `/titans` |
+| Alias | Slash command → delegates | `/open` → session-opening |
+| Companion | Loaded by other skills | beads, todoist-gtd |
+
+### SKILL.md Conventions
+
+Per skill-check guidelines:
+- Description should end with `(user)` tag for user-facing skills
+- `user-invocable: false` for skills loaded programmatically
+- Reference files in `references/` subdirectory, linked from main SKILL.md
+
+## Script Dependencies
+
+| Script | Depends On | Note |
+|--------|------------|------|
+| `session-start.sh` | `open-context.sh` | Same repo |
+| `session-start.sh` | `update-all.sh` | Lives in claude-config, not this repo |
+| `close-context.sh` | `check-home.sh` | Same repo |
+| Multiple scripts | `jq` | External dependency, checked by install.sh |
+| `session-start.sh` | `perl` | Falls back to `date` if missing (loses ms precision) |
+
+**Arc CLI:** Referenced in session-opening but has no install story yet. Path: `~/Repos/arc/.venv/bin/arc`
+
+## Extending claude-suite
+
+### Adding a New Skill
+
+1. Create `skills/<name>/SKILL.md` with frontmatter
+2. Add `skills/<name>/README.md` (optional but recommended)
+3. **Update `install.sh` verification list** (lines 123 and 409) — hardcoded, requires manual sync
+4. Run `./install.sh` to create symlink
+
+### Adding a New Script
+
+1. Create `scripts/<name>.sh` with `set -euo pipefail`
+2. Scripts are auto-symlinked by install.sh (must have `.sh` suffix)
+3. Document any dependencies in this file
+
+### Reference Files Convention
+
+Skills can have a `references/` subdirectory:
+- Read as-needed, not loaded automatically
+- Linked from main SKILL.md with "When to read" guidance
+- Naming: UPPERCASE for major references (WORKFLOWS.md), lowercase for specific topics
 
 ## Skill Verification
 
 Run `./install.sh --verify` to check all skills are properly symlinked. The verification list must be kept in sync with actual skills in `skills/` directory.
+
+**Current skills (16):** beads, close, diagram, filing, github-cleanup, open, picture, review, screenshot, server-checkup, session-closing, session-opening, setup, skill-check, sprite, titans
 
 ## Script Error Handling
 
@@ -44,3 +133,5 @@ Scripts use `set -euo pipefail` for strict error handling:
 - `-o pipefail`: Pipe failures propagate
 
 This is stricter than the previous `set -e`. Watch for breakage if scripts relied on unset variables being empty.
+
+**The `--no-daemon` convention:** Scripts use `bd ready --no-daemon` for synchronous results. The daemon introduces async latency unsuitable for script contexts.
