@@ -88,6 +88,34 @@ else
     echo "BEADS_EXISTS=false"
 fi
 
+# === ARC STATUS ===
+echo ""
+echo "=== ARC ==="
+if [ -d ".arc" ]; then
+    # Find arc CLI - check PATH first, then known location
+    ARC_CMD=$(command -v arc 2>/dev/null || echo "$HOME/Repos/arc/.venv/bin/arc")
+
+    if [ -x "$ARC_CMD" ]; then
+        # Arc doesn't track in_progress, but we can show open and waiting items
+        OPEN_OUTPUT=$("$ARC_CMD" list 2>/dev/null || true)
+        OPEN_COUNT=$(echo "$OPEN_OUTPUT" | grep -c "^○" 2>/dev/null) || OPEN_COUNT=0
+        WAITING_COUNT=$(echo "$OPEN_OUTPUT" | grep -c "^⏳" 2>/dev/null) || WAITING_COUNT=0
+
+        echo "OPEN_COUNT=$OPEN_COUNT"
+        echo "WAITING_COUNT=$WAITING_COUNT"
+        if [ -n "$OPEN_OUTPUT" ]; then
+            echo "ITEMS:"
+            echo "$OPEN_OUTPUT" | head -15
+        fi
+        echo "ARC_EXISTS=true"
+    else
+        echo "ARC_EXISTS=false"
+        echo "ARC_ERROR=cli_not_found"
+    fi
+else
+    echo "ARC_EXISTS=false"
+fi
+
 # === WORK LOCATION DETECTION ===
 echo ""
 echo "=== LOCATION ==="

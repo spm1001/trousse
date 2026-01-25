@@ -13,7 +13,7 @@ Capture learnings while context is rich, then commit and exit.
 ```
 Prerequisites → Verify infrastructure
 Pre-flight    → Return to home directory
-Gather        → todos, beads, git, drift
+Gather        → todos, tracker (beads/arc), git, drift
 Orient        → Claude observes → User co-reflects → Claude answers
 Decide        → crystallize actions (STOP — present before executing)
 Act           → execute, write handoff, commit, clear todos
@@ -59,7 +59,7 @@ You may have `cd`'d during work. Your system prompt contains `Working directory:
 ~/.claude/scripts/close-context.sh
 ```
 
-Script outputs: TIME, GIT, BEADS, LOCATION context.
+Script outputs: TIME, GIT, BEADS, ARC, LOCATION context.
 
 Use TIME_OF_DAY for greetings. Use YEAR to anchor the handoff date.
 
@@ -76,9 +76,9 @@ Use TIME_OF_DAY for greetings. Use YEAR to anchor the handoff date.
 From script output, assess:
 
 - **TodoWrite** — what's done, what's incomplete? (incomplete items surface in Decide)
-- **Beads** — IN_PROGRESS items need notes or closure
+- **Tracker** — Beads: IN_PROGRESS items need notes or closure. Arc: open items to complete or defer
 - **Git** — UNCOMMITTED files? UNPUSHED commits?
-- **Drift** — what did /open (or /ground) say we'd do vs what we did?
+- **Drift** — what did /open say we'd do vs what we did?
 
 Surface stale artifacts: screenshots, temp files, old sketches, superseded plans.
 
@@ -152,19 +152,19 @@ From Gather + Orient, crystallize actions into two buckets.
 
 ### Surfacing incomplete work
 
-**Before presenting options, check TodoWrite for incomplete items.** Any todo not marked `completed` must appear in the Decide AskUserQuestion — either as a "Now" option (finish it) or "Next" option (create bead). Don't silently drop work.
+**Before presenting options, check TodoWrite for incomplete items.** Any todo not marked `completed` must appear in the Decide AskUserQuestion — either as a "Now" option (finish it) or "Next" option (create tracker item). Don't silently drop work.
 
 ### Now vs Next
 
 **Now** = actions that execute immediately, benefiting from current context:
 - Incomplete todos that can be finished quickly
-- Close a bead with resolution notes (context makes notes better)
+- Close a tracker item with resolution notes (context makes notes better)
 - Update CLAUDE.md — Local (./CLAUDE.md) or Global (~/.claude/CLAUDE.md)
 - Quick fixes (< 2 minutes, obvious how)
 
 **Next** = deferrals that create work for a future session:
 - Incomplete todos that need dedicated time
-- Create a bead (by definition, you're deferring it)
+- Create a tracker item (by definition, you're deferring it)
 - Anything needing "fresh thinking"
 - Anything you're uncertain how to approach
 
@@ -181,7 +181,7 @@ AskUserQuestion([
       // - Include incomplete todos as options
       // - Include CLAUDE.md updates when insights emerged
       { label: "Finish [incomplete todo]", description: "Can complete quickly" },
-      { label: "Close bead-xyz", description: "Add resolution notes" },
+      { label: "Close [item-id]", description: "Add resolution notes" },
       { label: "Update Local CLAUDE.md", description: "Project-specific pattern" },
       { label: "Update Global CLAUDE.md", description: "Cross-project learning" },
       { label: "None", description: "Nothing needs immediate action" }
@@ -189,11 +189,12 @@ AskUserQuestion([
   },
   {
     header: "Next",
-    question: "Create beads for future sessions?",
+    question: "Create tracker items for future sessions?",
     multiSelect: true,
     options: [
       // Adapt to actual session:
       // - Include incomplete todos that need dedicated time
+      // - Use bd create (beads) or arc new (arc) depending on project
       { label: "[Incomplete todo]", description: "Needs dedicated time" },
       { label: "Investigate Y", description: "Needs dedicated exploration" },
       { label: "None", description: "Handoff captures everything needed" }
@@ -213,10 +214,12 @@ User gets explicit choice over timing. "Next" ≠ abandoned — it's queued with
 Execute in this order:
 
 ### Execute "Now" items
-Do the selected actions: finish incomplete todos, close beads with notes, update CLAUDE.md, quick fixes.
+Do the selected actions: finish incomplete todos, close tracker items with notes, update CLAUDE.md, quick fixes.
 
-### Create "Next" beads
-For each selected deferral, create a bead with enough context that a future Claude can pick it up.
+### Create "Next" items
+For each selected deferral, create a tracker item with enough context that a future Claude can pick it up.
+- **Beads:** `bd create "title" --description "..." --design "..."`
+- **Arc:** `arc new "title" --why "..." --what "..." --done "..."`
 
 ### Clear TodoWrite
 
@@ -227,7 +230,7 @@ TodoWrite([])
 
 This is safe because:
 - Incomplete items were surfaced in Decide — user chose to finish, defer, or drop
-- Items deferred are now in beads (persistent)
+- Items deferred are now in tracker (persistent)
 - Completed items are done
 - Leaving stale todos confuses next session
 
@@ -265,7 +268,7 @@ session_id: {full uuid from above command}
 purpose: {first Done bullet, truncated to ~60 chars}
 
 ## Done
-- [Completions in verb form — include bead ID if closing a bead, e.g., "Fixed auth bug (claude-go-xyz)"]
+- [Completions in verb form — include item ID if closing one, e.g., "Fixed auth bug (claude-go-xyz)" or "Completed migration (arc-gutowa)"]
 
 ## Gotchas
 [What would trip up next Claude]
@@ -333,7 +336,7 @@ Say: "Type `/exit` to close." Don't exit programmatically.
 
 The hook (`~/.claude/hooks/session-end.sh`) fires automatically and:
 1. Indexes the session transcript via `mem process`
-2. Scans handoffs and beads for memory
+2. Scans handoffs and beads for memory (arc support pending)
 
 This enables future `/mem search` to find this session's content.
 
@@ -345,8 +348,8 @@ This enables future `/mem search` to find this session's content.
 
 | Phase | /open | /ground | /close |
 |-------|-------|---------|--------|
-| **G**ather | Handoff, beads, script | Todos, beads, drift | Todos, beads, git, drift |
+| **G**ather | Handoff, tracker, script | Todos, tracker, drift | Todos, tracker, git, drift |
 | **O**rient | "Where we left off" | "What's drifted" | Claude observes → User co-reflects → Claude answers |
 | **D**ecide | User picks direction | Continue or adjust | Crystallize actions (STOP) |
-| **A**ct | Draw-down → TodoWrite | Update beads, reset | Execute, handoff, commit, clear todos |
+| **A**ct | Draw-down → TodoWrite | Update tracker, reset | Execute, handoff, commit, clear todos |
 | **R**emember | — | Optional: memory skill | Index session (background) |
