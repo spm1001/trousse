@@ -189,5 +189,5 @@ This varies by codebase size and scope clarity. If a reviewer seems to be loopin
 
 **/titans findings can feed into /close:**
 - Critical issues → "Now" bucket (fix before closing)
-- Lower priority → "Next" bucket (create beads)
+- Lower priority → "Next" bucket (create tracker items)
 - Documentation debt → handoff Gotchas section
