@@ -164,6 +164,8 @@ Then read:
 - **Commands** — if handoff has a Commands section, offer to run them
 - **Scope mismatches** — if handoff "Next" doesn't match ready items, flag it
 
+> **CRITICAL: Output as text, not Bash.** When presenting tracker hierarchy or ready work, output it as text in your response. DO NOT run `arc list` or `bd ready` via Bash — Claude Code collapses tool output >10 lines behind Ctrl+O, making it invisible to the user. The arc.txt/beads.txt files already contain formatted hierarchies; read them and output directly.
+
 ### Orphaned Local Handoffs
 
 When stdout shows orphaned `.handoff*` files:
@@ -268,6 +270,7 @@ When user says "the email thing", "that feature", or similar:
 
 | Pattern | Problem | Fix |
 |---------|---------|-----|
+| Run `arc list` or `bd ready` via Bash | Output collapsed, user can't see it | Read context file, output as text |
 | Skip draw-down on "continue X" | Scope ambiguity | Always read item, create TodoWrite |
 | Skip tracker skill loading | Missing workflow patterns | Gate-load beads/arc first |
 | Ignore script failures | Partial context, drift | STOP and diagnose if script fails |

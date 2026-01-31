@@ -1,6 +1,5 @@
 ---
 name: filing
-user-invocable: false
 description: File organization and weekly cleanup. Use when user asks 'where should this go', 'help me tidy', 'clean up downloads', 'clean up desktop', 'triage inbox', during weekly review cleanup, or when moving files between zones. (user)
 ---
 

@@ -354,17 +354,17 @@ sprite exec -tty bash -c 'tty'  # Should show /dev/pts/0 or similar
 
 ## Anti-Patterns
 
-| Don't | Do Instead | Why |
-|-------|------------|-----|
-| Use `$NVM_DIR` variable in send-keys | Use literal `/.sprite/languages/node/nvm/nvm.sh` | Escaping hell across shell layers |
-| Send message with single Enter | Use `Enter Enter` (type + submit) | First Enter is newline, second submits |
-| Use `capture-pane` for Claude UI | Use `pipe-pane` | Alternate screen buffer not captured |
-| Run `claude` without NVM setup | Source NVM first in tmux | Node won't be in PATH |
-| Use `-p` mode for interactive testing | Use tmux + interactive `claude` | Can't handle dialogs |
-| Assume OAuth persists across restores | Export `CLAUDE_CODE_OAUTH_TOKEN` | Checkpoints may have stale tokens |
-| Run `security` on the sprite | Fetch token locally, pass to sprite | `security` is macOS, sprite is Linux |
-| Use SSH URLs for git | Use HTTPS URLs | gh credential helper needs HTTPS |
-| Skip `gh auth setup-git` | Always run after `gh auth login` | uv/pip need credential helper |
+| Pattern | Problem | Fix |
+|---------|---------|-----|
+| Use `$NVM_DIR` variable in send-keys | Escaping hell across shell layers | Use literal `/.sprite/languages/node/nvm/nvm.sh` |
+| Send message with single Enter | First Enter is newline, second submits | Use `Enter Enter` (type + submit) |
+| Use `capture-pane` for Claude UI | Alternate screen buffer not captured | Use `pipe-pane` |
+| Run `claude` without NVM setup | Node won't be in PATH | Source NVM first in tmux |
+| Use `-p` mode for interactive testing | Can't handle dialogs | Use tmux + interactive `claude` |
+| Assume OAuth persists across restores | Checkpoints may have stale tokens | Export `CLAUDE_CODE_OAUTH_TOKEN` |
+| Run `security` on the sprite | `security` is macOS, sprite is Linux | Fetch token locally, pass to sprite |
+| Use SSH URLs for git | gh credential helper needs HTTPS | Use HTTPS URLs |
+| Skip `gh auth setup-git` | uv/pip need credential helper | Always run after `gh auth login` |
 
 ---
 

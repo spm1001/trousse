@@ -1,6 +1,5 @@
 ---
 name: diagram
-user-invocable: false
 description: Create diagrams and visual explanations with iterative render-and-check workflow. Use when asked to 'create a diagram', 'Venn diagram', 'flow chart', 'architecture diagram', 'visualize this'. Renders SVG to PNG, self-critiques using CRAP principles, iterates until right. Composes with brand skills for styling. (user)
 ---
 

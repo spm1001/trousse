@@ -1,6 +1,5 @@
 ---
 name: beads
-user-invocable: false
 description: Tracks complex, multi-session work with dependency graphs using bd (beads) issue tracker. Triggers on 'multi-session', 'complex dependencies', 'resume after weeks', 'project memory', 'persistent context', 'side quest tracking', 'portfolio', 'all my beads', 'cross-project beads', 'show beads', 'list beads', 'beads grouped by', 'epic', 'bd command', or when TodoWrite is insufficient for scope. For simple single-session linear tasks, TodoWrite remains appropriate. (user)
 ---
 

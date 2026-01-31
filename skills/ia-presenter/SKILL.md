@@ -333,9 +333,12 @@ Presenter auto-selects layouts based on:
 
 | Pattern | Problem | Fix |
 |---------|---------|-----|
-| Spaces for indentation | Content invisible on slides | MUST use tabs, not spaces |
-| Skip validation | Broken slides discovered in presentation | Test in iA Presenter app |
-| Too much per slide | Visual overload | One idea per slide |
+| Spaces for indentation | Content invisible on slides | MUST use literal tab characters |
+| Missing `---` separators | Slides run together | Add `---` between each slide |
+| Empty speaker notes | Wasting teleprompter, no speaking context | Add narrative below visible content |
+| All-headings slides | Headings are always visible — no notes | Balance headings with tab-indented text |
+| Skip validation | Broken slides discovered during presentation | Test in iA Presenter app before presenting |
+| Create .md instead of .iapresenter | Won't open correctly in app | Create bundle with text.md + info.json |
 
 ## Full Reference
 

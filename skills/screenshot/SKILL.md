@@ -1,6 +1,5 @@
 ---
 name: screenshot
-user-invocable: false
 description: >
   Take screenshots to see what's on screen. Triggers on 'screenshot', 'grab a screenshot',
   'have a look', 'can you see', 'what does it look like', 'check the screen', 'did that work',
