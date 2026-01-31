@@ -169,8 +169,24 @@ title: "Caption text"
 Available metadata:
 - `x:` — horizontal position: `left`, `center`, `right`
 - `y:` — vertical position: `top`, `center`, `bottom`
-- `size:` — sizing: `contain`, `cover`, `fill`
-- `title:` — caption text (in quotes)
+- `size:` — sizing: `contain`, `cover`
+- `background:` — `true` to place behind other elements
+- `filter:` — `lighten`, `darken`, `grayscale`, `sepia`, `blur`
+- `opacity:` — `0%` to `100%`
+- `title:` — caption/alt text
+
+### Image Captions with H4
+```markdown
+#### Caption introducing the image
+
+/assets/photo.jpg
+```
+Or image first, caption below:
+```markdown
+/assets/photo.jpg
+
+#### Caption below the image
+```
 
 ### Multiple Images (Grid)
 ```markdown
@@ -201,12 +217,24 @@ Result: Text on left, image on right.
 ## Inline Formatting
 
 Standard markdown formatting works:
-- `**bold**` — **bold** (works in visible and speaker text)
+- `**bold**` — **bold**
 - `*italic*` — *italic*
+- `~~strikethrough~~` — strikethrough
+- `==highlight==` — highlighted text
 - `[link text](url)` — hyperlinks
 - `` `code` `` — inline code
+- `$x^2$` — inline LaTeX math
+- `// comment` — comment (only you see)
 
 ## Common Patterns
+
+### Kicker (Small Text Above Title)
+```markdown
+	Small kicker text
+# Main Title
+	Subtitle below
+```
+Tab-indented text directly above a title creates a "kicker" — small headline often seen above main titles.
 
 ### Section Divider
 ```markdown
@@ -283,3 +311,31 @@ Start with what you want to say. The design comes later, and it adapts to your c
 **Speaker notes (teleprompter only):**
 - "Most presentation tools ask you to choose..."
 - "Start with what you want to say..."
+
+## Layout Algorithm
+
+Presenter auto-selects layouts based on:
+- Number of visual blocks (cells) in the slide
+- Types of graphics in each block
+- First heading level of each block
+- Order of blocks
+
+| Content | Result |
+|---------|--------|
+| 2-3 elements separated by blank lines | Side-by-side columns |
+| 4+ elements | Grid layout |
+| H4 + image | Caption layout |
+| Image with `background: true` | Background image behind text |
+
+**Cells:** Content separated by blank lines goes into different cells. One element per cell usually looks better.
+
+## Full Reference
+
+See `references/syntax-reference.md` for complete documentation including:
+- All text formatting (highlight, superscript, subscript)
+- Footnotes and citations
+- LaTeX math
+- Code blocks with syntax highlighting
+- Tables
+- Custom themes and CSS classes
+- Layout CSS classes for theming
