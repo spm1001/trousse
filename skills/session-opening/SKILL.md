@@ -66,17 +66,17 @@ Act           → Draw-down to TodoWrite
 
 | Condition | Action | Why |
 |-----------|--------|-----|
-| `.arc/` exists (no `.beads/`) | `Skill(arc)` | Lightweight tracker patterns |
-| `.beads/` exists (no `.arc/`) | `Skill(beads)` | Full tracker patterns |
-| Both `.arc/` and `.beads/` exist | Ask user which to use | Avoid loading wrong patterns |
+| `.arc/` exists | `Skill(arc)` | Default tracker — outcomes and actions, GTD vocabulary |
+| `.beads/` exists (no `.arc/`) | `Skill(beads)` | Legacy tracker patterns |
+| Both `.arc/` and `.beads/` exist | Prefer arc, mention beads available | Arc is the default |
 | Neither exists | Skip tracker loading | No work tracker in this project |
 | @Claude items in context OR Todoist in handoff | Offer `Skill(todoist-gtd)` | GTD framing, inbox check |
 | User seems disoriented about past work | Offer `Skill(memory)` | Ancestral lookup |
 
 **Work tracker is mandatory when present.** The draw-down pattern (item → TodoWrite checkpoints) is where drift gets caught. Without it, Claude works from the tracker directly → no checkpoints → drift compounds.
 
-- **Arc** is lighter — outcomes and actions, simpler CLI, GTD vocabulary built-in
-- **Beads** is heavier — epics, dependencies, molecules, more ceremony
+- **Arc** is the default — outcomes and actions, simpler CLI, GTD vocabulary built-in
+- **Beads** is legacy — epics, dependencies, molecules, more ceremony (for existing `.beads/` projects)
 
 **Todoist-gtd is conditional.** Offer it when relevant, don't load by default.
 

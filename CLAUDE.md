@@ -76,7 +76,7 @@ This encoding is used in:
 |------|---------|---------|
 | User-invocable | Slash command | `/diagram`, `/titans` |
 | Alias | Slash command → delegates | `/open` → session-opening |
-| Companion | Loaded by other skills | beads, todoist-gtd |
+| Companion | Loaded by other skills | arc (default), beads (legacy), todoist-gtd |
 
 ### SKILL.md Conventions
 
@@ -95,7 +95,17 @@ Per skill-check guidelines:
 | Multiple scripts | `jq` | External dependency, checked by install.sh |
 | `session-start.sh` | `perl` | Falls back to `date` if missing (loses ms precision) |
 
-**Arc CLI:** Referenced in session-opening but has no install story yet. Path: `~/Repos/arc/.venv/bin/arc`
+**Arc CLI:** Default work tracker. Path: `~/Repos/arc/.venv/bin/arc`
+
+## Why Arc over Beads
+
+**Historical context (Jan 2026):** Beads was the original work tracker — powerful but heavy. Epics, dependencies, molecules, hub topology, prefix routing. The ceremony accumulated.
+
+Arc emerged as a lighter alternative: outcomes + actions, GTD vocabulary native, required briefs (forces clarity). No hub, no cross-project wiring, no daemon.
+
+**The decision:** Arc became the default for new projects. Beads remains for existing `.beads/` projects — it works, no reason to force migration. But new work uses arc.
+
+**Migration:** `arc migrate --from-beads` converts existing beads to arc format if needed.
 
 ## Extending claude-suite
 

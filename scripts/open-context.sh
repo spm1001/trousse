@@ -134,7 +134,43 @@ if [ -d ".git" ]; then
     fi
 fi
 
-# --- BEADS ---
+# --- ARC (default tracker) ---
+ARC_FILE="$CONTEXT_DIR/arc.txt"
+if [ -d ".arc" ]; then
+    # Find arc CLI - check PATH first, then known location
+    ARC_CMD=$(command -v arc 2>/dev/null || echo "$HOME/Repos/arc/.venv/bin/arc")
+
+    if [ -x "$ARC_CMD" ]; then
+        # Get ready items
+        READY_OUTPUT=$("$ARC_CMD" list --ready 2>/dev/null || true)
+        READY_COUNT=$(echo "$READY_OUTPUT" | grep -c "^" 2>/dev/null) || READY_COUNT=0
+        # Subtract header/empty lines if present
+        [ "$READY_COUNT" -gt 0 ] && READY_COUNT=$((READY_COUNT - 1))
+        [ "$READY_COUNT" -lt 0 ] && READY_COUNT=0
+
+        # Write arc context to file
+        {
+            echo "# Arc Context (generated $(date '+%Y-%m-%d %H:%M'))"
+            echo "# Generated for: $CWD"
+            echo ""
+            echo "## Ready Work"
+            echo "$READY_OUTPUT"
+            echo ""
+            echo "## Full Hierarchy"
+            "$ARC_CMD" list 2>/dev/null || true
+        } > "$ARC_FILE"
+
+        echo "🎯 Arc (default): $READY_COUNT ready"
+        echo "   Context: $ARC_FILE"
+    else
+        echo "🎯 Arc: .arc/ exists but arc CLI not found"
+        rm -f "$ARC_FILE"
+    fi
+else
+    rm -f "$ARC_FILE"
+fi
+
+# --- BEADS (legacy tracker) ---
 BEADS_FILE="$CONTEXT_DIR/beads.txt"
 if [ -d ".beads" ]; then
     # Get ready output and extract count from "N issues with no blockers"
@@ -190,47 +226,11 @@ if [ -d ".beads" ]; then
         fi
     } > "$BEADS_FILE"
 
-    echo "📦 Beads: $READY_COUNT ready"
+    echo "📦 Beads (legacy): $READY_COUNT ready"
     echo "   Context: $BEADS_FILE"
 else
-    echo "📦 Beads: none"
+    # Don't advertise beads when not present — arc is the default now
     rm -f "$BEADS_FILE"
-fi
-
-# --- ARC ---
-ARC_FILE="$CONTEXT_DIR/arc.txt"
-if [ -d ".arc" ]; then
-    # Find arc CLI - check PATH first, then known location
-    ARC_CMD=$(command -v arc 2>/dev/null || echo "$HOME/Repos/arc/.venv/bin/arc")
-
-    if [ -x "$ARC_CMD" ]; then
-        # Get ready items
-        READY_OUTPUT=$("$ARC_CMD" list --ready 2>/dev/null || true)
-        READY_COUNT=$(echo "$READY_OUTPUT" | grep -c "^" 2>/dev/null) || READY_COUNT=0
-        # Subtract header/empty lines if present
-        [ "$READY_COUNT" -gt 0 ] && READY_COUNT=$((READY_COUNT - 1))
-        [ "$READY_COUNT" -lt 0 ] && READY_COUNT=0
-
-        # Write arc context to file
-        {
-            echo "# Arc Context (generated $(date '+%Y-%m-%d %H:%M'))"
-            echo "# Generated for: $CWD"
-            echo ""
-            echo "## Ready Work"
-            echo "$READY_OUTPUT"
-            echo ""
-            echo "## Full Hierarchy"
-            "$ARC_CMD" list 2>/dev/null || true
-        } > "$ARC_FILE"
-
-        echo "🎯 Arc: $READY_COUNT ready"
-        echo "   Context: $ARC_FILE"
-    else
-        echo "🎯 Arc: .arc/ exists but arc CLI not found"
-        rm -f "$ARC_FILE"
-    fi
-else
-    rm -f "$ARC_FILE"
 fi
 
 # --- NEWS ---

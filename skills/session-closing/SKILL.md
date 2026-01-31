@@ -231,8 +231,8 @@ Do the selected actions: finish incomplete todos, close tracker items with notes
 
 ### Create "Next" items
 For each selected deferral, create a tracker item with enough context that a future Claude can pick it up.
-- **Beads:** `bd create "title" --description "..." --design "..."`
-- **Arc:** `arc new "title" --why "..." --what "..." --done "..."`
+- **Arc:** `arc new "title" --why "..." --what "..." --done "..."` (default)
+- **Beads (legacy):** `bd create "title" --description "..." --design "..."`
 
 ### Clear TodoWrite
 
