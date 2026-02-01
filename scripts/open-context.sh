@@ -170,68 +170,15 @@ else
     rm -f "$ARC_FILE"
 fi
 
-# --- BEADS (legacy tracker) ---
+# --- BEADS (deprecated — arc is now default) ---
+# Legacy .beads/ directories may exist in older projects
+# Arc is the preferred tracker — see arc section above
 BEADS_FILE="$CONTEXT_DIR/beads.txt"
 if [ -d ".beads" ]; then
-    # Get ready output and extract count from "N issues with no blockers"
-    READY_OUTPUT=$(bd ready --no-daemon 2>/dev/null || true)
-    READY_COUNT=$(echo "$READY_OUTPUT" | grep -oE "[0-9]+ issues" | head -1 | grep -oE "[0-9]+" || echo 0)
-
-    # Write beads context to file
-    {
-        echo "# Beads Context (generated $(date '+%Y-%m-%d %H:%M'))"
-        echo "# Generated for: $CWD"
-        echo ""
-        echo "## Ready Work"
-        echo "$READY_OUTPUT"
-        echo ""
-
-        # Recently closed
-        RECENTLY_CLOSED=$(bd list --no-daemon --status closed 2>/dev/null | head -5)
-        if [ -n "$RECENTLY_CLOSED" ]; then
-            echo "## Recently Closed"
-            echo "$RECENTLY_CLOSED"
-            echo ""
-        fi
-
-        # Hierarchy
-        EPICS=$(bd list --no-daemon --type epic --json 2>/dev/null | jq -r '.[].id' 2>/dev/null || true)
-        if [ -n "$EPICS" ]; then
-            echo "## Hierarchy"
-
-            # Collect all children to detect nested epics
-            ALL_CHILDREN=""
-            for epic_id in $EPICS; do
-                children=$(bd list --no-daemon --parent "$epic_id" --json 2>/dev/null | jq -r '.[].id' 2>/dev/null || true)
-                ALL_CHILDREN="$ALL_CHILDREN $children"
-            done
-
-            # Show top-level epics only
-            for epic_id in $EPICS; do
-                if echo "$ALL_CHILDREN" | grep -q "$epic_id"; then
-                    continue
-                fi
-                epic_title=$(bd show --no-daemon "$epic_id" --json 2>/dev/null | jq -r '.[0].title' 2>/dev/null || echo "untitled")
-                echo "📦 $epic_id: $epic_title"
-                bd list --no-daemon --parent "$epic_id" --json 2>/dev/null | jq -r '.[] | if .issue_type == "epic" then "   ├── ⚠️ \(.id): \(.title) [NESTED]" else "   ├── \(.id): \(.title)" end' 2>/dev/null || true
-            done
-
-            # Standalone tasks
-            ORPHANS=$(bd list --no-daemon --json 2>/dev/null | jq -r '.[] | select(.issue_type != "epic") | select(.dependency_count == 0) | "\(.id): \(.title)"' 2>/dev/null || true)
-            if [ -n "$ORPHANS" ]; then
-                echo ""
-                echo "Standalone (no epic):"
-                echo "$ORPHANS" | sed 's/^/• /'
-            fi
-        fi
-    } > "$BEADS_FILE"
-
-    echo "📦 Beads (legacy): $READY_COUNT ready"
-    echo "   Context: $BEADS_FILE"
-else
-    # Don't advertise beads when not present — arc is the default now
-    rm -f "$BEADS_FILE"
+    echo "📦 Beads (deprecated): .beads/ found — consider migrating to arc"
+    echo "   Run: arc init && arc migrate --from-beads .beads/"
 fi
+rm -f "$BEADS_FILE"
 
 # --- NEWS ---
 NEWS_FILE="$HOME/.claude/.update-news"

@@ -1,7 +1,7 @@
 ---
 name: session-opening
 description: >
-  Re-orient to session context on demand. Loads companion skills (beads, todoist-gtd)
+  Re-orient to session context on demand. Loads companion skills (arc, todoist-gtd)
   based on what's present. Use when you missed the startup context, want a fresh look
   at what's available, or after cd'ing to a different project.
   Triggers on /open, 'what were we working on', 'where did we leave off'.
@@ -19,7 +19,7 @@ Interpret context and load companion skills.
 
 Use `/open` for:
 - **Re-orientation** — "Show me the context again"
-- **Skill loading** — Ensures beads/todoist-gtd patterns are available
+- **Skill loading** — Ensures arc/todoist-gtd patterns are available
 - **After directory change** — Context is project-specific; if you cd'd, context may differ
 
 ## When NOT to Use
@@ -36,7 +36,7 @@ Use `/open` for:
 |-------|-----|-----------|
 | open-context.sh exists | `[ -x ~/.claude/scripts/open-context.sh ]` | Run `claude-doctor.sh` |
 | Script symlinks valid | `~/.claude/scripts/check-symlinks.sh` | Fix symlinks, see ERROR_PATTERNS.md |
-| bd available (if .beads/) | `command -v bd` | Install: `brew install bd` |
+| arc available | `command -v arc` | Install: see ~/Repos/arc |
 
 **Quick pre-flight:**
 ```bash
@@ -67,8 +67,8 @@ Act           → Draw-down to TodoWrite
 | Condition | Action | Why |
 |-----------|--------|-----|
 | `.arc/` exists | `Skill(arc)` | Default tracker — outcomes and actions, GTD vocabulary |
-| `.beads/` exists (no `.arc/`) | `Skill(beads)` | Legacy tracker patterns |
-| Both `.arc/` and `.beads/` exist | Prefer arc, mention beads available | Arc is the default |
+| `.beads/` exists (no `.arc/`) | Suggest migration | Beads is deprecated — `arc migrate --from-beads .beads/` |
+| Both `.arc/` and `.beads/` exist | Use arc only | Arc is authoritative |
 | Neither exists | Skip tracker loading | No work tracker in this project |
 | @Claude items in context OR Todoist in handoff | Offer `Skill(todoist-gtd)` | GTD framing, inbox check |
 | User seems disoriented about past work | Offer `Skill(memory)` | Ancestral lookup |
@@ -76,11 +76,11 @@ Act           → Draw-down to TodoWrite
 **Work tracker is mandatory when present.** The draw-down pattern (item → TodoWrite checkpoints) is where drift gets caught. Without it, Claude works from the tracker directly → no checkpoints → drift compounds.
 
 - **Arc** is the default — outcomes and actions, simpler CLI, GTD vocabulary built-in
-- **Beads** is legacy — epics, dependencies, molecules, more ceremony (for existing `.beads/` projects)
+- **Beads** is deprecated — if `.beads/` exists without `.arc/`, suggest migration
 
 **Todoist-gtd is conditional.** Offer it when relevant, don't load by default.
 
-> **Skill loading bias (Jan 2026 learning):** Loading todoist-gtd primes Claude to think about "where work belongs" (Todoist vs bd vs arc). This caused misinterpretation when user said "refactor beads into proper epics" — Claude proposed moving to Todoist instead of organizing within bd. When a tracker skill is loaded, stay anchored to the user's explicit tool references ("the beads", "in arc", "the outcomes").
+> **Skill loading bias (Jan 2026 learning):** Loading todoist-gtd primes Claude to think about "where work belongs" (Todoist vs arc). This caused misinterpretation in past sessions. When a tracker skill is loaded, stay anchored to the user's explicit tool references ("in arc", "the outcomes").
 
 **Memory is optional.** Offer when user seems confused about history, not by default.
 
@@ -94,9 +94,8 @@ Hook output at session start shows what exists:
 ```
 📋 Handoffs: 9 available, latest 23h ago
    Index: ~/.claude/.session-context/<encoded-cwd>/handoffs.txt
-📦 Beads: 8 ready                    # OR
-🎯 Arc: 4 ready                      # (one or the other, based on .beads/ vs .arc/)
-   Context: ~/.claude/.session-context/<encoded-cwd>/beads.txt (or arc.txt)
+🎯 Arc: 4 ready
+   Context: ~/.claude/.session-context/<encoded-cwd>/arc.txt
 📰 News: available
    File: ~/.claude/.update-news
 ```
@@ -109,7 +108,7 @@ Hook output at session start shows what exists:
 |------|------|
 | Handoff index | `~/.claude/.session-context/<encoded-cwd>/handoffs.txt` |
 | Specific handoff | Path from index (e.g., `~/.claude/handoffs/.../9ac230b1.md`) |
-| Beads context | `~/.claude/.session-context/<encoded-cwd>/beads.txt` |
+| Arc context | `~/.claude/.session-context/<encoded-cwd>/arc.txt` |
 | Arc context | `~/.claude/.session-context/<encoded-cwd>/arc.txt` |
 | News | `~/.claude/.update-news` |
 
@@ -153,18 +152,18 @@ CONTEXT_DIR=~/.claude/.session-context/$(pwd -P | tr '/.' '-')
 Then read:
 1. **Check handoff index** — read `$CONTEXT_DIR/handoffs.txt` (if missing, run `~/.claude/scripts/open-context.sh` first)
 2. **Read most recent handoff** — path is in the index, read the actual `.md` file
-3. **Check tracker context** — read `$CONTEXT_DIR/beads.txt` OR `$CONTEXT_DIR/arc.txt` (whichever exists)
+3. **Check tracker context** — read `$CONTEXT_DIR/arc.txt` if it exists
 4. **News if relevant** — read `~/.claude/.update-news` if user asks or it's actionable
 
 ### Synthesize What Matters
 
 - **Handoff** — Done, Next, Gotchas from previous session
-- **Tracker hierarchy** — from beads.txt or arc.txt, show directly to user
-- **Ready work** — what's unblocked (beads ready or arc ready)
+- **Tracker hierarchy** — from arc.txt, show directly to user
+- **Ready work** — what's unblocked (arc ready)
 - **Commands** — if handoff has a Commands section, offer to run them
 - **Scope mismatches** — if handoff "Next" doesn't match ready items, flag it
 
-> **CRITICAL: Output as text, not Bash.** When presenting tracker hierarchy or ready work, output it as text in your response. DO NOT run `arc list` or `bd ready` via Bash — Claude Code collapses tool output >10 lines behind Ctrl+O, making it invisible to the user. The arc.txt/beads.txt files already contain formatted hierarchies; read them and output directly.
+> **CRITICAL: Output as text, not Bash.** When presenting tracker hierarchy or ready work, output it as text in your response. DO NOT run `arc list` via Bash — Claude Code collapses tool output >10 lines behind Ctrl+O, making it invisible to the user. The arc.txt file already contains formatted hierarchies; read it and output directly.
 
 ### Orphaned Local Handoffs
 
@@ -195,7 +194,7 @@ Then read the selected handoff file.
 
 ### Single Handoff (default)
 
-Read the handoff, present concisely: "Previous session did X. Next suggested: Y. Z beads ready."
+Read the handoff, present concisely: "Previous session did X. Next suggested: Y. Z arc items ready."
 
 ---
 
@@ -203,7 +202,7 @@ Read the handoff, present concisely: "Previous session did X. Next suggested: Y.
 
 User picks direction. Options typically:
 - Continue with handoff "Next"
-- Pick from ready work (beads or arc items)
+- Pick from ready work (arc items)
 - @Claude inbox items
 - Something else
 
@@ -219,11 +218,10 @@ When user picks a work item:
 
 | Tracker | Read item | Mark in progress |
 |---------|-----------|------------------|
-| **Beads** | `bd show <id> --json` | `bd update <id> --status in_progress` |
 | **Arc** | `arc show <id>` | (arc doesn't track in_progress) |
 
 Then:
-1. Read the item's criteria (beads: acceptance-criteria, arc: brief.done)
+1. Read the item's criteria (arc: brief.done)
 2. Create TodoWrite items from those criteria
 3. Show user: "Breaking this down into: [list]. Sound right?"
 
@@ -262,7 +260,7 @@ When user says "the email thing", "that feature", or similar:
 
 **No TodoWrite items = No checkpoints = Drift compounds.**
 
-**Full draw-down patterns live in the tracker skill (beads or arc)** — that's why gate-loading matters.
+**Full draw-down patterns live in the tracker skill (arc)** — that's why gate-loading matters.
 
 ---
 
@@ -272,7 +270,7 @@ When user says "the email thing", "that feature", or similar:
 |---------|---------|-----|
 | Run `arc list` or `bd ready` via Bash | Output collapsed, user can't see it | Read context file, output as text |
 | Skip draw-down on "continue X" | Scope ambiguity | Always read item, create TodoWrite |
-| Skip tracker skill loading | Missing workflow patterns | Gate-load beads/arc first |
+| Skip tracker skill loading | Missing workflow patterns | Gate-load arc first |
 | Ignore script failures | Partial context, drift | STOP and diagnose if script fails |
 | Guess at ambiguous references | Wrong work picked up | Ask user which item they mean |
 
@@ -280,8 +278,8 @@ When user says "the email thing", "that feature", or similar:
 
 | Phase | /open | /close |
 |-------|-------|--------|
-| **G**ate | Load beads, offer todoist | — |
-| **G**ather | Notifications (stdout) → Read files | Todos, beads, git, drift |
+| **G**ate | Load arc, offer todoist | — |
+| **G**ather | Notifications (stdout) → Read files | Todos, arc, git, drift |
 | **O**rient | "Where we left off" | Reflect (AskUserQuestion) |
 | **D**ecide | User picks direction | Crystallize actions (STOP) |
 | **A**ct | Draw-down → TodoWrite | Execute, handoff, commit |
