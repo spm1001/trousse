@@ -32,8 +32,7 @@ Work/
 ├── Areas/              # Ongoing responsibilities
 ├── Resources/          # Reference material (Larder, GTD Resources)
 ├── Archive/            # Completed/dormant
-├── Meeting Notes/      # By year (2015-2025)
-└── Claude Research/    # Session working folders
+└── Meeting Notes/      # By year (2015-2025)
 ```
 
 ### Projects/
@@ -76,17 +75,6 @@ Meeting Notes/
 
 Naming: `{date} {Person/Topic} - {Brief description}.md`
 
-### Claude Research/
-Session working folders for research context:
-```
-Claude Research/
-├── 20251214 - Claude - strategic priorities/
-├── 20251214 - Claude - team priorities/
-└── [various .gdoc outputs]
-```
-
-**Cleanup:** These accumulate. During weekly review, archive or delete stale ones.
-
 ## PARA Quick Reference
 
 | Category | Definition | Completion |
@@ -104,12 +92,11 @@ Strict PARA has 4 equal categories (Projects, Areas, Resources, Archive).
 
 **This structure adds:**
 - **Meeting Notes/** - Chronological organization by year (not in PARA)
-- **Claude Research/** - Session working folders (transient, not in PARA)
 - Areas are predefined (not emergent as in strict PARA)
 
 **Core PARA principle remains:** Projects complete, Areas don't.
 
-**Why the additions:** Meeting notes benefit from chronological access. Claude Research is truly transient (weekly cleanup). Areas reflect actual work responsibilities.
+**Why the additions:** Meeting notes benefit from chronological access. Areas reflect actual work responsibilities.
 
 ## Weekly Cleanup Zones
 
@@ -217,7 +204,6 @@ File organization chaos often symptoms deeper behavioral patterns. Surface these
 | Signal | Pattern | Response |
 |--------|---------|----------|
 | Downloads >100 files OR >2 weeks neglect | **Execution-Without-Reflection** | "This backlog suggests rushing through tasks without processing. Want to check patterns?" |
-| Claude Research >10 stale folders | **Overcommitment** | "You're starting many explorations but not finishing them. Check your plate?" |
 | Multiple "temporary" folders >1 month old | **Scope Creep** | "These temp folders suggest projects expanding beyond original scope." |
 
 **Coordination pattern:** Filing is Phase 1 of weekly review. After tidying, **todoist-gtd** skill handles pattern reflection (Phase 3).
@@ -235,7 +221,6 @@ Don't skip the pattern check just because you tidied the files.
 | Reference PDF/doc | Resources/Larder/ or relevant Resources subfolder |
 | Completed project | Archive/ |
 | Ongoing area doc | Areas/{relevant area}/ |
-| Claude session output | Claude Research/ (or file properly if valuable) |
 | Screenshot for project | Projects/{project}/ or delete |
 | Random download | Delete or file if valuable |
 
