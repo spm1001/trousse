@@ -17,7 +17,7 @@ Capture learnings while context is rich, then commit and exit.
 
 ## When NOT to Use
 
-- Mid-session checkpoint (use TodoWrite instead)
+- Mid-session checkpoint (pause and check direction instead)
 - Quick question that doesn't need handoff
 - Exploratory work with no conclusions yet
 
@@ -88,7 +88,7 @@ Use TIME_OF_DAY for greetings. Use YEAR to anchor the handoff date.
 
 From script output, assess:
 
-- **TodoWrite** — what's done, what's incomplete? (incomplete items surface in Decide)
+- **Work progress** — what's done, what's incomplete? (incomplete items surface in Decide)
 - **Tracker** — Beads: IN_PROGRESS items need notes or closure. Arc: open items to complete or defer
 - **Git** — UNCOMMITTED files? UNPUSHED commits?
 - **Drift** — what did /open say we'd do vs what we did?
@@ -165,7 +165,7 @@ From Gather + Orient, crystallize actions into two buckets.
 
 ### Surfacing incomplete work
 
-**Before presenting options, check TodoWrite for incomplete items.** Any todo not marked `completed` must appear in the Decide AskUserQuestion — either as a "Now" option (finish it) or "Next" option (create tracker item). Don't silently drop work.
+**Before presenting options, identify incomplete work from the session.** Any unfinished task must appear in the Decide AskUserQuestion — either as a "Now" option (finish it) or "Next" option (create tracker item). Don't silently drop work.
 
 ### Now vs Next
 
@@ -191,9 +191,9 @@ AskUserQuestion([
     multiSelect: true,
     options: [
       // Adapt to actual session:
-      // - Include incomplete todos as options
+      // - Include incomplete work as options
       // - Include CLAUDE.md updates when insights emerged
-      { label: "Finish [incomplete todo]", description: "Can complete quickly" },
+      { label: "Finish [incomplete work]", description: "Can complete quickly" },
       { label: "Close [item-id]", description: "Add resolution notes" },
       { label: "Update Local CLAUDE.md", description: "Project-specific pattern" },
       { label: "Update Global CLAUDE.md", description: "Cross-project learning" },
@@ -206,9 +206,9 @@ AskUserQuestion([
     multiSelect: true,
     options: [
       // Adapt to actual session:
-      // - Include incomplete todos that need dedicated time
-      // - Use bd create (beads) or arc new (arc) depending on project
-      { label: "[Incomplete todo]", description: "Needs dedicated time" },
+      // - Include incomplete work that needs dedicated time
+      // - Use arc new (default tracker)
+      { label: "[Incomplete work]", description: "Needs dedicated time" },
       { label: "Investigate Y", description: "Needs dedicated exploration" },
       { label: "None", description: "Handoff captures everything needed" }
     ]
@@ -218,7 +218,7 @@ AskUserQuestion([
 
 User gets explicit choice over timing. "Next" ≠ abandoned — it's queued with context.
 
-**After Decide completes:** All incomplete todos have been addressed (user chose to finish, defer, or drop). The cleardown in Act is now safe.
+**After Decide completes:** All incomplete work has been addressed (user chose to finish, defer, or drop).
 
 ---
 
@@ -233,19 +233,6 @@ Do the selected actions: finish incomplete todos, close tracker items with notes
 For each selected deferral, create a tracker item with enough context that a future Claude can pick it up.
 - **Arc:** `arc new "title" --why "..." --what "..." --done "..."` (default)
 - **Beads (legacy):** `bd create "title" --description "..." --design "..."`
-
-### Clear TodoWrite
-
-Clear the todo list with an empty array:
-```
-TodoWrite([])
-```
-
-This is safe because:
-- Incomplete items were surfaced in Decide — user chose to finish, defer, or drop
-- Items deferred are now in tracker (persistent)
-- Completed items are done
-- Leaving stale todos confuses next session
 
 ### Write handoff
 
@@ -364,7 +351,7 @@ This enables future `/mem search` to find this session's content.
 | Compress reflection into multiple-choice | Defeats surfacing unexpected observations | Share observations first, then ask |
 | Skip pre-flight cd check | Handoff written to wrong project | Always run check-home.sh |
 | Write handoff locally (.handoff.md) | /open won't find it | Use HANDOFF_DIR from script |
-| Silently drop incomplete todos | Work disappears | Surface in Decide — finish, defer, or explicit drop |
+| Silently drop incomplete work | Work disappears | Surface in Decide — finish, defer, or explicit drop |
 | Commit other repos | Unwanted "helpful" tidying | Only commit working directory |
 | Rush Orient to get to Act | Value compounds in reflection | Complete all three beats |
 
@@ -375,5 +362,5 @@ This enables future `/mem search` to find this session's content.
 | **G**ather | Handoff, tracker, script | Todos, tracker, drift | Todos, tracker, git, drift |
 | **O**rient | "Where we left off" | "What's drifted" | Claude observes → User co-reflects → Claude answers |
 | **D**ecide | User picks direction | Continue or adjust | Crystallize actions (STOP) |
-| **A**ct | Draw-down → TodoWrite | Update tracker, reset | Execute, handoff, commit, clear todos |
+| **A**ct | Draw-down from Arc | Update tracker | Execute, handoff, commit |
 | **R**emember | — | Optional: memory skill | Index session (background) |

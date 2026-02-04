@@ -55,7 +55,7 @@ Gate          → Load required companion skills
 Gather        → Script output (already present from hook, or re-run if needed)
 Orient        → Synthesize what matters
 Decide        → User picks direction
-Act           → Draw-down to TodoWrite
+Act           → Draw-down from Arc
 ```
 
 ---
@@ -73,7 +73,7 @@ Act           → Draw-down to TodoWrite
 | @Claude items in context OR Todoist in handoff | Offer `Skill(todoist-gtd)` | GTD framing, inbox check |
 | User seems disoriented about past work | Offer `Skill(memory)` | Ancestral lookup |
 
-**Work tracker is mandatory when present.** The draw-down pattern (item → TodoWrite checkpoints) is where drift gets caught. Without it, Claude works from the tracker directly → no checkpoints → drift compounds.
+**Work tracker is mandatory when present.** The draw-down pattern (item → work with checkpoints) is where drift gets caught. Arc tactical extension (when built) will provide checkpoint mechanism. Until then, work directly from Arc with explicit pauses.
 
 - **Arc** is the default — outcomes and actions, simpler CLI, GTD vocabulary built-in
 - **Beads** is deprecated — if `.beads/` exists without `.arc/`, suggest migration
@@ -221,9 +221,10 @@ When user picks a work item:
 | **Arc** | `arc show <id>` | (arc doesn't track in_progress) |
 
 Then:
-1. Read the item's criteria (arc: brief.done)
-2. Create TodoWrite items from those criteria
+1. Read the item's criteria (arc: brief.why/what/done)
+2. Break down into steps from those criteria
 3. Show user: "Breaking this down into: [list]. Sound right?"
+4. Work through steps with explicit pauses for direction checks
 
 ### Continuation phrases
 
@@ -231,8 +232,8 @@ When user says "continue X", "keep going", "pick up where we left off":
 
 1. **Clarify scope:** "Which item? Outcome (broad goal) or action (specific task)?"
 2. Read the item's criteria
-3. Create TodoWrite items — this catches scope gaps before work begins
-4. Proceed with checkpoints
+3. Break into steps — this catches scope gaps before work begins
+4. Proceed with explicit pause points
 
 **Failure mode (Jan 2026):** User said "continue backfill" → Claude continued existing code without checking epic scope → discovered an hour later that "complete pass" meant more than file attachments.
 
@@ -241,11 +242,11 @@ When user says "continue X", "keep going", "pick up where we left off":
 When user provides a spec, brief, or requirements from elsewhere:
 
 1. Extract acceptance criteria from the brief
-2. Create TodoWrite items from those criteria
+2. Break into steps from those criteria
 3. Show user: "I'm reading this as: [list]. Right?"
-4. Proceed with checkpoints
+4. Proceed with explicit pause points
 
-**Failure mode:** User provided brief from another Claude → work completed → "fix" didn't work → second debugging phase had no TodoWrite → drift.
+**Failure mode:** User provided brief from another Claude → work completed → "fix" didn't work → second debugging phase had no clear checkpoints → drift.
 
 ### Ambiguous references
 
@@ -256,9 +257,9 @@ When user says "the email thing", "that feature", or similar:
 
 ### The test
 
-> If the work will take >10 minutes, it needs TodoWrite items.
+> If the work will take >10 minutes, it needs explicit breakdown and pause points.
 
-**No TodoWrite items = No checkpoints = Drift compounds.**
+**No checkpoints = Drift compounds.**
 
 **Full draw-down patterns live in the tracker skill (arc)** — that's why gate-loading matters.
 
@@ -269,7 +270,7 @@ When user says "the email thing", "that feature", or similar:
 | Pattern | Problem | Fix |
 |---------|---------|-----|
 | Run `arc list` or `bd ready` via Bash | Output collapsed, user can't see it | Read context file, output as text |
-| Skip draw-down on "continue X" | Scope ambiguity | Always read item, create TodoWrite |
+| Skip draw-down on "continue X" | Scope ambiguity | Always read item, break into steps |
 | Skip tracker skill loading | Missing workflow patterns | Gate-load arc first |
 | Ignore script failures | Partial context, drift | STOP and diagnose if script fails |
 | Guess at ambiguous references | Wrong work picked up | Ask user which item they mean |
@@ -282,5 +283,5 @@ When user says "the email thing", "that feature", or similar:
 | **G**ather | Notifications (stdout) → Read files | Todos, arc, git, drift |
 | **O**rient | "Where we left off" | Reflect (AskUserQuestion) |
 | **D**ecide | User picks direction | Crystallize actions (STOP) |
-| **A**ct | Draw-down → TodoWrite | Execute, handoff, commit |
+| **A**ct | Draw-down from Arc | Execute, handoff, commit |
 | **R**emember | — | Captured in handoff |
