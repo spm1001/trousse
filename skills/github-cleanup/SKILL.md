@@ -1,6 +1,5 @@
 ---
 name: github-cleanup
-user-invocable: false
 description: Progressive audit and cleanup of GitHub accounts - stale forks, orphaned secrets, failing workflows, security configs. Audit-first with user approval before destructive actions. Triggers on 'clean up GitHub', 'audit my repos', 'GitHub hygiene', 'stale forks', 'orphaned secrets'. Requires gh CLI. (user)
 ---
 

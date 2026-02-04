@@ -1,6 +1,5 @@
 ---
 name: skill-check
-user-invocable: false
 description: Quality gate for skill development and sharing. Validates naming, description quality, and structure. Before sharing, scans for PII/secrets. Triggers on 'check this skill', 'validate skill', 'can I share this', 'scan for sharing'. Complements skill-creator (process) with validation (requirements). (user)
 ---
 

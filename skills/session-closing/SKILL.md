@@ -1,7 +1,6 @@
 ---
 name: session-closing
 description: End-of-session ritual. Use when session is ending — context nearly full, work complete, or user says 'wrap up'. Triggers on /close, 'wrap up', 'let's finish'. Pairs with /open. (user)
-user-invocable: false
 ---
 
 # /close
