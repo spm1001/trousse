@@ -129,7 +129,7 @@ cd ~/Repos/claude-mem && uv run mem scan
 ls ~/.claude/skills/
 
 # Test key skills
-ls -la ~/.claude/skills/session-opening
+ls -la ~/.claude/skills/open
 ls -la ~/.claude/skills/beads
 ```
 
@@ -140,7 +140,7 @@ Tell user to restart Claude (`/exit` then `claude`) to load new skills.
 | Check | Command | Expected |
 |-------|---------|----------|
 | Skills directory | `ls ~/.claude/skills/` | 13+ skill symlinks |
-| Session skills | `ls -la ~/.claude/skills/session-opening` | Points to claude-suite |
+| Session skills | `ls -la ~/.claude/skills/open` | Points to claude-suite |
 | Beads | `bd --version` | Shows version (install separately if missing) |
 
 ## Updating

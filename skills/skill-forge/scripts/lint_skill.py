@@ -440,7 +440,7 @@ def detect_alias(content: str, frontmatter: Optional[dict]) -> Optional[str]:
     if frontmatter:
         desc = frontmatter.get('description', '')
         if 'alias' in desc.lower():
-            # Try to extract target from "Alias for session-closing" pattern
+            # Try to extract target from "Alias for close" pattern
             match = re.search(r'[Aa]lias\s+for\s+([a-z0-9-]+)', desc)
             if match:
                 return match.group(1)

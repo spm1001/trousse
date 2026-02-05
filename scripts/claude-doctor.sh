@@ -127,8 +127,8 @@ section "Skills"
 
 SKILLS_DIR="$HOME/.claude/skills"
 CORE_SKILLS=(
-    "session-opening"
-    "session-closing"
+    "open"
+    "close"
     "beads"
 )
 

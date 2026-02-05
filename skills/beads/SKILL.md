@@ -76,7 +76,7 @@ bd is a graph-based issue tracker for persistent memory across sessions, designe
 
 **The redirect isn't "no" — it's "yes, differently."** The handoff's Artifacts section serves the same purpose (cross-session memory) without the sync risk.
 
-See `session-closing` skill for the Knowledge Work Context pattern.
+See `/close` skill for the Knowledge Work Context pattern.
 
 **At session start, always check for bd availability and run ready check:**
 

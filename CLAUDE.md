@@ -32,7 +32,7 @@ This pattern ensures systematic context transfer between sessions. See `/open` a
 
 **Hook chain:**
 - `hooks/session-start.sh` → calls `scripts/open-context.sh`
-- `scripts/close-context.sh` ← called by session-closing skill
+- `scripts/close-context.sh` ← called by /close skill
 
 ## Titans Review Process
 
@@ -75,7 +75,7 @@ This encoding is used in:
 | Type | Trigger | Example |
 |------|---------|---------|
 | User-invocable | Slash command | `/diagram`, `/titans` |
-| Alias | Slash command → delegates | `/open` → session-opening |
+| Alias | Slash command → delegates | `/review` → titans |
 | Companion | Loaded by other skills | arc (default), beads (legacy), todoist-gtd |
 
 ### SKILL.md Conventions
@@ -133,7 +133,7 @@ Skills can have a `references/` subdirectory:
 
 Run `./install.sh --verify` to check all skills are properly symlinked. The verification list must be kept in sync with actual skills in `skills/` directory.
 
-**Current skills (18):** beads, close, diagram, filing, github-cleanup, ia-presenter, open, picture, review, screenshot, server-checkup, session-closing, session-opening, setup, skill-check, skill-forge, sprite, titans
+**Current skills (16):** beads, close, diagram, filing, github-cleanup, ia-presenter, open, picture, review, screenshot, server-checkup, setup, skill-check, skill-forge, sprite, titans
 
 ## Testing Skills
 

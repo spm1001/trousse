@@ -508,7 +508,7 @@ Development tools live in `~/Repos/` with prefix conventions:
 
 | Prefix | Contains | Example |
 |--------|----------|---------|
-| `claude-suite` | Core session skills | session-opening, beads, filing |
+| `claude-suite` | Core session skills | open, close, beads, filing |
 | `skill-*` | Specialized skills | `skill-itv-styling` |
 | `mcp-*` | MCP servers | `mcp-workspace` |
 | `infra-*` | Infrastructure | `infra-openwrt` |
