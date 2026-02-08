@@ -130,7 +130,7 @@ is_container() {
     return 1
 }
 
-ENCODED_PATH=$(echo "$CWD" | tr '/.' '-')
+ENCODED_PATH=$(echo "$CWD" | sed 's/[^a-zA-Z0-9-]/-/g')
 HANDOFF_DIR="$HOME/.claude/handoffs/$ENCODED_PATH"
 
 # Always output HANDOFF_DIR - even containers need handoffs

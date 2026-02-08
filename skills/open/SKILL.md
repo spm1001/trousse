@@ -95,7 +95,7 @@ The session-start hook outputs a synthesized briefing:
 - Last-worked zoom (current action and its tactical steps)
 - Last session summary (Done, Next, Gotchas from latest handoff)
 
-**Context files are per-project.** The `<encoded-cwd>` is the working directory with `/` and `.` replaced by `-` (e.g., `-Users-modha-Repos-claude-suite`).
+**Context files are per-project.** The `<encoded-cwd>` is the working directory with all non-alphanumeric characters replaced by `-` (e.g., `-Users-modha-Repos-claude-suite`).
 
 **For deeper context, read the source files:**
 
@@ -105,7 +105,7 @@ The session-start hook outputs a synthesized briefing:
 | Arc context | `~/.claude/.session-context/<encoded-cwd>/arc.txt` |
 | News | `~/.claude/.update-news` |
 
-**To compute the path:** `echo "$(pwd -P)" | tr '/.' '-'` → use as subdirectory name.
+**To compute the path:** `echo "$(pwd -P)" | sed 's/[^a-zA-Z0-9-]/-/g'` → use as subdirectory name.
 
 ### Missing or Stale Context
 
@@ -119,7 +119,7 @@ This happens when:
 - First time in this project
 - After cd'ing to a different project mid-session
 
-**Check first:** `[ -d ~/.claude/.session-context/$(pwd -P | tr '/.' '-') ]`
+**Check first:** `[ -d ~/.claude/.session-context/$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g') ]`
 
 ### Script Failure Handling
 
@@ -139,7 +139,7 @@ This happens when:
 
 Compute the encoded path, then read source files:
 ```bash
-ENCODED=$(pwd -P | tr '/.' '-')
+ENCODED=$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')
 ```
 
 Then:

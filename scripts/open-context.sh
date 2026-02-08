@@ -8,7 +8,7 @@ set -euo pipefail
 # === PATHS ===
 BASE_CONTEXT_DIR="$HOME/.claude/.session-context"
 CWD=$(pwd -P)
-ENCODED_PATH=$(echo "$CWD" | tr '/.' '-')
+ENCODED_PATH=$(echo "$CWD" | sed 's/[^a-zA-Z0-9-]/-/g')
 CONTEXT_DIR="$BASE_CONTEXT_DIR/$ENCODED_PATH"
 mkdir -p "$CONTEXT_DIR"
 

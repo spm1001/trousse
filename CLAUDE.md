@@ -62,19 +62,19 @@ The `/titans` (or `/review`) skill dispatches three parallel Opus reviewers with
 
 **Critical infrastructure — divergence causes data loss.**
 
-The pattern `$(pwd -P | tr '/.' '-')` converts paths to directory-safe names for handoff routing:
+The pattern `$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')` converts paths to directory-safe names for handoff routing:
 - `/Users/modha/Repos/claude-suite` → `-Users-modha-Repos-claude-suite`
-- Both `/` and `.` are replaced (`.` because hidden directories would create `.`-prefixed encoded names)
+- `/Users/modha/.claude` → `-Users-modha--claude`
+- Google Drive, iCloud paths: `@`, spaces, `~` all become `-`
 
-This encoding is used in:
+This encoding matches Claude Code's own encoding for `~/.claude/projects/` and is used in:
 - `~/.claude/.session-context/<encoded>/` — per-project context files (cache, can regenerate)
 - `~/.claude/handoffs/<encoded>/` — per-project handoff archives (permanent)
+- `~/.claude/projects/<encoded>/` — Claude Code's own JSONL transcripts (read-only)
 
 **Canonical location:** `scripts/open-context.sh:11` and `scripts/close-context.sh:133`
 
-**If this encoding changes, handoffs become orphaned.** Any migration would need to move existing directories.
-
-**Claude Code uses a different encoding** for `~/.claude/projects/`: `sed 's/[^a-zA-Z0-9-]/-/g'` — replaces everything non-alphanumeric (including `@`, spaces, `~`) with `-`. Our `tr '/.' '-'` only replaces `/` and `.`. The two produce identical results for `~/Repos/*` paths but diverge for Google Drive, iCloud, and dotfile paths. The `/close` skill's session ID discovery uses Claude Code's encoding (to find JSONL transcripts); everything else uses ours.
+**If this encoding changes, handoffs become orphaned.** Any migration would need to move existing directories. See `references/HANDOFF-CONTRACT.md` for the versioned contract.
 
 ## Skill Architecture
 

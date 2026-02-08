@@ -168,7 +168,7 @@ Reads `.arc/items.jsonl` directly with jq. Falls back to arc CLI if arc-read.sh 
 The path encoding convention used for per-project directories:
 
 ```bash
-encoded=$(pwd -P | tr '/.' '-')
+encoded=$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')
 # /Users/modha/Repos/claude-suite -> -Users-modha-Repos-claude-suite
 ```
 
