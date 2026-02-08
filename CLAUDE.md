@@ -74,6 +74,8 @@ This encoding is used in:
 
 **If this encoding changes, handoffs become orphaned.** Any migration would need to move existing directories.
 
+**Claude Code uses a different encoding** for `~/.claude/projects/`: `sed 's/[^a-zA-Z0-9-]/-/g'` — replaces everything non-alphanumeric (including `@`, spaces, `~`) with `-`. Our `tr '/.' '-'` only replaces `/` and `.`. The two produce identical results for `~/Repos/*` paths but diverge for Google Drive, iCloud, and dotfile paths. The `/close` skill's session ID discovery uses Claude Code's encoding (to find JSONL transcripts); everything else uses ours.
+
 ## Skill Architecture
 
 ### Skill Taxonomy
