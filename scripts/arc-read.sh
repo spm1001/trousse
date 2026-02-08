@@ -22,7 +22,9 @@ ITEMS=".arc/items.jsonl"
 case "${1:-}" in
     list)
         # Full hierarchy: open outcomes with all their actions (including done)
-        jq -r -s '
+        # Capture output — command substitution strips trailing newlines,
+        # which removes the blank-line separator after the last group.
+        output=$(jq -r -s '
             # Group actions by parent
             (map(select(.parent)) | group_by(.parent) | map({key: .[0].parent, value: (. | sort_by(.order))}) | from_entries) as $children |
             # Show open outcomes in order
@@ -34,12 +36,13 @@ case "${1:-}" in
                 (if .value.status == "done" then "\u2713" else "\u25cb" end) + " " +
                 .value.title + " (" + .value.id + ")"),
             ""
-        ' "$ITEMS" 2>/dev/null || true
+        ' "$ITEMS" 2>/dev/null) || true
+        if [ -n "$output" ]; then printf '%s\n' "$output"; fi
         ;;
 
     ready)
         # Ready items: open outcomes with only open+non-waiting actions
-        jq -r -s '
+        output=$(jq -r -s '
             (map(select(.parent and .status == "open" and (.waiting_for == null or .waiting_for == ""))) | group_by(.parent) | map({key: .[0].parent, value: (. | sort_by(.order))}) | from_entries) as $ready_children |
             map(select(.type == "outcome" and .status == "open" and (.parent == null or .parent == ""))) | sort_by(.order)[] |
             . as $outcome |
@@ -48,7 +51,8 @@ case "${1:-}" in
                 "  " + ((.key + 1) | tostring) + ". \u25cb " +
                 .value.title + " (" + .value.id + ")"),
             ""
-        ' "$ITEMS" 2>/dev/null || true
+        ' "$ITEMS" 2>/dev/null) || true
+        if [ -n "$output" ]; then printf '%s\n' "$output"; fi
         ;;
 
     current)
