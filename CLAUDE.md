@@ -1,14 +1,61 @@
 # claude-suite — Project Context
 
-Learnings from developing and maintaining the behavioral skills.
+This repo provides two things for Claude Code:
+
+1. **A session protocol** — hooks and scripts that give Claude session memory. At startup, a hook briefs Claude on previous work. At close, a skill writes a handoff for the next session. The handoff contract (`references/HANDOFF-CONTRACT.md`) specifies the format.
+
+2. **A skill drawer** — 16 SKILL.md files that teach Claude specialized workflows (diagramming, code review, file organization, etc.). Installed as symlinks into `~/.claude/skills/`.
+
+The session protocol is the load-bearing part — other tools (like [aboyeur](https://github.com/spm1001/aboyeur)) depend on its handoff format and encoding scheme. The skills are useful but modular — any can be removed without breaking the protocol.
 
 ## Compatibility
 
 **Tested with Claude Code:** 2.1.x
 **Minimum required:** 2.0 (hooks API)
-**settings.json format:** As of Jan 2026
+**Dependencies:** `jq` (critical — used by all hooks for arc state reads)
 
-## GODAR Pattern
+## How the Session Protocol Works
+
+### Hook Chain
+
+Three hooks fire on Claude Code events:
+
+| Hook | Event | What it does |
+|------|-------|--------------|
+| `hooks/session-start.sh` | SessionStart | Calls `scripts/open-context.sh` to generate a briefing |
+| `hooks/arc-tactical.sh` | UserPromptSubmit | Injects current work step into every prompt |
+| `hooks/session-end.sh` | SessionEnd | Cleanup (with subagent guard to prevent fork bombs) |
+
+**Performance:** Session start ~106ms, per-prompt ~8ms. Hooks read arc state via jq on `.arc/items.jsonl` (~3ms) instead of the Python arc CLI (~30ms).
+
+### Briefing Output
+
+`open-context.sh` writes two things:
+- **stdout** — compact briefing Claude sees immediately (outcomes, last session summary, ready work)
+- **disk** — `~/.claude/.session-context/<encoded-path>/arc.txt` with full hierarchy for deeper digs
+
+### Handoff Protocol
+
+`/close` writes a handoff file to `~/.claude/handoffs/<encoded-path>/`. The next session's startup hook reads it. Handoffs contain three sections: **Done**, **Next**, **Gotchas**. See `references/HANDOFF-CONTRACT.md` for the full specification.
+
+### Path Encoding
+
+Handoffs and context files are stored in directories named after the project path. The encoding replaces all non-alphanumeric characters with `-`:
+
+```bash
+pwd -P | sed 's/[^a-zA-Z0-9-]/-/g'
+# /Users/modha/Repos/claude-suite → -Users-modha-Repos-claude-suite
+```
+
+This matches Claude Code's own encoding for `~/.claude/projects/`. **If this encoding changes, handoffs become orphaned.** The canonical implementation lives in `scripts/open-context.sh:11` and `scripts/close-context.sh:133`.
+
+## Session Behaviour
+
+**When the session-start hook provides context, orient the user in your first response.** Don't wait for /open — the briefing is there for both of you. Present the outcomes, mention the last session, and ask what they want to work on.
+
+The `/open` skill is still available for re-orientation mid-session or after changing directories.
+
+### GODAR Pattern
 
 Session lifecycle skills follow GODAR:
 - **Gather** — Collect context (run scripts, read files)
@@ -17,81 +64,37 @@ Session lifecycle skills follow GODAR:
 - **Act** — Execute selected actions
 - **Remember** — Persist for future sessions
 
-This pattern ensures systematic context transfer between sessions. See `/open` and `/close` skill implementations.
-
-## Session Start Behaviour
-
-**When the session-start hook provides context (outcomes, handoff summary), orient the user in your first response.** Don't wait for /open — the briefing is there for both of you. Present the outcomes, mention the last session, and ask what they want to work on.
-
-The /open skill is still available for re-orientation mid-session or after changing directories, but the initial orientation should happen automatically from the hook output.
-
-## Hook Architecture
-
-**Design principle:** Hooks are fast and graceful. Session start ~106ms, per-prompt ~8ms. No subagent guards needed (except session-end, which prevents recursive fork bombs).
-
-**Output contract:** `open-context.sh` outputs a compact briefing to stdout (ready work hierarchy with IDs, last-worked zoom, handoff summary). Arc state is read via jq on `.arc/items.jsonl` (~3ms) not the Python CLI (~30ms).
-
-**Hook chain:**
-- `hooks/session-start.sh` → calls `scripts/open-context.sh` (briefing to stdout, arc.txt to disk)
-- `hooks/arc-tactical.sh` → reads `.arc/items.jsonl` via jq, injects tactical step into every prompt
-- `scripts/close-context.sh` ← called by /close skill
-
-**jq-for-reads pattern:** `scripts/arc-read.sh` provides `list`, `ready`, `current` commands that read items.jsonl directly. Python arc CLI is for writes only (validation, ID generation, tactical management).
-
-**Full architecture audit:** See `references/HOOKS_AND_SCRIPTS.md`
-
-## Titans Review Process
-
-The `/titans` (or `/review`) skill dispatches three parallel Opus reviewers with different lenses:
-
-| Titan | Focus | Typical findings |
-|-------|-------|------------------|
-| **Epimetheus** | Hindsight — bugs, debt, fragility | Silent failures, missing error handling, race conditions |
-| **Metis** | Craft — clarity, idiom, structure | Stale references, naming inconsistencies, magic numbers |
-| **Prometheus** | Foresight — vision, extensibility | Undocumented contracts, missing version markers |
-
-**When to use:** After substantial work, before shipping, periodic hygiene.
-
-**Token cost:** Three Opus agents is not cheap. Worth it for substantial work; overkill for quick fixes.
-
-**Self-review is valuable:** The titans skill reviewing itself found real issues (stale paths, PII in scanner config). Self-blindness is real.
-
-**Dispatch mechanism:** Uses `Task` tool with `subagent_type: "explore-opus"`. Partial failures are handled gracefully — if one reviewer fails, synthesis proceeds with available outputs.
-
-## Context Encoding Scheme
-
-**Critical infrastructure — divergence causes data loss.**
-
-The pattern `$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')` converts paths to directory-safe names for handoff routing:
-- `/Users/modha/Repos/claude-suite` → `-Users-modha-Repos-claude-suite`
-- `/Users/modha/.claude` → `-Users-modha--claude`
-- Google Drive, iCloud paths: `@`, spaces, `~` all become `-`
-
-This encoding matches Claude Code's own encoding for `~/.claude/projects/` and is used in:
-- `~/.claude/.session-context/<encoded>/` — per-project context files (cache, can regenerate)
-- `~/.claude/handoffs/<encoded>/` — per-project handoff archives (permanent)
-- `~/.claude/projects/<encoded>/` — Claude Code's own JSONL transcripts (read-only)
-
-**Canonical location:** `scripts/open-context.sh:11` and `scripts/close-context.sh:133`
-
-**If this encoding changes, handoffs become orphaned.** Any migration would need to move existing directories. See `references/HANDOFF-CONTRACT.md` for the versioned contract.
-
 ## Skill Architecture
 
-### Skill Taxonomy
+### Types
 
 | Type | Trigger | Example |
 |------|---------|---------|
 | User-invocable | Slash command | `/diagram`, `/titans` |
 | Alias | Slash command → delegates | `/review` → titans |
-| Companion | Loaded by other skills | arc (default), beads (legacy), todoist-gtd |
+| Companion | Loaded by other skills | arc (loaded by /open when `.arc/` exists) |
 
-### SKILL.md Conventions
+### Conventions
 
-Per skill-check guidelines:
-- Description should end with `(user)` tag for user-facing skills
-- `user-invocable: false` for skills loaded programmatically
-- Reference files in `references/` subdirectory, linked from main SKILL.md
+- Description ends with `(user)` tag for user-facing skills
+- `user-invocable: false` for skills loaded programmatically (companion skills)
+- Reference files live in `references/` subdirectory, linked from main SKILL.md
+
+### Current Skills (16)
+
+beads, close, diagram, filing, github-cleanup, ia-presenter, open, picture, review, screenshot, server-checkup, setup, skill-check, skill-forge, sprite, titans
+
+### Titans Review
+
+`/titans` (or `/review`) dispatches three parallel Opus reviewers:
+
+| Titan | Lens |
+|-------|------|
+| **Epimetheus** | Hindsight — bugs, debt, fragility |
+| **Metis** | Craft — clarity, idiom, structure |
+| **Prometheus** | Foresight — vision, extensibility |
+
+Uses `Task` tool with `subagent_type: "explore-opus"`. Worth it for substantial work; overkill for quick fixes.
 
 ## Script Dependencies
 
@@ -104,18 +107,7 @@ Per skill-check guidelines:
 | `close-context.sh` | `check-home.sh` | Same repo |
 | Multiple scripts | `jq` | Critical dependency for arc reads and hook output |
 
-**Arc CLI:** Default work tracker for writes. Path: `~/Repos/arc/.venv/bin/arc`
-**Arc reads:** `scripts/arc-read.sh` for hooks/scripts (jq, ~3ms vs ~30ms Python)
-
-## Why Arc over Beads
-
-**Historical context (Jan 2026):** Beads was the original work tracker — powerful but heavy. Epics, dependencies, molecules, hub topology, prefix routing. The ceremony accumulated.
-
-Arc emerged as a lighter alternative: outcomes + actions, GTD vocabulary native, required briefs (forces clarity). No hub, no cross-project wiring, no daemon.
-
-**The decision:** Arc became the default for new projects. Beads remains for existing `.beads/` projects — it works, no reason to force migration. But new work uses arc.
-
-**Migration:** `arc migrate --from-beads` converts existing beads to arc format if needed.
+**Arc CLI** is used for writes (validation, ID generation, tactical step management). **arc-read.sh** handles reads via jq (~3ms vs ~30ms Python startup). The JSONL file is the interface between them — see `FIELD_REPORT_jq_consumers.md` in the arc repo for the field dependency list.
 
 ## Extending claude-suite
 
@@ -131,22 +123,14 @@ Arc emerged as a lighter alternative: outcomes + actions, GTD vocabulary native,
 2. Scripts are auto-symlinked by install.sh (must have `.sh` suffix)
 3. Document any dependencies in this file
 
-### Reference Files Convention
+### Reference Files
 
 Skills can have a `references/` subdirectory:
 - Read as-needed, not loaded automatically
 - Linked from main SKILL.md with "When to read" guidance
-- Naming: UPPERCASE for major references (WORKFLOWS.md), lowercase for specific topics
+- Naming: UPPERCASE for major references, lowercase for specific topics
 
-## Skill Verification
-
-Run `./install.sh --verify` to check all skills are properly symlinked. The verification list must be kept in sync with actual skills in `skills/` directory.
-
-**Current skills (16):** beads, close, diagram, filing, github-cleanup, ia-presenter, open, picture, review, screenshot, server-checkup, setup, skill-check, skill-forge, sprite, titans
-
-## Testing Skills
-
-**The honest split:** Skill quality has two parts — mechanical checks (automatable) and semantic judgment (requires LLM).
+## Testing
 
 ### Mechanical (pytest)
 
@@ -157,30 +141,29 @@ uv run pytest -k beads  # Single skill
 ```
 
 Tests check:
-- CSO linter pass + 100/100 score
-- Referenced files in `references/` exist
+- CSO linter pass + score >= 95/100
+- Referenced files exist
 - Scripts executable with shebang
 - Anti-patterns table format consistency
+- arc-read.sh edge cases (empty JSONL, malformed input, all-done items, tactical steps)
 
 ### Semantic (titans)
 
-For "does this skill actually make sense?" — use `/titans` or `/review`. Three Opus reviewers catch:
-- Description/frontmatter contradictions
-- Stale references
-- Missing error handling
-- Semantic issues the linter can't see
+For "does this skill actually make sense?" — use `/titans`. Three Opus reviewers catch issues the linter can't see (stale references, semantic contradictions, missing error handling).
 
-**When to use what:**
-- After modifying skills → `uv run pytest` (fast, catches regressions)
-- Before shipping substantial skill work → `/titans` (thorough, catches judgment issues)
+## Error Handling
 
-## Script Error Handling
-
-Scripts use `set -euo pipefail` for strict error handling:
+Scripts use `set -euo pipefail`:
 - `-e`: Exit on any command failure
 - `-u`: Error on unset variables
 - `-o pipefail`: Pipe failures propagate
 
-This is stricter than the previous `set -e`. Watch for breakage if scripts relied on unset variables being empty.
+Hooks are designed to fail gracefully — a broken hook should never prevent Claude Code from starting. All jq reads have `2>/dev/null || true` guards.
 
-**The `--no-daemon` convention:** Scripts use `bd ready --no-daemon` for synchronous results. The daemon introduces async latency unsuitable for script contexts.
+## Architecture References
+
+| Document | What it covers |
+|----------|---------------|
+| `references/HOOKS_AND_SCRIPTS.md` | Full hook architecture audit |
+| `references/HANDOFF-CONTRACT.md` | Handoff format specification (encoding, sections, signals) |
+| `references/ERROR_PATTERNS.md` | Common issues and troubleshooting |
