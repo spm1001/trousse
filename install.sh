@@ -151,12 +151,14 @@ if [[ "$VERIFY_ONLY" == true ]]; then
 
     # Check hooks
     info "Checking hooks..."
-    if [[ -L "$HOME/.claude/hooks/session-start.sh" ]]; then
-        echo "  ✓ session-start.sh"
-    else
-        echo "  ✗ session-start.sh (missing)"
-        ERRORS=$((ERRORS + 1))
-    fi
+    for hook in session-start.sh arc-tactical.sh; do
+        if [[ -L "$HOME/.claude/hooks/$hook" ]]; then
+            echo "  ✓ $hook"
+        else
+            echo "  ✗ $hook (missing)"
+            ERRORS=$((ERRORS + 1))
+        fi
+    done
 
     # Check dependencies
     info "Checking dependencies..."
@@ -342,29 +344,46 @@ if [[ "$DRY_RUN" != true ]]; then
     fi
 
     if command -v jq &>/dev/null; then
-        HOOK_PATH="$HOME/.claude/hooks/session-start.sh"
+        # Register all hook events (idempotent — checks before adding)
+        register_hook() {
+            local event="$1" matcher="$2" hook_cmd="$3"
+            if jq -e ".hooks.${event}[]?.hooks[]? | select(.command == \"$hook_cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
+                echo "  ✓ $event ($hook_cmd) already registered"
+            else
+                trap 'rm -f "$SETTINGS_FILE.tmp"' ERR
+                jq --arg event "$event" --arg matcher "$matcher" --arg cmd "$hook_cmd" '
+                    .hooks[$event] = ((.hooks[$event] // []) + [{
+                        matcher: $matcher,
+                        hooks: [{type: "command", command: $cmd}]
+                    }])
+                ' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+                mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+                trap - ERR
+                echo "  + $event ($hook_cmd) registered"
+            fi
+        }
 
-        # Check if our specific hook is already registered (not just any hooks)
-        if jq -e ".hooks.SessionStart[]?.hooks[]? | select(.command == \"$HOOK_PATH\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
-            ok "Hooks already configured"
-        else
-            # Merge new hook into existing structure (preserve other hooks)
-            # Use trap to clean up temp file on failure
+        register_hook "SessionStart" "" "$HOME/.claude/hooks/session-start.sh"
+        register_hook "SessionEnd" "" "$HOME/.claude/hooks/session-end.sh"
+        register_hook "UserPromptSubmit" "" "$HOME/.claude/hooks/arc-tactical.sh"
+
+        # PostToolUse inline hooks (no script files)
+        if ! jq -e '.hooks.PostToolUse[]? | select(.matcher == "WebFetch")' "$SETTINGS_FILE" >/dev/null 2>&1; then
             trap 'rm -f "$SETTINGS_FILE.tmp"' ERR
-            jq --arg hook "$HOOK_PATH" '
-                .hooks.SessionStart = ((.hooks.SessionStart // []) + [{
-                    matcher: "",
-                    hooks: [{type: "command", command: $hook}]
-                }])
-            ' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+            jq '.hooks.PostToolUse = ((.hooks.PostToolUse // []) + [
+                {matcher: "WebFetch", hooks: [{type: "command", command: "echo \u0027{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"STOP: WebFetch returns AI summaries, not raw content. For documentation you need to understand, you MUST use curl to fetch the actual page. Do not proceed with summarized documentation.\"}}\u0027"}]},
+                {matcher: "Bash", hooks: [{type: "command", command: "if git rev-parse --is-inside-work-tree &>/dev/null && ! git symbolic-ref HEAD &>/dev/null 2>&1; then echo \u0027{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"⚠️ WARNING: HEAD is detached! Run git checkout main (or appropriate branch) immediately to avoid losing commits.\"}}\u0027; fi"}]}
+            ])' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
             mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
             trap - ERR
-            ok "Hooks registered in settings.json"
+            echo "  + PostToolUse (WebFetch, Bash) registered"
+        else
+            echo "  ✓ PostToolUse already registered"
         fi
+
+        ok "All hooks registered"
     else
         warn "jq not available — manual hook registration needed"
-        echo "  Add to ~/.claude/settings.json:"
-        echo '  "hooks": {"SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "~/.claude/hooks/session-start.sh"}]}]}'
     fi
 else
     echo "  Would register hooks in settings.json"

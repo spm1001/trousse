@@ -27,11 +27,16 @@ The /open skill is still available for re-orientation mid-session or after chang
 
 ## Hook Architecture
 
-**Output contract:** `open-context.sh` outputs a compact briefing to stdout (outcomes, last-worked zoom, handoff summary). Full detail lives on disk (arc.txt, handoffs.txt) for when Claude needs to dig deeper.
+**Design principle:** Hooks are fast and graceful. Session start ~106ms, per-prompt ~8ms. No subagent guards needed (except session-end, which prevents recursive fork bombs).
+
+**Output contract:** `open-context.sh` outputs a compact briefing to stdout (ready work hierarchy with IDs, last-worked zoom, handoff summary). Arc state is read via jq on `.arc/items.jsonl` (~3ms) not the Python CLI (~30ms).
 
 **Hook chain:**
-- `hooks/session-start.sh` → calls `scripts/open-context.sh` (briefing to stdout, detail to disk)
+- `hooks/session-start.sh` → calls `scripts/open-context.sh` (briefing to stdout, arc.txt to disk)
+- `hooks/arc-tactical.sh` → reads `.arc/items.jsonl` via jq, injects tactical step into every prompt
 - `scripts/close-context.sh` ← called by /close skill
+
+**jq-for-reads pattern:** `scripts/arc-read.sh` provides `list`, `ready`, `current` commands that read items.jsonl directly. Python arc CLI is for writes only (validation, ID generation, tactical management).
 
 **Full architecture audit:** See `references/HOOKS_AND_SCRIPTS.md`
 
@@ -92,11 +97,13 @@ Per skill-check guidelines:
 |--------|------------|------|
 | `session-start.sh` | `open-context.sh` | Same repo |
 | `session-start.sh` | `update-all.sh` | Lives in claude-config, not this repo |
+| `open-context.sh` | `arc-read.sh` | Same repo. Falls back to arc CLI if missing |
+| `arc-tactical.sh` | `jq` + `.arc/items.jsonl` | Direct jq read, no Python |
 | `close-context.sh` | `check-home.sh` | Same repo |
-| Multiple scripts | `jq` | External dependency, checked by install.sh |
-| `session-start.sh` | `perl` | Falls back to `date` if missing (loses ms precision) |
+| Multiple scripts | `jq` | Critical dependency for arc reads and hook output |
 
-**Arc CLI:** Default work tracker. Path: `~/Repos/arc/.venv/bin/arc`
+**Arc CLI:** Default work tracker for writes. Path: `~/Repos/arc/.venv/bin/arc`
+**Arc reads:** `scripts/arc-read.sh` for hooks/scripts (jq, ~3ms vs ~30ms Python)
 
 ## Why Arc over Beads
 

@@ -68,30 +68,10 @@ LATEST_PURPOSE=""
 LATEST_STR=""
 
 if [ -d "$PROJECT_FOLDER" ]; then
-    HANDOFF_FILES=$(ls -t "$PROJECT_FOLDER"/*.md 2>/dev/null || true)
-    HANDOFF_COUNT=$(echo "$HANDOFF_FILES" | grep -c . 2>/dev/null || echo 0)
+    # Latest handoff only — older ones are archive for mem, not startup
+    LATEST_FILE=$(ls -t "$PROJECT_FOLDER"/*.md 2>/dev/null | head -1 || true)
 
-    if [ "$HANDOFF_COUNT" -gt 0 ]; then
-        # Write full index to disk
-        echo "# Generated for: $CWD" > "$HANDOFF_INDEX"
-        echo "" >> "$HANDOFF_INDEX"
-        echo "$HANDOFF_FILES" | while IFS= read -r f; do
-            [ -z "$f" ] && continue
-            FILE_TIME=$(stat -f '%m' "$f" 2>/dev/null || stat -c '%Y' "$f" 2>/dev/null)
-            SECONDS_AGO=$((NOW - FILE_TIME))
-            TIME_STR=$(time_ago $SECONDS_AGO $FILE_TIME)
-            FILENAME=$(basename "$f" .md)
-            PURPOSE=$(grep "^purpose:" "$f" 2>/dev/null | head -1 | cut -d: -f2- | xargs || true)
-            if [ -z "$PURPOSE" ]; then
-                PURPOSE=$(grep -A1 "^## Done" "$f" 2>/dev/null | tail -1 | sed 's/^- //' | cut -c1-50 || true)
-            fi
-            [ -z "$PURPOSE" ] && PURPOSE="(no summary)"
-            echo "$FILENAME | $TIME_STR | $PURPOSE" >> "$HANDOFF_INDEX"
-            echo "PATH:$f" >> "$HANDOFF_INDEX"
-        done
-
-        # Extract latest handoff details for stdout
-        LATEST_FILE=$(echo "$HANDOFF_FILES" | head -1)
+    if [ -n "$LATEST_FILE" ]; then
         LATEST_TIME=$(stat -f '%m' "$LATEST_FILE" 2>/dev/null || stat -c '%Y' "$LATEST_FILE" 2>/dev/null)
         LATEST_AGO=$((NOW - LATEST_TIME))
         LATEST_STR=$(time_ago $LATEST_AGO $LATEST_TIME)
@@ -99,28 +79,29 @@ if [ -d "$PROJECT_FOLDER" ]; then
         if [ -z "$LATEST_PURPOSE" ]; then
             LATEST_PURPOSE=$(grep -A1 "^## Done" "$LATEST_FILE" 2>/dev/null | tail -1 | sed 's/^- //' | cut -c1-60 || true)
         fi
-    else
-        rm -f "$HANDOFF_INDEX"
     fi
-else
-    rm -f "$HANDOFF_INDEX"
 fi
 
-# --- Arc context to disk ---
+# --- Arc context (jq reads, no Python startup) ---
 ARC_FILE="$CONTEXT_DIR/arc.txt"
-ARC_CMD=""
+ARC_READ="$HOME/.claude/scripts/arc-read.sh"
 ARC_LIST_OUTPUT=""
 ARC_READY_OUTPUT=""
 ARC_CURRENT_OUTPUT=""
 
-if [ -d ".arc" ]; then
-    ARC_CMD=$(command -v arc 2>/dev/null || echo "$HOME/Repos/arc/.venv/bin/arc")
+if [ -d ".arc" ] && [ -f ".arc/items.jsonl" ]; then
+    if [ -x "$ARC_READ" ]; then
+        ARC_LIST_OUTPUT=$("$ARC_READ" list 2>/dev/null || true)
+        ARC_READY_OUTPUT=$("$ARC_READ" ready 2>/dev/null || true)
+        ARC_CURRENT_OUTPUT=$("$ARC_READ" current 2>/dev/null || true)
+    elif command -v arc &>/dev/null; then
+        # Fallback to arc CLI if arc-read.sh not installed
+        ARC_LIST_OUTPUT=$(arc list 2>/dev/null || true)
+        ARC_READY_OUTPUT=$(arc list --ready 2>/dev/null || true)
+        ARC_CURRENT_OUTPUT=$(arc show --current 2>/dev/null || true)
+    fi
 
-    if [ -x "$ARC_CMD" ]; then
-        ARC_LIST_OUTPUT=$("$ARC_CMD" list 2>/dev/null || true)
-        ARC_READY_OUTPUT=$("$ARC_CMD" list --ready 2>/dev/null || true)
-        ARC_CURRENT_OUTPUT=$("$ARC_CMD" show --current 2>/dev/null || true)
-
+    if [ -n "$ARC_LIST_OUTPUT" ]; then
         # Write full hierarchy to disk
         {
             echo "# Arc Context (generated $(date '+%Y-%m-%d %H:%M'))"
@@ -157,7 +138,7 @@ echo "Good $TIME_OF_DAY. It's $(date '+%-d %b %Y, %H:%M')."
 echo ""
 
 # --- Arc: outcomes + zoom ---
-if [ -d ".arc" ] && [ -n "$ARC_CMD" ] && [ -x "$ARC_CMD" ]; then
+if [ -d ".arc" ] && [ -f ".arc/items.jsonl" ]; then
     if [ -n "$ARC_READY_OUTPUT" ]; then
         echo "Outcomes we're working towards:"
         echo "$ARC_READY_OUTPUT" | while IFS= read -r line; do
@@ -166,18 +147,20 @@ if [ -d ".arc" ] && [ -n "$ARC_CMD" ] && [ -x "$ARC_CMD" ]; then
         echo ""
     fi
 
-    # Zoom: show the outcome with active tactical steps
-    if [ -n "$ARC_CURRENT_OUTPUT" ]; then
-        # arc show --current format: "Working: <title> (<id>)"
+    # Zoom: show the outcome with active tactical steps (or note nothing active)
+    if [ -z "$ARC_CURRENT_OUTPUT" ]; then
+        echo "Nothing in progress — pick an action to start."
+        echo ""
+    else
+        # Get parent outcome via jq (no Python startup)
         CURRENT_ACTION_ID=$(echo "$ARC_CURRENT_OUTPUT" | head -1 | grep -oE '\([a-zA-Z0-9-]+\)' | tr -d '()' || true)
         if [ -n "$CURRENT_ACTION_ID" ]; then
-            # Get parent outcome
-            PARENT_ID=$("$ARC_CMD" show "$CURRENT_ACTION_ID" --json 2>/dev/null | jq -r '.parent // empty' 2>/dev/null || true)
+            PARENT_ID=$(jq -r "select(.id == \"$CURRENT_ACTION_ID\") | .parent // empty" .arc/items.jsonl 2>/dev/null || true)
             if [ -n "$PARENT_ID" ]; then
-                PARENT_TITLE=$("$ARC_CMD" show "$PARENT_ID" --json 2>/dev/null | jq -r '.title // empty' 2>/dev/null || true)
+                PARENT_TITLE=$(jq -r "select(.id == \"$PARENT_ID\") | .title // empty" .arc/items.jsonl 2>/dev/null || true)
                 if [ -n "$PARENT_TITLE" ]; then
                     echo "Last worked on: $PARENT_TITLE"
-                    # Show actions from list output — find outcome and its children
+                    # Show actions from list output
                     PRINTING=false
                     while IFS= read -r line; do
                         if echo "$line" | grep -qF "$PARENT_ID"; then
@@ -186,7 +169,6 @@ if [ -d ".arc" ] && [ -n "$ARC_CMD" ] && [ -x "$ARC_CMD" ]; then
                         fi
                         if [ "$PRINTING" = true ]; then
                             if echo "$line" | grep -qE '^\s+[0-9]+\.'; then
-                                # Trim leading whitespace, re-indent consistently
                                 TRIMMED=$(echo "$line" | sed 's/^[[:space:]]*//')
                                 echo "  $TRIMMED"
                             else
@@ -200,7 +182,7 @@ if [ -d ".arc" ] && [ -n "$ARC_CMD" ] && [ -x "$ARC_CMD" ]; then
         fi
     fi
 elif [ -d ".arc" ]; then
-    echo "Arc: .arc/ exists but arc CLI not found"
+    echo "Arc: .arc/ exists but jq not available"
     echo ""
 fi
 
@@ -208,10 +190,18 @@ fi
 if [ -n "$LATEST_FILE" ]; then
     echo "Last session ($LATEST_STR): $LATEST_PURPOSE"
 
-    # Extract key sections from the handoff
-    DONE_LINES=$(sed -n '/^## Done/,/^## /{/^## Done/d;/^## /d;p;}' "$LATEST_FILE" 2>/dev/null | head -3 | sed 's/^- //' || true)
-    NEXT_LINES=$(sed -n '/^## Next/,/^## /{/^## Next/d;/^## /d;p;}' "$LATEST_FILE" 2>/dev/null | head -3 | sed 's/^- //' || true)
-    GOTCHA_LINES=$(sed -n '/^## Gotchas/,/^## /{/^## Gotchas/d;/^## /d;p;}' "$LATEST_FILE" 2>/dev/null | head -2 | sed 's/^- //' || true)
+    # Extract key sections from the handoff (strip blank lines before head to avoid empty-line-first bug)
+    DONE_LINES=$(sed -n '/^## Done/,/^## /{/^## Done/d;/^## /d;p;}' "$LATEST_FILE" 2>/dev/null | grep -v '^$' | head -3 | sed 's/^- //' || true)
+    NEXT_LINES=$(sed -n '/^## Next/,/^## /{/^## Next/d;/^## /d;p;}' "$LATEST_FILE" 2>/dev/null | grep -v '^$' | head -3 | sed 's/^- //' || true)
+    GOTCHA_LINES=$(sed -n '/^## Gotchas/,/^## /{/^## Gotchas/d;/^## /d;p;}' "$LATEST_FILE" 2>/dev/null | grep -v '^$' | head -2 | sed 's/^- //' || true)
+
+    # Fallback: if no sections extracted, show first content lines
+    if [ -z "$DONE_LINES" ] && [ -z "$NEXT_LINES" ] && [ -z "$GOTCHA_LINES" ]; then
+        FALLBACK=$(sed -n '1,/^$/d; /^[^#]/p' "$LATEST_FILE" 2>/dev/null | head -3 || true)
+        if [ -n "$FALLBACK" ]; then
+            echo "  $FALLBACK"
+        fi
+    fi
 
     if [ -n "$DONE_LINES" ]; then
         echo "  Did:"

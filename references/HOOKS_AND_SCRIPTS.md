@@ -2,7 +2,7 @@
 
 A complete map of what fires when, who owns it, and how it's wired.
 
-Last audited: 2026-02-07
+Last audited: 2026-02-08
 
 ---
 
@@ -11,30 +11,28 @@ Last audited: 2026-02-07
 ### SessionStart
 
 ```
-settings.json SessionStart (matcher: "startup")
+settings.json SessionStart (matcher: "")
   |
-  +--> sync-config.sh pull           [guard: yes] [owner: claude-config]
-  |      git pull ~/.claude, update submodules
-  |
-  +--> session-start.sh              [guard: yes] [owner: claude-suite]
+  +--> session-start.sh              [no guard] [owner: claude-suite]
          |
-         +--> quick_health_check()    check symlinks + extraction failures
-         +--> sync-skill-permissions.sh   report missing Skill() permissions
-         +--> open-context.sh         handoffs, git, arc, beads, news -> stdout
+         +--> open-context.sh         latest handoff + arc (via jq) -> stdout
          +--> check .close-checkpoint incomplete /close warning
          +--> update-all.sh           background (nohup &)
                |
-               +-- QUICK (always): check-symlinks, submodules, bd doctor
+               +-- QUICK (always): check-symlinks, submodules
                +-- HEAVY (daily): brew, npm, claude update, MCP deps
 ```
+
+**Removed in Feb 2026 cleanup:** sync-config.sh pull, quick_health_check(), sync-skill-permissions.sh, timing telemetry. These were per-session overhead for rare events. Health checks moved to claude-doctor.sh (on-demand).
 
 ### UserPromptSubmit
 
 ```
 settings.json UserPromptSubmit (matcher: "")
   |
-  +--> arc-tactical.sh               [guard: yes] [owner: claude-config]
-         inject current arc step into every prompt
+  +--> arc-tactical.sh               [no guard] [owner: claude-suite]
+         reads .arc/items.jsonl via jq (~3ms)
+         injects current arc step into every prompt
 ```
 
 ### PostToolUse
@@ -51,22 +49,34 @@ settings.json PostToolUse
 ```
 settings.json SessionEnd (matcher: "")
   |
-  +--> session-end.sh                [guard: yes] [owner: claude-suite]
+  +--> session-end.sh                [env var guard] [owner: claude-suite]
   |      |
   |      +--> daemonized background:
   |             mem process (index session transcript)
   |             mem scan (handoffs + beads)
   |             mem backfill --limit 10 (Meeting Notes)
   |
-  +--> sync-config.sh push           [guard: yes] [owner: claude-config]
+  +--> sync-config.sh push           [owner: claude-config]
          git add/commit/push ~/.claude
 ```
 
 ---
 
-## Ownership Map
+## Design Principle: Fast and Graceful
 
-Two repos provide hooks and scripts. The split is historical, not architectural.
+**Hooks should be cheap enough that accidental firing is harmless.** No guards needed if the cost is negligible.
+
+| Hook | Time | Why it's fast |
+|------|------|--------------|
+| session-start.sh | ~106ms | jq reads items.jsonl instead of 3x Python arc CLI |
+| arc-tactical.sh | ~8ms | jq reads items.jsonl instead of Python arc CLI |
+| session-end.sh | ~5ms | Just launches a daemon, actual work is backgrounded |
+
+**Exception: session-end.sh** keeps an env var guard (`MEM_SUBAGENT`, `CLAUDE_SUBAGENT`) because its side effect (mem process) spawns `claude -p` subagents — recursive fork bomb risk. The guard isn't about speed, it's about preventing recursion.
+
+---
+
+## Ownership Map
 
 ### claude-suite (this repo)
 
@@ -76,7 +86,9 @@ Symlinked by `install.sh` to `~/.claude/`.
 |------|------|-------------|
 | `hooks/session-start.sh` | Hook | `~/.claude/hooks/session-start.sh` |
 | `hooks/session-end.sh` | Hook | `~/.claude/hooks/session-end.sh` |
+| `hooks/arc-tactical.sh` | Hook | `~/.claude/hooks/arc-tactical.sh` |
 | `scripts/open-context.sh` | Script | `~/.claude/scripts/open-context.sh` |
+| `scripts/arc-read.sh` | Script | `~/.claude/scripts/arc-read.sh` |
 | `scripts/close-context.sh` | Script | `~/.claude/scripts/close-context.sh` |
 | `scripts/check-home.sh` | Script | `~/.claude/scripts/check-home.sh` |
 | `scripts/check-symlinks.sh` | Script | `~/.claude/scripts/check-symlinks.sh` |
@@ -88,89 +100,40 @@ Not symlinked — these live directly in `~/.claude/`.
 
 | File | Type | Location |
 |------|------|----------|
-| `hooks/arc-tactical.sh` | Hook | `~/.claude/hooks/arc-tactical.sh` |
 | `scripts/sync-config.sh` | Script | `~/.claude/scripts/sync-config.sh` |
-| `scripts/sync-skill-permissions.sh` | Script | `~/.claude/scripts/sync-skill-permissions.sh` |
 | `scripts/update-all.sh` | Script | `~/.claude/scripts/update-all.sh` |
 | `scripts/rescue-handoffs.sh` | Script | `~/.claude/scripts/rescue-handoffs.sh` |
-| `scripts/bd-wrapper.sh` | Script | `~/.claude/scripts/bd-wrapper.sh` |
 | `scripts/todoist-mcp.sh` | Script | `~/.claude/scripts/todoist-mcp.sh` |
 | `scripts/todoist` | Script | `~/.claude/scripts/todoist` |
 | `scripts/chrome-log` | Script | `~/.claude/scripts/chrome-log` |
-| `scripts/bootstrap.sh` | Script | `~/.claude/scripts/bootstrap.sh` |
-| `scripts/setup-machine.sh` | Script | `~/.claude/scripts/setup-machine.sh` |
-| `scripts/setup-new-machine.sh` | Script | `~/.claude/scripts/setup-new-machine.sh` |
-| `scripts/setup-symlinks.sh` | Script | `~/.claude/scripts/setup-symlinks.sh` |
-| `scripts/claude-go-permission.sh` | Script | `~/.claude/scripts/claude-go-permission.sh` |
-| `scripts/transcribe-jpr.sh` | Script | `~/.claude/scripts/transcribe-jpr.sh` |
-| `scripts/web-init.sh` | Script | `~/.claude/scripts/web-init.sh` |
-| `scripts/web-init-inline.sh` | Script | `~/.claude/scripts/web-init-inline.sh` |
 
-### install.sh Registration Gap
+### install.sh Registration
 
-`install.sh` only registers SessionStart in settings.json. These must be added manually:
+`install.sh` registers **all** hook events:
 
-| Event | Hook | Why not auto-registered |
+| Event | Hook | Registered by install.sh |
 |-------|------|------------------------|
-| SessionEnd | session-end.sh | Added later, install.sh not updated |
-| UserPromptSubmit | arc-tactical.sh | Lives in claude-config, not claude-suite |
-| PostToolUse (WebFetch) | Inline | Inline command, no script to register |
-| PostToolUse (Bash) | Inline | Inline command, no script to register |
+| SessionStart | session-start.sh | Yes |
+| SessionEnd | session-end.sh | Yes |
+| UserPromptSubmit | arc-tactical.sh | Yes |
+| PostToolUse (WebFetch) | Inline | Yes |
+| PostToolUse (Bash) | Inline | Yes |
 
 ---
 
-## The Guard Pattern
+## arc-read.sh: jq-Based Arc Reads
 
-### Why Guards Exist
-
-The fork bomb incident (commit `bd19f03`): `mem backfill` spawns `claude -p` subagents. Each triggered SessionStart/SessionEnd hooks, which spawned more mem operations, recursively. Load average hit 287 with 400+ processes on a 10-core M4.
-
-### The Standard Guard
-
-All four scripts triggered directly by settings.json hooks use this identical pattern:
+Hooks and scripts that read arc state use `arc-read.sh` instead of the Python arc CLI. This avoids ~30ms Python startup per invocation.
 
 ```bash
-# Layer 1: Fast path — explicit env var from known subagent spawners
-[ -n "${MEM_SUBAGENT:-}" ] && exit 0
-
-# Layer 2: Slow path — walk process tree looking for claude -p
-_pid=$$
-for _ in 1 2 3 4 5; do
-    _pid=$(ps -o ppid= -p "$_pid" 2>/dev/null | tr -d ' ')
-    [ -z "$_pid" ] || [ "$_pid" = "1" ] && break
-    _cmd=$(ps -o args= -p "$_pid" 2>/dev/null || true)
-    if [[ "$_cmd" == *"claude"* ]]; then
-        [[ "$_cmd" == *" -p "* || "$_cmd" == *"--no-session-persistence"* ]] && exit 0
-        break  # found interactive claude, continue with hook
-    fi
-done
+arc-read.sh list          # Full hierarchy (outcomes + actions)
+arc-read.sh ready         # Ready items only (open, not waiting)
+arc-read.sh current       # Active tactical steps
 ```
 
-**Layer 1** is fast (env var check). Known spawners like claude-mem set `MEM_SUBAGENT=1`.
+Reads `.arc/items.jsonl` directly with jq. Falls back to arc CLI if arc-read.sh isn't installed.
 
-**Layer 2** walks up to 5 levels of parent processes looking for `claude` with `-p` or `--no-session-persistence` flags. Catches subagents from unknown spawners.
-
-### Guard Coverage
-
-| Script | Triggered by | Has guard? | Notes |
-|--------|-------------|------------|-------|
-| `session-start.sh` | settings.json SessionStart | Yes | Direct hook |
-| `session-end.sh` | settings.json SessionEnd | Yes | Direct hook |
-| `arc-tactical.sh` | settings.json UserPromptSubmit | Yes | Direct hook |
-| `sync-config.sh` | settings.json SessionStart + SessionEnd | Yes | Direct hook |
-| `open-context.sh` | session-start.sh | No — inherited | Called by guarded parent |
-| `close-context.sh` | /close skill | No — not a hook | Invoked deliberately |
-| `check-symlinks.sh` | session-start.sh, update-all.sh | No — inherited | Called by guarded parent |
-| `sync-skill-permissions.sh` | session-start.sh | No — inherited | Called by guarded parent |
-| `update-all.sh` | session-start.sh (background) | No — inherited | Called by guarded parent |
-| `check-home.sh` | /close skill | No — not a hook | Invoked deliberately |
-| `claude-doctor.sh` | Manual | No — not a hook | Human runs this |
-
-### Aboyeur Implications
-
-Aboyeur's worker and reflector Claudes are interactive sessions (not `-p`). The guard will **not** suppress hooks for them — which is correct. Workers need SessionStart context, and SessionEnd indexing should capture their work.
-
-However: if aboyeur ever moves to `claude -p` for workers, the guards would suppress hooks, and workers would lose their session context. This is a known coupling.
+**Principle:** Python for writes (validation, ID generation, tactical management). jq for reads (hooks, scripts, briefing). The JSONL format is the interface between them.
 
 ---
 
@@ -180,7 +143,7 @@ However: if aboyeur ever moves to `claude -p` for workers, the guards would supp
 
 | Script | Called by | Purpose |
 |--------|----------|---------|
-| `open-context.sh` | session-start.sh | Computes per-project context: handoff index, git status, arc hierarchy. Writes to `~/.claude/.session-context/<encoded-cwd>/` |
+| `open-context.sh` | session-start.sh | Reads latest handoff + arc state (via jq). Produces stdout briefing. Writes arc.txt to disk for /open. |
 | `close-context.sh` | /close skill | Gathers close-time context: git state, arc state, location check. Structured `=== SECTION ===` output |
 | `check-home.sh` | /close skill | Detects CWD drift from session start |
 
@@ -188,23 +151,15 @@ However: if aboyeur ever moves to `claude -p` for workers, the guards would supp
 
 | Script | Called by | Purpose |
 |--------|----------|---------|
-| `check-symlinks.sh` | session-start.sh, update-all.sh | Verifies critical symlinks intact |
+| `check-symlinks.sh` | update-all.sh | Verifies critical symlinks intact |
 | `claude-doctor.sh` | Manual | Comprehensive health check: symlinks, tools, config, skills, memory, MCP |
-| `sync-skill-permissions.sh` | session-start.sh | Reports skills missing `Skill()` entries in settings.json |
 
 ### Infrastructure
 
 | Script | Called by | Purpose |
 |--------|----------|---------|
-| `sync-config.sh` | settings.json (pull at start, push at end) | Git sync for `~/.claude` repo |
+| `sync-config.sh` | settings.json (push at end only) | Git sync for `~/.claude` repo |
 | `update-all.sh` | session-start.sh (background) | Two-tier updater: quick (always) + heavy (daily) |
-
-### Skill-specific Scripts
-
-| Script | Skill | Purpose |
-|--------|-------|---------|
-| `skills/picture/imagen.sh` | picture | Google Imagen image generation |
-| `skills/sprite/test-outer-inner.sh` | sprite | OuterClaude/InnerClaude test validation |
 
 ---
 
@@ -221,50 +176,16 @@ Used in:
 - `~/.claude/.session-context/<encoded>/` — per-project context cache (regeneratable)
 - `~/.claude/handoffs/<encoded>/` — per-project handoff archive (permanent)
 
-**Canonical implementations:** `open-context.sh:11` and `close-context.sh:133`
+**Canonical implementation:** `open-context.sh:11`
 
-**Contract:** Aboyeur depends on this encoding. Changing it orphans handoffs in both systems.
-
----
-
-## Inline Hooks (settings.json)
-
-Two PostToolUse hooks are defined inline, not as scripts:
-
-### WebFetch Warning
-
-```json
-{ "matcher": "WebFetch",
-  "hooks": [{ "type": "command",
-    "command": "echo '{\"hookSpecificOutput\": ...WebFetch returns AI summaries...}'" }] }
-```
-
-Reminds Claude that WebFetch returns summarised content, not raw pages. Directs to `curl -s` instead.
-
-### Detached HEAD Warning
-
-```json
-{ "matcher": "Bash",
-  "hooks": [{ "type": "command",
-    "command": "if git rev-parse --git-dir > /dev/null 2>&1; then git symbolic-ref HEAD ... fi" }] }
-```
-
-After every Bash command, checks if HEAD is detached inside a git repo. If so, warns Claude to immediately checkout a branch.
+**Contract:** Aboyeur depends on this encoding. See `references/HANDOFF-CONTRACT.md`.
 
 ---
 
 ## Known Issues
 
-1. **Split ownership is confusing.** Session-start and session-end hooks are in claude-suite, but arc-tactical and sync-config are in claude-config. No clear principle governs which lives where.
+1. **update-all.sh has blind spots.** The heavy tier updates brew, npm, and claude CLI, but doesn't update high-velocity tools like `gh` and `gcloud` CLI.
 
-2. **install.sh doesn't register all hooks.** Only SessionStart gets auto-registered. SessionEnd, UserPromptSubmit, and PostToolUse were added manually to settings.json. A fresh install from install.sh alone would miss three hook events.
+2. **CLAUDE_SUBAGENT env var is forward-looking.** session-end.sh checks for it, but nothing currently sets it. Intended for aboyeur or future spawners.
 
-3. **arc-tactical.sh is orphaned from arc.** The hook that enforces arc's draw-down pattern doesn't live in the arc repo — it's a standalone file in claude-config. If arc evolves its tactical format, the hook needs manual updating.
-
-4. **Guard duplication.** The identical 15-line guard is copy-pasted across four scripts. A shared `guard.sh` would reduce maintenance risk and ensure consistency if the detection logic changes.
-
-5. **No hook manifest.** There's no single document (until this one) that maps what fires when. Debugging hook interactions requires reading settings.json, tracing symlinks, and reading each script.
-
-6. **update-all.sh inherits its guard indirectly.** If it were ever triggered outside session-start.sh, it would run without a guard. Its background execution (`nohup &`) means it could outlive its parent's guard context.
-
-7. **update-all.sh has blind spots.** The heavy tier updates brew, npm, and claude CLI, but doesn't update high-velocity tools like `gh` (GitHub CLI) and `gcloud` CLI that ship frequent releases. These drift silently.
+3. **arc-read.sh jq queries assume arc's JSONL shape.** If arc evolves its schema, the jq queries may diverge from `arc list` output silently. Testing against arc CLI output would catch this.
