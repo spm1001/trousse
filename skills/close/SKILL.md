@@ -251,7 +251,7 @@ For each selected deferral, create a tracker item with enough context that a fut
 
 **Get session ID:**
 ```bash
-ls -t ~/.claude/projects/-$(pwd | tr '/' '-' | cut -c2-)/*.jsonl 2>/dev/null | grep -v agent | head -1 | xargs basename -s .jsonl
+ls -t ~/.claude/projects/$(pwd -P | tr '/.' '-')/*.jsonl 2>/dev/null | grep -v agent | head -1 | xargs basename -s .jsonl
 ```
 Use first 8 characters for filename.
 

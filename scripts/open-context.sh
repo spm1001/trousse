@@ -1,7 +1,7 @@
 #!/bin/bash
 # Session context gathering
 # Stdout: compact briefing for human and Claude to orient from
-# Disk: full detail (arc.txt, handoffs.txt) for Claude to read on demand
+# Disk: full detail (arc.txt) for Claude to read on demand
 
 set -euo pipefail
 
@@ -62,7 +62,6 @@ fi
 ARCHIVE_DIR="$HOME/.claude/handoffs"
 NOW=$(date +%s)
 PROJECT_FOLDER="$ARCHIVE_DIR/$ENCODED_PATH"
-HANDOFF_INDEX="$CONTEXT_DIR/handoffs.txt"
 LATEST_FILE=""
 LATEST_PURPOSE=""
 LATEST_STR=""

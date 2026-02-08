@@ -88,27 +88,20 @@ Act           → Draw-down from Arc
 
 ## 2. Gather
 
-**Pattern: Notifications to stdout, content on disk.**
+**Pattern: Compact briefing to stdout, detail on disk.**
 
-Hook output at session start shows what exists:
-```
-📋 Handoffs: 9 available, latest 23h ago
-   Index: ~/.claude/.session-context/<encoded-cwd>/handoffs.txt
-🎯 Arc: 4 ready
-   Context: ~/.claude/.session-context/<encoded-cwd>/arc.txt
-📰 News: available
-   File: ~/.claude/.update-news
-```
+The session-start hook outputs a synthesized briefing:
+- Outcomes we're working towards (from arc)
+- Last-worked zoom (current action and its tactical steps)
+- Last session summary (Done, Next, Gotchas from latest handoff)
 
 **Context files are per-project.** The `<encoded-cwd>` is the working directory with `/` and `.` replaced by `-` (e.g., `-Users-modha-Repos-claude-suite`).
 
-**To get actual content, read the files:**
+**For deeper context, read the source files:**
 
 | What | File |
 |------|------|
-| Handoff index | `~/.claude/.session-context/<encoded-cwd>/handoffs.txt` |
-| Specific handoff | Path from index (e.g., `~/.claude/handoffs/.../9ac230b1.md`) |
-| Arc context | `~/.claude/.session-context/<encoded-cwd>/arc.txt` |
+| Latest handoff | `~/.claude/handoffs/<encoded-cwd>/` (most recent `.md` by mtime) |
 | Arc context | `~/.claude/.session-context/<encoded-cwd>/arc.txt` |
 | News | `~/.claude/.update-news` |
 
@@ -144,16 +137,15 @@ This happens when:
 
 ### Reading Pattern
 
-First, compute the context directory:
+Compute the encoded path, then read source files:
 ```bash
-CONTEXT_DIR=~/.claude/.session-context/$(pwd -P | tr '/.' '-')
+ENCODED=$(pwd -P | tr '/.' '-')
 ```
 
-Then read:
-1. **Check handoff index** — read `$CONTEXT_DIR/handoffs.txt` (if missing, run `~/.claude/scripts/open-context.sh` first)
-2. **Read most recent handoff** — path is in the index, read the actual `.md` file
-3. **Check tracker context** — read `$CONTEXT_DIR/arc.txt` if it exists
-4. **News if relevant** — read `~/.claude/.update-news` if user asks or it's actionable
+Then:
+1. **Read latest handoff** — `ls -t ~/.claude/handoffs/$ENCODED/*.md 2>/dev/null | head -1` (if empty, no prior sessions here)
+2. **Check tracker context** — read `~/.claude/.session-context/$ENCODED/arc.txt` if it exists
+3. **News if relevant** — read `~/.claude/.update-news` if user asks or it's actionable
 
 ### Synthesize What Matters
 
@@ -173,28 +165,11 @@ When stdout shows orphaned `.handoff*` files:
 2. **Offer to rescue:** "Want me to move them to the central location?"
 3. **If yes:** `mv .handoff* ~/.claude/handoffs/<encoded-path>/`
 
-### Multiple Handoffs
+### Handoff
 
-When handoff index shows multiple entries, present choices to user:
+The startup briefing already shows the latest handoff summary (Done, Next, Gotchas). For deeper detail, read the full handoff file.
 
-```
-AskUserQuestion([{
-  header: "Handoff",
-  question: "Multiple handoffs found. Which workstream to continue?",
-  options: [
-    { label: "9ac230b1", description: "23h ago — Removed --local bypass..." },
-    { label: "a6317919", description: "yesterday — Added raw_text to FTS..." },
-    { label: "Start fresh", description: "Ignore existing handoffs" }
-  ],
-  multiSelect: false
-}])
-```
-
-Then read the selected handoff file.
-
-### Single Handoff (default)
-
-Read the handoff, present concisely: "Previous session did X. Next suggested: Y. Z arc items ready."
+Present concisely: "Previous session did X. Next suggested: Y. Z arc items ready."
 
 ---
 
