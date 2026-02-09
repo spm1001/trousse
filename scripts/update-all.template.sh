@@ -150,23 +150,27 @@ if should_run_heavy; then
 
     HEAVY_FAILED=false
 
-    # 1. Package manager
-    log "Updating system packages..."
-    if command -v brew &>/dev/null; then
-        if brew update >> "$LOG_FILE" 2>&1 && \
-           brew upgrade >> "$LOG_FILE" 2>&1 && \
-           brew cleanup >> "$LOG_FILE" 2>&1; then
-            log "✓ Homebrew updated"
-        else
-            log "⚠ Homebrew update had issues"
-            HEAVY_FAILED=true
-        fi
-    elif command -v apt-get &>/dev/null; then
-        # Uncomment if you want auto-updates on Linux:
-        # sudo apt-get update >> "$LOG_FILE" 2>&1 && \
-        #   sudo apt-get upgrade -y >> "$LOG_FILE" 2>&1
-        log "⚠ apt-get available but auto-update disabled (uncomment to enable)"
-    fi
+    # 1. Package manager (uncomment the section for your platform)
+    # Runs in background — won't block your session, but uses bandwidth.
+    # Disable if on metered connection or slow machine.
+
+    # log "Updating Homebrew packages..."
+    # if command -v brew &>/dev/null; then
+    #     if brew update >> "$LOG_FILE" 2>&1 && \
+    #        brew upgrade >> "$LOG_FILE" 2>&1 && \
+    #        brew cleanup >> "$LOG_FILE" 2>&1; then
+    #         log "✓ Homebrew updated"
+    #     else
+    #         log "⚠ Homebrew update had issues"
+    #         HEAVY_FAILED=true
+    #     fi
+    # fi
+
+    # log "Updating apt packages..."
+    # if command -v apt-get &>/dev/null; then
+    #     sudo apt-get update >> "$LOG_FILE" 2>&1 && \
+    #       sudo apt-get upgrade -y >> "$LOG_FILE" 2>&1
+    # fi
 
     # 2. npm globals (uncomment if you use global npm packages)
     # log "Updating npm globals..."
@@ -195,6 +199,8 @@ if should_run_heavy; then
     mark_heavy_complete
 
     # ── News generation ────────────────────────────────────
+    # session-start.sh reads ~/.claude/.update-news if it exists.
+    # Format: markdown with "# Update News (date)" title and ## sections.
     NEW_CLI_VERSION=$(claude --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo 'unknown')
     news=""
     today=$(date '+%Y-%m-%d')

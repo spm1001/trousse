@@ -101,7 +101,7 @@ Not symlinked — these live directly in `~/.claude/`.
 | File | Type | Location |
 |------|------|----------|
 | `scripts/sync-config.sh` | Script | `~/.claude/scripts/sync-config.sh` |
-| `scripts/update-all.sh` | Script | `~/.claude/scripts/update-all.sh` |
+| `scripts/update-all.sh` | Script | `~/.claude/scripts/update-all.sh` (scaffolded from `scripts/update-all.template.sh`) |
 | `scripts/rescue-handoffs.sh` | Script | `~/.claude/scripts/rescue-handoffs.sh` |
 | `scripts/todoist-mcp.sh` | Script | `~/.claude/scripts/todoist-mcp.sh` |
 | `scripts/todoist` | Script | `~/.claude/scripts/todoist` |
