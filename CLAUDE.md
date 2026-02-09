@@ -101,7 +101,7 @@ Uses `Task` tool with `subagent_type: "explore-opus"`. Worth it for substantial 
 | Script | Depends On | Note |
 |--------|------------|------|
 | `session-start.sh` | `open-context.sh` | Same repo |
-| `session-start.sh` | `update-all.sh` | Lives in claude-config, not this repo |
+| `session-start.sh` | `update-all.sh` | Lives in claude-config, scaffolded from `scripts/update-all.template.sh` |
 | `open-context.sh` | `arc-read.sh` | Same repo. Falls back to arc CLI if missing |
 | `arc-tactical.sh` | `jq` + `.arc/items.jsonl` | Direct jq read, no Python |
 | `close-context.sh` | `check-home.sh` | Same repo |

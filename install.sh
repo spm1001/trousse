@@ -160,6 +160,19 @@ if [[ "$VERIFY_ONLY" == true ]]; then
         fi
     done
 
+    # Check update-all.sh
+    info "Checking update-all.sh..."
+    if [[ -f "$HOME/.claude/scripts/update-all.sh" ]]; then
+        if [[ -x "$HOME/.claude/scripts/update-all.sh" ]]; then
+            echo "  ✓ update-all.sh (present and executable)"
+        else
+            echo "  ~ update-all.sh (present but not executable)"
+            warn "Run: chmod +x ~/.claude/scripts/update-all.sh"
+        fi
+    else
+        echo "  ~ update-all.sh (missing — run install.sh to scaffold from template)"
+    fi
+
     # Check dependencies
     info "Checking dependencies..."
     if command -v jq &>/dev/null; then
@@ -313,6 +326,19 @@ if [[ -d "$SCRIPT_DIR/scripts" ]]; then
 fi
 
 ok "Symlinked $SCRIPT_COUNT scripts"
+
+# Scaffold update-all.sh (copy template if not present — it's theirs to customize)
+UPDATE_TARGET="$HOME/.claude/scripts/update-all.sh"
+UPDATE_TEMPLATE="$SCRIPT_DIR/scripts/update-all.template.sh"
+if [[ ! -f "$UPDATE_TARGET" ]] && [[ -f "$UPDATE_TEMPLATE" ]]; then
+    if [[ "$DRY_RUN" != true ]]; then
+        cp "$UPDATE_TEMPLATE" "$UPDATE_TARGET"
+        chmod +x "$UPDATE_TARGET"
+    fi
+    ok "Scaffolded update-all.sh (customize at ~/.claude/scripts/update-all.sh)"
+elif [[ -f "$UPDATE_TARGET" ]]; then
+    ok "update-all.sh already exists (not overwritten)"
+fi
 
 # Symlink hooks
 info "Symlinking hooks..."
