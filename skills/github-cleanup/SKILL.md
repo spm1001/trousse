@@ -63,14 +63,14 @@ check failing workflows
 
 ```bash
 gh auth status
-USERNAME=$(gh api user --jq '.login')
-echo "Auditing GitHub account: $USERNAME"
+GH_USER=$(gh api user --jq '.login')
+echo "Auditing GitHub account: $GH_USER"
 ```
 
 **Count repos for expectations:**
 
 ```bash
-gh repo list $USERNAME --limit 1000 --json name --jq 'length'
+gh repo list $GH_USER --limit 1000 --json name --jq 'length'
 ```
 
 ### Phase 1: Failing Workflows Audit
@@ -79,8 +79,8 @@ gh repo list $USERNAME --limit 1000 --json name --jq 'length'
 
 ```bash
 # Using bash to iterate (gh CLI doesn't have built-in cross-repo workflow listing)
-/bin/bash -c 'for repo in $(gh repo list USERNAME --limit 100 --json name --jq ".[].name"); do
-  workflows=$(gh workflow list --repo "USERNAME/$repo" 2>/dev/null)
+/bin/bash -c 'for repo in $(gh repo list GH_USER --limit 100 --json name --jq ".[].name"); do
+  workflows=$(gh workflow list --repo "GH_USER/$repo" 2>/dev/null)
   if [ -n "$workflows" ]; then
     echo "=== $repo ==="
     echo "$workflows"
@@ -91,7 +91,7 @@ done'
 **Check CodeQL default setup (NOT a workflow file!):**
 
 ```bash
-gh api repos/USERNAME/REPO/code-scanning/default-setup --jq '.state'
+gh api repos/GH_USER/REPO/code-scanning/default-setup --jq '.state'
 ```
 
 **Key insight:** CodeQL "default setup" is configured via GitHub Security settings, not workflow files. The API endpoint is `code-scanning/default-setup`, not `workflows`.
@@ -99,7 +99,7 @@ gh api repos/USERNAME/REPO/code-scanning/default-setup --jq '.state'
 **Check recent workflow runs for failures:**
 
 ```bash
-gh run list --repo USERNAME/REPO --limit 5 --json status,conclusion,name \
+gh run list --repo GH_USER/REPO --limit 5 --json status,conclusion,name \
   --jq '.[] | select(.conclusion == "failure") | "\(.name): \(.conclusion)"'
 ```
 
@@ -108,13 +108,13 @@ gh run list --repo USERNAME/REPO --limit 5 --json status,conclusion,name \
 **List all forks:**
 
 ```bash
-gh repo list USERNAME --fork --json name,parent --jq '.[] | "\(.name) (fork of \(.parent.nameWithOwner // "unknown"))"'
+gh repo list GH_USER --fork --json name,parent --jq '.[] | "\(.name) (fork of \(.parent.nameWithOwner // "unknown"))"'
 ```
 
 **Compare fork to upstream:**
 
 ```bash
-gh api repos/USERNAME/REPO/compare/UPSTREAM_OWNER:main...USERNAME:main \
+gh api repos/GH_USER/REPO/compare/UPSTREAM_OWNER:main...GH_USER:main \
   --jq '{ahead: .ahead_by, behind: .behind_by}'
 ```
 
@@ -133,15 +133,15 @@ REPO: 0 commits ahead, 445 behind upstream
 **List secrets per repo:**
 
 ```bash
-gh api repos/USERNAME/REPO/actions/secrets --jq '.secrets[].name'
+gh api repos/GH_USER/REPO/actions/secrets --jq '.secrets[].name'
 ```
 
 **Cross-reference with workflow files:**
 
 ```bash
 # Get workflow file content and search for secret references
-gh api repos/USERNAME/REPO/contents/.github/workflows --jq '.[].name' | while read file; do
-  gh api "repos/USERNAME/REPO/contents/.github/workflows/$file" --jq '.content' | base64 -d | grep -o 'secrets\.[A-Z_]*'
+gh api repos/GH_USER/REPO/contents/.github/workflows --jq '.[].name' | while read file; do
+  gh api "repos/GH_USER/REPO/contents/.github/workflows/$file" --jq '.content' | base64 -d | grep -o 'secrets\.[A-Z_]*'
 done | sort -u
 ```
 
@@ -155,16 +155,16 @@ done | sort -u
 
 ```bash
 # Check for dependabot.yml
-gh api repos/USERNAME/REPO/contents/.github/dependabot.yml 2>/dev/null && echo "Dependabot configured"
+gh api repos/GH_USER/REPO/contents/.github/dependabot.yml 2>/dev/null && echo "Dependabot configured"
 
 # Check vulnerability alerts status
-gh api repos/USERNAME/REPO/vulnerability-alerts 2>/dev/null && echo "Alerts enabled"
+gh api repos/GH_USER/REPO/vulnerability-alerts 2>/dev/null && echo "Alerts enabled"
 ```
 
 **Check code scanning status:**
 
 ```bash
-gh api repos/USERNAME/REPO/code-scanning/default-setup --jq '{state: .state, languages: .languages}'
+gh api repos/GH_USER/REPO/code-scanning/default-setup --jq '{state: .state, languages: .languages}'
 ```
 
 ### Phase 5: "What Did We Miss?" Checklist (MANDATORY)
@@ -226,26 +226,26 @@ Which cleanup actions should I perform?
 
 ```bash
 # Delete fork (requires delete_repo scope)
-gh repo delete USERNAME/REPO --yes
+gh repo delete GH_USER/REPO --yes
 
 # Delete secret
-gh api repos/USERNAME/REPO/actions/secrets/SECRET_NAME -X DELETE
+gh api repos/GH_USER/REPO/actions/secrets/SECRET_NAME -X DELETE
 
 # Disable CodeQL
-gh api repos/USERNAME/REPO/code-scanning/default-setup -X PATCH -f state=not-configured
+gh api repos/GH_USER/REPO/code-scanning/default-setup -X PATCH -f state=not-configured
 
 # Disable workflow
-gh workflow disable "Workflow Name" --repo USERNAME/REPO
+gh workflow disable "Workflow Name" --repo GH_USER/REPO
 ```
 
 **Verify after cleanup:**
 
 ```bash
 # Confirm repo deleted
-gh repo view USERNAME/REPO 2>&1 | grep -q "not found" && echo "Confirmed deleted"
+gh repo view GH_USER/REPO 2>&1 | grep -q "not found" && echo "Confirmed deleted"
 
 # Confirm secret deleted
-gh api repos/USERNAME/REPO/actions/secrets --jq '.secrets[].name' | grep -v SECRET_NAME
+gh api repos/GH_USER/REPO/actions/secrets --jq '.secrets[].name' | grep -v SECRET_NAME
 ```
 
 ## Quick Reference
@@ -254,12 +254,12 @@ gh api repos/USERNAME/REPO/actions/secrets --jq '.secrets[].name' | grep -v SECR
 
 | Operation | Command |
 |-----------|---------|
-| List repos | `gh repo list USERNAME --json name,isFork,visibility` |
-| List forks | `gh repo list USERNAME --fork --json name,parent` |
+| List repos | `gh repo list GH_USER --json name,isFork,visibility` |
+| List forks | `gh repo list GH_USER --fork --json name,parent` |
 | Compare fork | `gh api repos/.../compare/upstream:main...owner:main` |
 | List secrets | `gh api repos/.../actions/secrets --jq '.secrets[].name'` |
 | Check CodeQL | `gh api repos/.../code-scanning/default-setup` |
-| Delete repo | `gh repo delete USERNAME/REPO --yes` |
+| Delete repo | `gh repo delete GH_USER/REPO --yes` |
 | Delete secret | `gh api repos/.../actions/secrets/NAME -X DELETE` |
 
 ### Scope Requirements
