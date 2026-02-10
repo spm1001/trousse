@@ -67,6 +67,13 @@ GH_USER=$(gh api user --jq '.login')
 echo "Auditing GitHub account: $GH_USER"
 ```
 
+**Verify username matches auth:** The `GH_USER` variable can be shadowed by env vars or stale shells. Cross-check:
+
+```bash
+AUTH_USER=$(gh auth status 2>&1 | grep 'account' | awk '{print $NF}' | tr -d '()')
+[ "$GH_USER" = "$AUTH_USER" ] && echo "Username verified: $GH_USER" || echo "MISMATCH: API=$GH_USER Auth=$AUTH_USER — investigate before proceeding"
+```
+
 **Count repos for expectations:**
 
 ```bash
@@ -280,6 +287,8 @@ gh api repos/GH_USER/REPO/actions/secrets --jq '.secrets[].name' | grep -v SECRE
 | Auto-deleting secrets | Secrets might be used externally | Always require user approval |
 | Only checking the failing fork | Other forks might be stale too | Audit ALL forks |
 | Checking `ahead_by` only | Fork might have upstream changes | Check both `ahead_by` AND `behind_by` |
+| Ghost CodeQL on private repos | Dynamic CodeQL on free-plan private repos can enter undead state — workflow shows "active" but API says "not enabled", UI shows no toggle | Can't fix via API or CLI. Manual: Settings → Code security. If no toggle visible, the entitlement was revoked — workflow is inert, ignore it |
+| Using `USERNAME` as variable name | macOS pre-sets `$USERNAME` to local account, shadowing your capture | Use `GH_USER` and verify against `gh auth status` |
 
 ## References
 
