@@ -48,7 +48,7 @@ echo ""
 
 # === GIT STATUS ===
 echo "=== GIT ==="
-if [ -d ".git" ]; then
+if [ -e ".git" ]; then
     DIRTY=$(git status --porcelain 2>/dev/null || true)
     UNPUSHED=$(git rev-list --count @{u}..HEAD 2>/dev/null || echo "0")
     LAST_MSG=$(git log -1 --format='%s' 2>/dev/null || echo "")
@@ -143,7 +143,7 @@ if is_container "$CWD"; then
     # Find repos with today's commits
     echo "RECENT_WORK:"
     for dir in "$HOME/Repos"/* "$HOME/.claude"; do
-        if [ -d "$dir/.git" ]; then
+        if [ -e "$dir/.git" ]; then
             if git -C "$dir" log --since="midnight" --oneline 2>/dev/null | head -1 | grep -q .; then
                 echo "  $dir"
             fi
