@@ -35,31 +35,66 @@ section() {
 }
 
 # ═══════════════════════════════════════════════════════════════
-section "Critical Symlinks"
+section "Manifest"
 # ═══════════════════════════════════════════════════════════════
 
+MANIFEST="$HOME/.claude/manifest.json"
 SCRIPTS_DIR="$HOME/.claude/scripts"
-CRITICAL_SCRIPTS=(
-    "open-context.sh"
-    "close-context.sh"
-    "check-home.sh"
-)
 
-for script in "${CRITICAL_SCRIPTS[@]}"; do
-    LINK="$SCRIPTS_DIR/$script"
-    if [ -L "$LINK" ]; then
-        TARGET=$(readlink "$LINK")
-        if [ ! -e "$TARGET" ]; then
-            fail "$script → $TARGET (BROKEN - target missing)"
+if [ -f "$MANIFEST" ]; then
+    pass "manifest.json found"
+else
+    fail "manifest.json not found — run setup-from-manifest.sh"
+fi
+
+# ═══════════════════════════════════════════════════════════════
+section "Repos"
+# ═══════════════════════════════════════════════════════════════
+
+if [ -f "$MANIFEST" ]; then
+    for repo in $(jq -r '.repos | keys[]' "$MANIFEST"); do
+        required=$(jq -r ".repos[\"$repo\"].required" "$MANIFEST")
+        if [ -d "$HOME/Repos/$repo" ]; then
+            pass "$repo"
+        elif [ "$required" = "true" ]; then
+            fail "$repo (required, missing)"
         else
-            pass "$script → $TARGET"
+            warn "$repo (optional, missing)"
         fi
-    elif [ -f "$LINK" ]; then
-        pass "$script (regular file)"
-    else
-        fail "$script not found"
-    fi
-done
+    done
+fi
+
+# ═══════════════════════════════════════════════════════════════
+section "Script Symlinks"
+# ═══════════════════════════════════════════════════════════════
+
+if [ -f "$MANIFEST" ]; then
+    for script in $(jq -r '.scripts | keys[]' "$MANIFEST"); do
+        LINK="$SCRIPTS_DIR/$script"
+        if [ -L "$LINK" ]; then
+            TARGET=$(readlink "$LINK")
+            if [ ! -e "$TARGET" ]; then
+                fail "$script → $TARGET (BROKEN)"
+            else
+                pass "$script"
+            fi
+        elif [ -f "$LINK" ]; then
+            pass "$script (regular file)"
+        else
+            fail "$script not found"
+        fi
+    done
+else
+    # Fallback to hardcoded list if no manifest
+    for script in open-context.sh close-context.sh check-home.sh; do
+        LINK="$SCRIPTS_DIR/$script"
+        if [ -L "$LINK" ] && [ -e "$(readlink "$LINK")" ]; then
+            pass "$script"
+        else
+            fail "$script not found or broken"
+        fi
+    done
+fi
 
 # ═══════════════════════════════════════════════════════════════
 section "Required Tools"
@@ -126,33 +161,112 @@ section "Skills"
 # ═══════════════════════════════════════════════════════════════
 
 SKILLS_DIR="$HOME/.claude/skills"
-CORE_SKILLS=(
-    "open"
-    "close"
-    "beads"
-)
 
-for skill in "${CORE_SKILLS[@]}"; do
-    SKILL_PATH="$SKILLS_DIR/$skill"
-    if [ -L "$SKILL_PATH" ]; then
-        TARGET=$(readlink "$SKILL_PATH")
-        if [ ! -e "$TARGET" ]; then
-            fail "Skill $skill → $TARGET (BROKEN symlink)"
-        elif [ -f "$TARGET/SKILL.md" ] || [ -f "$SKILL_PATH/SKILL.md" ]; then
-            pass "Skill $skill"
+if [ -f "$MANIFEST" ]; then
+    skill_ok=0
+    skill_broken=0
+    skill_missing=0
+
+    for skill in $(jq -r '.skills | keys[]' "$MANIFEST"); do
+        SKILL_PATH="$SKILLS_DIR/$skill"
+        if [ -L "$SKILL_PATH" ]; then
+            TARGET=$(readlink "$SKILL_PATH")
+            # For relative symlinks, resolve from skills dir
+            if [[ "$TARGET" != /* ]]; then
+                RESOLVED="$SKILLS_DIR/$TARGET"
+            else
+                RESOLVED="$TARGET"
+            fi
+            if [ ! -e "$RESOLVED" ]; then
+                fail "Skill $skill → $TARGET (BROKEN)"
+                skill_broken=$((skill_broken + 1))
+            else
+                skill_ok=$((skill_ok + 1))
+            fi
+        elif [ -d "$SKILL_PATH" ]; then
+            skill_ok=$((skill_ok + 1))
         else
-            warn "Skill $skill exists but no SKILL.md"
+            warn "Skill $skill not linked"
+            skill_missing=$((skill_missing + 1))
         fi
-    elif [ -d "$SKILL_PATH" ]; then
-        if [ -f "$SKILL_PATH/SKILL.md" ]; then
-            pass "Skill $skill"
+    done
+
+    # Inline skills
+    for skill in $(jq -r '.inline_skills[]? // empty' "$MANIFEST"); do
+        SKILL_PATH="$SKILLS_DIR/$skill"
+        if [ -d "$SKILL_PATH" ] && [ -f "$SKILL_PATH/SKILL.md" ]; then
+            skill_ok=$((skill_ok + 1))
         else
-            warn "Skill $skill exists but no SKILL.md"
+            warn "Inline skill $skill missing or no SKILL.md"
+            skill_missing=$((skill_missing + 1))
         fi
+    done
+
+    total=$((skill_ok + skill_broken + skill_missing))
+    if [ $skill_broken -eq 0 ] && [ $skill_missing -eq 0 ]; then
+        pass "All $total skills linked"
     else
-        warn "Skill $skill not found (optional but recommended)"
+        echo "  $skill_ok ok, $skill_broken broken, $skill_missing missing (of $total)"
     fi
-done
+
+    # Check permissions match manifest
+    if [ -f "$HOME/.claude/settings.json" ]; then
+        missing_perms=()
+        for skill in $(jq -r '.skills | keys[]' "$MANIFEST"); do
+            if ! jq -e --arg s "Skill($skill)" '.permissions.allow[] | select(. == $s)' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
+                missing_perms+=("$skill")
+            fi
+        done
+        for skill in $(jq -r '.inline_skills[]? // empty' "$MANIFEST"); do
+            if ! jq -e --arg s "Skill($skill)" '.permissions.allow[] | select(. == $s)' "$HOME/.claude/settings.json" >/dev/null 2>&1; then
+                missing_perms+=("$skill")
+            fi
+        done
+        if [ ${#missing_perms[@]} -gt 0 ]; then
+            warn "Missing Skill() permissions: ${missing_perms[*]}"
+            echo "  Run setup-from-manifest.sh to fix"
+        else
+            pass "All skills have Skill() permissions"
+        fi
+    fi
+else
+    # No manifest — basic check
+    for skill in open close arc; do
+        SKILL_PATH="$SKILLS_DIR/$skill"
+        if [ -L "$SKILL_PATH" ] && [ -e "$SKILL_PATH" ]; then
+            pass "Skill $skill"
+        else
+            warn "Skill $skill not found"
+        fi
+    done
+fi
+
+# ═══════════════════════════════════════════════════════════════
+section "Hooks"
+# ═══════════════════════════════════════════════════════════════
+
+HOOKS_DIR="$HOME/.claude/hooks"
+
+if [ -f "$MANIFEST" ]; then
+    for hook in $(jq -r '.hooks | keys[]' "$MANIFEST"); do
+        LINK="$HOOKS_DIR/$hook"
+        if [ -L "$LINK" ] && [ -e "$LINK" ]; then
+            pass "$hook"
+        elif [ -L "$LINK" ]; then
+            fail "$hook (BROKEN symlink)"
+        else
+            warn "$hook not linked"
+        fi
+    done
+else
+    for hook in session-start.sh session-end.sh arc-tactical.sh; do
+        if [ -L "$HOOKS_DIR/$hook" ] && [ -e "$HOOKS_DIR/$hook" ]; then
+            pass "$hook"
+        else
+            warn "$hook not found"
+        fi
+    done
+fi
 
 # ═══════════════════════════════════════════════════════════════
 section "Memory System"
