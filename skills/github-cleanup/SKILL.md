@@ -1,6 +1,6 @@
 ---
 name: github-cleanup
-description: Progressive audit and cleanup of GitHub accounts - stale forks, orphaned secrets, failing workflows, security configs, Dependabot alert triage (trace alerts to unused deps, prune or upgrade), general dependency hygiene (unused/missing deps across all local repos). Audit-first with user approval before destructive actions. Triggers on 'clean up GitHub', 'audit my repos', 'GitHub hygiene', 'stale forks', 'orphaned secrets', 'Dependabot trouble', 'fix Dependabot alerts', 'unused deps', 'stale deps', 'dependency audit'. Requires gh CLI. (user)
+description: Orchestrates progressive GitHub account cleanup using a 6-phase audit→approve→execute process that prevents accidental deletion. BEFORE any destructive repo action, invoke FIRST — traces Dependabot alerts to unused direct deps (prune) vs transitive-only (upgrade lock file). Triggers on 'clean up GitHub', 'audit my repos', 'Dependabot trouble', 'unused deps', 'stale forks', 'dependency audit'. Requires gh CLI. (user)
 ---
 
 # Cleanup GitHub
