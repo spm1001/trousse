@@ -5,6 +5,15 @@
 
 set -euo pipefail
 
+# === CROSS-PLATFORM HELPERS ===
+# GNU stat (Linux) vs BSD stat (macOS) have incompatible flags.
+# Detect once, define a function, use everywhere.
+if stat -c '%Y' /dev/null &>/dev/null; then
+    file_mtime() { stat -c '%Y' "$1"; }
+else
+    file_mtime() { stat -f '%m' "$1"; }
+fi
+
 # === PATHS ===
 BASE_CONTEXT_DIR="$HOME/.claude/.session-context"
 CWD=$(pwd -P)
@@ -63,6 +72,20 @@ fi
 ARCHIVE_DIR="$HOME/.claude/handoffs"
 NOW=$(date +%s)
 PROJECT_FOLDER="$ARCHIVE_DIR/$ENCODED_PATH"
+
+# Cross-machine fallback: if native path not found, try alternate home prefixes
+# Handles Mac→Linux migration (/Users/modha → /home/modha) and vice versa
+if [ ! -d "$PROJECT_FOLDER" ]; then
+    ALT_ENCODED=""
+    case "$ENCODED_PATH" in
+        -home-modha-*)  ALT_ENCODED=$(echo "$ENCODED_PATH" | sed 's/^-home-modha-/-Users-modha-/') ;;
+        -Users-modha-*) ALT_ENCODED=$(echo "$ENCODED_PATH" | sed 's/^-Users-modha-/-home-modha-/') ;;
+    esac
+    if [ -n "$ALT_ENCODED" ] && [ -d "$ARCHIVE_DIR/$ALT_ENCODED" ]; then
+        PROJECT_FOLDER="$ARCHIVE_DIR/$ALT_ENCODED"
+    fi
+fi
+
 LATEST_FILE=""
 LATEST_PURPOSE=""
 LATEST_STR=""
@@ -72,7 +95,7 @@ if [ -d "$PROJECT_FOLDER" ]; then
     LATEST_FILE=$(ls -t "$PROJECT_FOLDER"/*.md 2>/dev/null | head -1 || true)
 
     if [ -n "$LATEST_FILE" ]; then
-        LATEST_TIME=$(stat -f '%m' "$LATEST_FILE" 2>/dev/null || stat -c '%Y' "$LATEST_FILE" 2>/dev/null)
+        LATEST_TIME=$(file_mtime "$LATEST_FILE")
         LATEST_AGO=$((NOW - LATEST_TIME))
         LATEST_STR=$(time_ago $LATEST_AGO $LATEST_TIME)
         LATEST_PURPOSE=$(grep "^purpose:" "$LATEST_FILE" 2>/dev/null | head -1 | cut -d: -f2- | xargs || true)
