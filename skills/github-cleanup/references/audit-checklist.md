@@ -37,6 +37,15 @@ Comprehensive "what did we miss?" checklist. Run through this BEFORE presenting 
 - [ ] Check for "imported but undeclared" deps (work today via transitive hoisting, break tomorrow)
 - [ ] Skip forks of upstream code (not your deps to manage)
 
+### General Dependency Hygiene (all local repos)
+- [ ] Find all repos with pyproject.toml or package.json in ~/Repos
+- [ ] For each repo, compare declared deps vs actual imports in source
+- [ ] Identify declared-but-never-imported deps (removal candidates)
+- [ ] Check for "runtime engine" exceptions before removing (openpyxl, lxml, kaleido, pytest-asyncio)
+- [ ] Identify imported-but-not-declared deps (fragile transitives to promote)
+- [ ] Check for dead imports (imported but variable never used in code)
+- [ ] Skip CLI-only dev tools (ruff, black, mypy) — they're never imported
+
 ## Often Forgotten
 
 ### Local Development

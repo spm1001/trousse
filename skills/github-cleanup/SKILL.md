@@ -1,6 +1,6 @@
 ---
 name: github-cleanup
-description: Progressive audit and cleanup of GitHub accounts - stale forks, orphaned secrets, failing workflows, security configs, Dependabot alert triage (trace alerts to unused deps, prune or upgrade). Audit-first with user approval before destructive actions. Triggers on 'clean up GitHub', 'audit my repos', 'GitHub hygiene', 'stale forks', 'orphaned secrets', 'Dependabot trouble', 'fix Dependabot alerts', 'unused deps'. Requires gh CLI. (user)
+description: Progressive audit and cleanup of GitHub accounts - stale forks, orphaned secrets, failing workflows, security configs, Dependabot alert triage (trace alerts to unused deps, prune or upgrade), general dependency hygiene (unused/missing deps across all local repos). Audit-first with user approval before destructive actions. Triggers on 'clean up GitHub', 'audit my repos', 'GitHub hygiene', 'stale forks', 'orphaned secrets', 'Dependabot trouble', 'fix Dependabot alerts', 'unused deps', 'stale deps', 'dependency audit'. Requires gh CLI. (user)
 ---
 
 # Cleanup GitHub
@@ -56,6 +56,7 @@ check for stale forks
 check for orphaned secrets
 check failing workflows
 triage Dependabot alerts
+audit deps across my repos
 ```
 
 ## Phase Workflow
@@ -292,6 +293,69 @@ git push
 | Ignoring "imported but undeclared" deps | Works today via transitive hoisting, breaks on next update | Declare them explicitly |
 | Running `uv lock --upgrade` without auditing first | Might upgrade things you want pinned | Prefer `--upgrade-package PKG` for targeted fixes |
 | Counting 403 error fields as alerts | Repos with Dependabot disabled return 403 JSON objects | Check `isinstance(result, list)` |
+
+### Phase 4c: General Dependency Hygiene
+
+Phase 4b is reactive (triggered by Dependabot alerts). This phase is proactive — sweep all local repos for unused or missing deps regardless of whether they've triggered alerts. Unused deps that haven't caused a CVE *yet* are still dead weight: slower installs, larger attack surface, unnecessary transitive trees.
+
+**Scope:** All repos in `~/Repos` with a `pyproject.toml` or `package.json`.
+
+**Step 1: Find all repos with dependency manifests**
+
+```bash
+echo "=== Python ===" && find ~/Repos -maxdepth 2 -name "pyproject.toml" -not -path "*/.*" | sort
+echo "=== Node ===" && find ~/Repos -maxdepth 2 -name "package.json" -not -path "*/node_modules/*" -not -path "*/.*" | sort
+```
+
+**Step 2: For each repo, compare declared vs imported**
+
+Use parallel Opus subagents (one per repo) for speed. Each agent should:
+
+1. Read the dependency manifest
+2. Search all source files for third-party imports
+3. Report two lists:
+   - **Declared but not imported** (removal candidates)
+   - **Imported but not declared** (fragile transitives to promote)
+
+**Python pattern:**
+```bash
+# Declared deps
+grep -A 20 'dependencies' pyproject.toml
+
+# Actual imports (exclude stdlib and relative)
+grep -rn "^import \|^from " src/ tests/ *.py 2>/dev/null | grep -v "from \." | sort -u
+```
+
+**Node pattern:**
+```bash
+# Declared deps
+jq '.dependencies, .devDependencies' package.json
+
+# Actual imports
+grep -rn "from ['\"]" src/ --include="*.ts" --include="*.tsx" --include="*.js" | grep -v "from ['\"]\." | sort -u
+```
+
+**Step 3: Categorise findings**
+
+| Finding | Action |
+|---------|--------|
+| Declared, never imported, not a runtime engine (like openpyxl for pandas) | **Remove** from manifest |
+| Declared, never imported, IS a runtime engine (lxml for BeautifulSoup, kaleido for Plotly) | **Keep** — used indirectly |
+| Imported but not declared | **Add** to manifest — fragile transitive today, broken install tomorrow |
+| Dead import (imported but variable never used) | **Remove** the import line AND the dep |
+| Dev tool never imported (ruff, black, mypy) | **Keep** — CLI tools, not libraries |
+
+**Nuance on "runtime engines":** Some packages are never `import`-ed but are loaded at runtime by other packages. Common examples:
+- `openpyxl` — pandas Excel engine (`pd.read_excel()` loads it internally)
+- `lxml` — BeautifulSoup parser (`BeautifulSoup(html, 'lxml')`)
+- `kaleido` — Plotly static export (`fig.write_image()`)
+- `pytest-asyncio` — pytest plugin (loaded via pytest plugin discovery)
+
+Grep for string references like `'lxml'`, `'openpyxl'`, `write_image` to verify these before removing.
+
+**Step 4: Execute fixes, commit per-repo, push**
+
+Same as Phase 4b execution steps. Present findings to user before making changes.
 
 ### Phase 5: "What Did We Miss?" Checklist (MANDATORY)
 
