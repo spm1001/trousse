@@ -16,25 +16,25 @@ Take screenshots to see what's on screen. Captures persist as files (unlike brow
 
 ```bash
 # Capture specific app window
-~/.claude/.venv/bin/python ~/.claude/skills/screenshot/scripts/look.py --app Ghostty
+~/.claude/skills/screenshot/scripts/look.py --app Ghostty
 
 # Capture window by title match
-~/.claude/.venv/bin/python ~/.claude/skills/screenshot/scripts/look.py --app Chrome --title "LinkedIn"
+~/.claude/skills/screenshot/scripts/look.py --app Chrome --title "LinkedIn"
 
 # Capture full screen
-~/.claude/.venv/bin/python ~/.claude/skills/screenshot/scripts/look.py --screen
+~/.claude/skills/screenshot/scripts/look.py --screen
 
 # List available windows
-~/.claude/.venv/bin/python ~/.claude/skills/screenshot/scripts/look.py --list
+~/.claude/skills/screenshot/scripts/look.py --list
 
 # List windows grouped by category
-~/.claude/.venv/bin/python ~/.claude/skills/screenshot/scripts/look.py --categories
+~/.claude/skills/screenshot/scripts/look.py --categories
 
 # List only browser windows
-~/.claude/.venv/bin/python ~/.claude/skills/screenshot/scripts/look.py --category browsers
+~/.claude/skills/screenshot/scripts/look.py --category browsers
 
 # Native resolution (skip resize)
-~/.claude/.venv/bin/python ~/.claude/skills/screenshot/scripts/look.py --app Safari --native
+~/.claude/skills/screenshot/scripts/look.py --app Safari --native
 ```
 
 **Categories:** browsers, terminals, editors, communication, documents, media, other

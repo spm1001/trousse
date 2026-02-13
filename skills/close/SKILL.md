@@ -316,6 +316,52 @@ This session:
 
 **Purpose line** is auto-generated from first Done bullet — enables `claude -r` style picker at /open.
 
+### Stage extraction for memory
+
+**After writing the handoff, generate a session extraction from your live context.** This replaces the expensive `claude -p` subprocess that the session-end hook would otherwise spawn. You already have the full conversation in context — use it.
+
+**Get the full session ID** (you already computed this for the handoff filename):
+```bash
+SESSION_ID=$(ls -t ~/.claude/projects/$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')/*.jsonl 2>/dev/null | grep -v agent | head -1 | xargs basename -s .jsonl)
+```
+
+**Create the staging directory:**
+```bash
+mkdir -p ~/.claude/.pending-extractions
+```
+
+**Generate and write the extraction JSON** to `~/.claude/.pending-extractions/${SESSION_ID}.json`.
+
+The JSON must match this schema exactly:
+```json
+{
+    "summary": "2-3 sentences — what happened and why it matters",
+    "arc": {
+        "started_with": "initial goal/problem",
+        "key_turns": ["pivots, discoveries, changes in direction"],
+        "ended_at": "final state"
+    },
+    "builds": [{"what": "thing created/modified", "details": "context"}],
+    "learnings": [{"insight": "what was learned", "why_it_matters": "significance", "context": "how discovered"}],
+    "friction": [{"problem": "what was hard", "resolution": "how resolved or 'unresolved'"}],
+    "patterns": ["recurring themes, collaboration style, meta-observations"],
+    "open_threads": ["unfinished business, deferred work"]
+}
+```
+
+**Guidelines for in-context extraction:**
+- Focus on OUTCOMES and STORY, not just what was mentioned
+- `summary` should capture the "so what" — why this session mattered
+- `builds` = concrete artifacts: code, config, docs, skills modified
+- `learnings` = insights that transfer to other contexts (not just "I learned X exists")
+- `friction` = things that were harder than expected and how they were resolved
+- `patterns` = meta-observations about how we worked, recurring themes
+- `open_threads` = work that was deferred, not abandoned — future sessions should pick these up
+
+**Write the file using the Write tool.** This is pure JSON, no markdown.
+
+The session-end hook will detect this file and use it instead of spawning `mem process`. If this step fails for any reason, the hook falls back to the old extraction path — so it's safe.
+
 ### Commit
 If git dirty **in the working directory** (where you started):
 - Stage relevant files (including handoff if in repo)
@@ -333,11 +379,19 @@ Say: "Type `/exit` to close." Don't exit programmatically.
 
 **Automatic — handled by session-end hook.** You don't invoke this; it happens when the user runs `/exit`.
 
-The hook (`~/.claude/hooks/session-end.sh`) fires automatically and:
-1. Indexes the session transcript via `mem process`
-2. Scans handoffs and beads for memory (arc support pending)
+The hook (`~/.claude/hooks/session-end.sh`) fires automatically and takes one of two paths:
 
-This enables future `/mem search` to find this session's content.
+1. **If staged extraction exists** (you wrote `~/.claude/.pending-extractions/<session_id>.json` above):
+   - Indexes the session with `mem index` (fast, no LLM)
+   - Stores your pre-generated extraction with `mem store-extraction`
+   - Removes the staging file
+   - No subprocess spawned — your in-context extraction is used directly
+
+2. **If no staged extraction** (crash, ctrl-c, session ended without /close):
+   - Falls back to `mem process` which spawns `claude -p` for extraction
+   - Same quality, just slower and costs a subprocess
+
+Either way, handoffs and beads are scanned afterward.
 
 **You don't need to do anything here** — just tell the user to `/exit` and the hook takes care of the rest.
 

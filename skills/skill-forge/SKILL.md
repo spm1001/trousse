@@ -1,15 +1,13 @@
 ---
 name: skill-forge
-description: MANDATORY gate for skill development. Invoke FIRST when building, validating, or improving skills. Unified 6-step workflow with automated validation, CSO scoring, and subagent testing. Triggers on 'create skill', 'new skill', 'validate skill', 'check skill quality', 'improve skill discovery'. (user)
+description: MANDATORY gate for skill development. Invoke FIRST when building, validating, or improving skills. Unified 6-step workflow with automated validation, CSO scoring, and subagent testing. Triggers on 'create skill', 'new skill', 'validate skill', 'check skill quality', 'improve skill discovery', 'check this skill', 'can I share this', 'scan for sharing'. (user)
 ---
 
 # Skill Forge
 
-Unified skill development toolkit. Combines Anthropic's creation process with quality validation, description optimization, and testing.
+Unified skill development toolkit. Combines Anthropic's creation process (skill-creator) with quality validation, description optimization, and testing.
 
-## Iron Law
-
-**Skills must be discovered to be useful.** The description is everything.
+**Iron Law: Skills must be discovered to be useful.** The description is everything.
 
 ## When to Use
 
@@ -17,7 +15,7 @@ Unified skill development toolkit. Combines Anthropic's creation process with qu
 - When creating a new skill from scratch
 - When improving an existing skill's discovery rate
 - When validating skill quality before deployment
-- When extracting repeated patterns into codified skills
+- When scanning a skill/repo before sharing publicly
 
 ## When NOT to Use
 
@@ -42,7 +40,7 @@ scripts/score_description.py ~/.claude/skills/my-skill
 # 5. Test with subagent (optional but recommended)
 scripts/test_skill.py ~/.claude/skills/my-skill
 
-# 6. Package for distribution
+# 6. Package for distribution (optional)
 scripts/package_skill.py ~/.claude/skills/my-skill
 ```
 
@@ -77,13 +75,7 @@ Analyze each example to identify:
 scripts/init_skill.py <skill-name> --path <directory>
 ```
 
-Creates:
-- `SKILL.md` with template and TODOs
-- `scripts/example.py`
-- `references/api_reference.md`
-- `assets/example_asset.txt`
-
-Delete unneeded example files.
+Creates SKILL.md template, example scripts/references/assets. Delete unneeded files.
 
 ### Step 4: Edit
 
@@ -109,33 +101,52 @@ description: [See CSO Patterns below]
 - Quick reference
 - Integration with other skills
 
+#### Naming
+
+- Lowercase letters, numbers, hyphens only. Max 64 chars.
+- **Must match directory name exactly.**
+- Gerund or capability form preferred.
+
+| Good | Bad | Why |
+|------|-----|-----|
+| `systematic-debugging` | `debug` | Verb, not capability |
+| `workspace-fluency` | `utils` | Generic, no information |
+| `test-driven-development` | `pdf-helper` | "helper" is meaningless |
+| `desired-outcomes` | `my-skill` | Doesn't describe purpose |
+
 #### CSO Patterns (Critical)
 
-**The description determines discovery.** Follow these patterns:
+**The description determines discovery.** Pattern: `[ACTION TYPE] + [SPECIFIC TRIGGER] + [METHOD/VALUE PREVIEW]`
 
 **Best: MANDATORY gate with BEFORE condition**
 ```yaml
 description: MANDATORY gate before writing any SKILL.md file. Invoke FIRST when building new skills - provides structure, naming, and quality checklist that MUST be validated before deployment.
 ```
+Why: "MANDATORY gate" not optional, "before writing" timing, "FIRST" positioning, "MUST" imperative.
 
 **Good: Specific trigger with method preview**
 ```yaml
 description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes - four-phase framework (root cause, pattern analysis, hypothesis testing, implementation) ensures understanding before solutions.
 ```
+Why: specific trigger + timing gate + method preview + value statement.
 
 **Good: Natural phrase triggers**
 ```yaml
 description: Coach on outcome quality. Triggers on 'check my outcomes', 'is this a good outcome', 'review my Todoist' when discussing strategic work.
 ```
+Why: explicit phrases in quotes, context qualifier.
 
 **Bad patterns to avoid:**
+
 | Pattern | Problem | Fix |
 |---------|---------|-----|
 | "Helps with..." | Vague, no trigger | Specific phrases in quotes |
 | "Use when creating..." | Too generic | "MANDATORY gate before..." |
 | No timing condition | Optional invocation | Add BEFORE/FIRST/MANDATORY |
+| Generic actions | Claude "knows" without loading | Domain-specific phrases |
+| Command doesn't name skill | Not discoverable | "**Invoke the `name` skill**" |
 
-Run `scripts/score_description.py` to validate.
+Run `scripts/score_description.py` to validate. See `references/cso-guide.md` for full guidance.
 
 ### Step 5: Validate
 
@@ -165,106 +176,75 @@ Creates `.skill` file (zip format) for distribution.
 ### Structure
 - [ ] SKILL.md under 500 lines
 - [ ] Name matches directory exactly (kebab-case)
-- [ ] Name is gerund/capability form (`systematic-debugging`, not `debug`)
+- [ ] Name is gerund/capability form
 - [ ] Description is third-person ("Orchestrates", not "Use")
+- [ ] Description includes trigger AND method AND timing
 - [ ] Description ends with `(user)` tag for user-defined skills
 - [ ] References one level deep from SKILL.md
 - [ ] YAML frontmatter has name and description only
 
 ### Content
 - [ ] No time-sensitive information
+- [ ] Consistent terminology throughout
 - [ ] Concrete examples, not abstract rules
 - [ ] Configuration values justified
 - [ ] Error handling documented
 - [ ] Dependencies explicitly listed
 - [ ] Anti-patterns section present
 
+### Workflow
+- [ ] Clear phases/steps with success criteria
+- [ ] When to Use AND When NOT to Use sections
+- [ ] Integration points with other skills explicit
+- [ ] Verification/validation included
+- [ ] Quick reference for common operations
+
 ### Discovery
 - [ ] BEFORE/MANDATORY/FIRST patterns used appropriately
 - [ ] Trigger phrases are natural language in quotes
+- [ ] Context qualifiers included (when appropriate)
 - [ ] Method preview gives Claude enough to decide relevance
 - [ ] If paired with command, command names the skill explicitly
 
 ## Skill Patterns
 
-### Process Skills (like systematic-debugging)
-- Iron law / core principle
-- Phases with explicit success criteria
-- Anti-patterns with rationalizations
-- Red flags that trigger "STOP"
-- BEFORE condition in description
+See `references/skill-patterns.md` for full taxonomy. Summary:
 
-### Fluency Skills (like workspace-fluency)
-- Tool selection guidance
-- Workflows for common tasks
-- Best practices for domain
-- Error handling patterns
-
-### Coaching Skills (like desired-outcomes)
-- Quality criteria with good/poor examples
-- Coaching questions to ask
-- Pattern recognition for bad input
-- Specific trigger phrases
-
-### Gate Skills (like this one)
-- MANDATORY language in description
-- Checklist-driven validation
-- Requirements with examples
-- Complement process skills
+| Type | Key Feature | Description Pattern |
+|------|-------------|-------------------|
+| **Process** | Phases with gates | BEFORE condition |
+| **Fluency** | Tool best practices | Specific trigger phrases |
+| **Coaching** | Quality criteria | Natural language triggers |
+| **Gate** | Checklist validation | MANDATORY language |
+| **Skill+CLI** | Orchestrates CLI tool | BEFORE any `cli` command |
 
 ### Skill+CLI Pattern (Most Powerful)
 
-When skill orchestrates a CLI tool:
+When skill orchestrates a CLI tool. See `references/skill-cli-pattern.md` for full template.
 
 ```markdown
 # {skill-name}
-
 Orchestrates {domain} using `{cli}` command.
-
 ## CLI Reference
-- `{cli} command1` - Description
-- `{cli} command2` - Description
-
 ## Workflows
-### Common Task
-\`\`\`bash
-{cli} step1
-{cli} step2
-\`\`\`
-
-## When Skill Extends CLI
-- Coaching questions
-- Quality criteria
-- Integration with other skills
-
+## When Skill Extends CLI (coaching, quality criteria)
 ## Error Recovery
-| Error | Cause | Fix |
 ```
 
-See `references/skill-cli-pattern.md` for full template.
+### What High-Invocation Skills Share
 
-## DOT Graphs for Workflows
+1. **BEFORE conditions** in description
+2. **Specific trigger phrases** in quotes
+3. **Method preview** that's actionable
+4. **Clear anti-patterns** that catch mistakes
+5. **Integration points** that compose with other skills
 
-For complex decision trees, embed DOT graphs:
+### What Low-Invocation Skills Suffer From
 
-```dot
-digraph workflow {
-    "Is test passing?" [shape=diamond];
-    "Write test first" [shape=box];
-    "npm test" [shape=plaintext];
-    "NEVER skip tests" [shape=octagon, style=filled, fillcolor=red];
-}
-```
-
-Run `scripts/render_graphs.py <skill-path>` to render SVG.
-
-**Node shapes:**
-- `diamond` - decisions/questions
-- `box` - actions (default)
-- `plaintext` - literal commands
-- `ellipse` - states
-- `octagon` (red) - STOP/warnings
-- `doublecircle` - entry/exit points
+1. Generic "Use when..." descriptions
+2. Vague propositions ("helps with", "guides", "assists")
+3. Missing timing gates
+4. Documenting what Claude already knows
 
 ## Anti-Patterns
 
@@ -293,17 +273,41 @@ Run `scripts/render_graphs.py <skill-path>` to render SVG.
 | Magic constants | Unclear reasoning | Justify all values |
 | Many options, no default | Analysis paralysis | Recommend one path |
 
-## Integration
+## Quick Reference
 
-**Uses scripts from skill-creator (Anthropic):**
-- `init_skill.py` - Generate template
-- `package_skill.py` - Create .skill file
+### Minimum Viable Skill
 
-**New scripts (this skill):**
-- `lint_skill.py` - Automated structure validation
-- `score_description.py` - CSO quality scoring
-- `test_skill.py` - Subagent pressure testing
-- `render_graphs.py` - DOT to SVG
+```markdown
+---
+name: kebab-case-name
+description: [TIMING] + [TRIGGER] + [METHOD/VALUE]. Triggers on 'phrase1', 'phrase2'. (user)
+---
+
+# Skill Title
+
+[Core principle]
+
+## When to Use
+[Specific triggers with examples]
+
+## When NOT to Use
+[Clear boundaries]
+
+## Workflow
+[Steps with success criteria]
+
+## Anti-Patterns
+[What to avoid with fixes]
+```
+
+### Files to Include
+
+| File | Purpose | When Required |
+|------|---------|---------------|
+| SKILL.md | Core instructions | Always |
+| references/*.md | Detailed guides | When SKILL.md > 500 lines |
+| scripts/*.py | Utility scripts | When deterministic code needed |
+| assets/* | Output templates | When Claude uses files in output |
 
 ## Before Sharing
 
@@ -315,22 +319,26 @@ scripts/scan.py --risk high <skill-path>  # High-risk only
 ```
 
 Detects: emails, paths with usernames, secrets, company terms.
-
 See `references/sharing-scan.md` for triage guidelines.
+
+## Integration
+
+**Anthropic scripts (symlinked from skill-creator):**
+- `init_skill.py` — generate template
+- `package_skill.py` — create .skill file
+
+**Forge scripts:**
+- `lint_skill.py` — automated structure validation
+- `score_description.py` — CSO quality scoring
+- `test_skill.py` — subagent pressure testing
+- `scan.py` — PII/secrets scanner for sharing
+- `render_graphs.py` — DOT workflow diagrams to SVG
 
 ## References
 
-- `references/cso-guide.md` - Claude Search Optimization principles
-- `references/skill-cli-pattern.md` - Skill+CLI template
-- `references/skill-patterns.md` - Pattern taxonomy
-- `references/rationalization-table.md` - Common excuses to block
-
-## Success Criteria
-
-This skill works when:
-- Every skill built passes lint + CSO score > 70
-- Description triggers invocation reliably
-- Subagent tests discover and follow workflow
-- Anti-patterns caught before deployment
-
-**The test:** If Claude "knows" patterns without invoking the skill, the description failed.
+- `references/cso-guide.md` — Claude Search Optimization principles
+- `references/skill-cli-pattern.md` — Skill+CLI template
+- `references/skill-patterns.md` — Pattern taxonomy with examples
+- `references/rationalization-table.md` — Common excuses to block
+- `references/sharing-scan.md` — Sharing triage guidelines
+- `references/dot-graphs.md` — DOT graph syntax for workflow diagrams

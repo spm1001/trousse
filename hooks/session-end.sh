@@ -15,7 +15,6 @@
 [ -n "${CLAUDE_SUBAGENT:-}" ] && exit 0
 
 LOG_DIR="$HOME/.claude/extraction-logs"
-ENV_FILE="$HOME/.claude/memory/env"
 MEM_PROJECT="$HOME/Repos/claude-mem"
 
 mkdir -p "$LOG_DIR"
@@ -53,9 +52,10 @@ LOG_FILE="$LOG_DIR/${TIMESTAMP}-${SESSION_NAME}.log"
 nohup bash -c '
     LOG_FILE="$1"
     LATEST_SESSION="$2"
-    ENV_FILE="$3"
-    MEM_PROJECT="$4"
+    MEM_PROJECT="$3"
+    SESSION_NAME="$4"
     ERROR_LOG="$HOME/.claude/extraction-errors.log"
+    PENDING="$HOME/.claude/.pending-extractions/${SESSION_NAME}.json"
 
     {
         echo "=== Extraction started: $(date) ==="
@@ -63,14 +63,31 @@ nohup bash -c '
         echo ""
     } >> "$LOG_FILE"
 
-    # Source API key
-    if [ -f "$ENV_FILE" ]; then
-        source "$ENV_FILE"
-    fi
+    # Check for staged extraction from /close
+    if [ -f "$PENDING" ]; then
+        # /close already generated extraction — index only, then store it
+        echo "Found staged extraction from /close" >> "$LOG_FILE"
 
-    # Run mem process (index + extract session)
-    cd "$MEM_PROJECT" && uv run mem process --quiet "$LATEST_SESSION" >> "$LOG_FILE" 2>&1
-    EXIT_CODE=$?
+        cd "$MEM_PROJECT" && uv run mem index --quiet "$LATEST_SESSION" >> "$LOG_FILE" 2>&1
+        INDEX_CODE=$?
+
+        if [ $INDEX_CODE -eq 0 ]; then
+            SOURCE_ID="claude_code:${SESSION_NAME}"
+            cd "$MEM_PROJECT" && cat "$PENDING" | uv run mem store-extraction "$SOURCE_ID" >> "$LOG_FILE" 2>&1
+            EXIT_CODE=$?
+        else
+            echo "Index failed (exit $INDEX_CODE), falling back to mem process" >> "$LOG_FILE"
+            cd "$MEM_PROJECT" && uv run mem process --quiet "$LATEST_SESSION" >> "$LOG_FILE" 2>&1
+            EXIT_CODE=$?
+        fi
+
+        rm -f "$PENDING"
+    else
+        # No /close happened (crash, ctrl-c, etc.) — full extraction
+        echo "No staged extraction — running full mem process" >> "$LOG_FILE"
+        cd "$MEM_PROJECT" && uv run mem process --quiet "$LATEST_SESSION" >> "$LOG_FILE" 2>&1
+        EXIT_CODE=$?
+    fi
 
     # Also index handoffs and beads (written during /close)
     # TODO: Add --source arc when mem supports it
@@ -95,7 +112,7 @@ nohup bash -c '
     else
         echo "=== Extraction completed: $(date) ===" >> "$LOG_FILE"
     fi
-' -- "$LOG_FILE" "$LATEST_SESSION" "$ENV_FILE" "$MEM_PROJECT" </dev/null >/dev/null 2>&1 &
+' -- "$LOG_FILE" "$LATEST_SESSION" "$MEM_PROJECT" "$SESSION_NAME" </dev/null >/dev/null 2>&1 &
 
 disown 2>/dev/null || true
 

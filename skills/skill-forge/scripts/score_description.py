@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyyaml"]
+# ///
 """
 CSO (Claude Search Optimization) Description Scorer
 
@@ -26,11 +30,7 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Optional
 
-try:
-    import yaml
-except ImportError:
-    print("Error: PyYAML required. Install with: pip install pyyaml")
-    sys.exit(1)
+import yaml
 
 
 @dataclass

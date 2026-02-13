@@ -109,7 +109,7 @@ gh repo clone spm1001/todoist-gtd ~/Repos/todoist-gtd
 ln -sf ~/Repos/todoist-gtd/skills/todoist-gtd ~/.claude/skills/todoist-gtd
 
 # Run OAuth
-~/.claude/.venv/bin/python ~/Repos/todoist-gtd/scripts/todoist.py auth
+todoist auth
 ```
 
 **If claude-mem selected:**

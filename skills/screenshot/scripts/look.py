@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["pyobjc-framework-Quartz"]
+# ///
 """
 Capture windows or screen to PNG files.
 
@@ -42,17 +46,12 @@ from datetime import datetime
 # - Results in ~1,600 tokens per image
 DEFAULT_MAX_SIZE = 1568
 
-try:
-    from Quartz import (
-        CGWindowListCopyWindowInfo,
-        kCGWindowListOptionAll,
-        kCGWindowListOptionOnScreenOnly,
-        kCGNullWindowID,
-    )
-except ImportError:
-    print("Error: pyobjc-framework-Quartz required", file=sys.stderr)
-    print("Install: pip install pyobjc-framework-Quartz", file=sys.stderr)
-    sys.exit(1)
+from Quartz import (
+    CGWindowListCopyWindowInfo,
+    kCGWindowListOptionAll,
+    kCGWindowListOptionOnScreenOnly,
+    kCGNullWindowID,
+)
 
 
 # App name -> category mapping (case-insensitive matching)
