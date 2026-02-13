@@ -1,7 +1,7 @@
 #!/bin/bash
 # Tiered auto-updater for dev tools
 #
-# Scaffolded from claude-suite. Customize for your machine.
+# Scaffolded from trousse. Customize for your machine.
 # This file lives in ~/.claude/scripts/ (not symlinked — it's yours).
 #
 # Two tiers:

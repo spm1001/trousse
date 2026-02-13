@@ -65,7 +65,7 @@ if [ $BROKEN -gt 0 ]; then
     echo "This will cause /open and /close to fail silently!"
     echo ""
     echo "Fix: Update symlinks to point to existing script locations."
-    echo "Expected location: ~/Repos/claude-suite/scripts/"
+    echo "Expected location: ~/Repos/trousse/scripts/"
     echo ""
     exit 1
 fi

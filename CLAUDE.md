@@ -1,4 +1,4 @@
-# claude-suite — Project Context
+# trousse — Project Context
 
 This repo provides two things for Claude Code:
 
@@ -44,7 +44,7 @@ Handoffs and context files are stored in directories named after the project pat
 
 ```bash
 pwd -P | sed 's/[^a-zA-Z0-9-]/-/g'
-# /Users/modha/Repos/claude-suite → -Users-modha-Repos-claude-suite
+# /Users/modha/Repos/trousse → -Users-modha-Repos-trousse
 ```
 
 This matches Claude Code's own encoding for `~/.claude/projects/`. **If this encoding changes, handoffs become orphaned.** The canonical implementation lives in `scripts/open-context.sh:11` and `scripts/close-context.sh:133`.
@@ -103,13 +103,14 @@ Uses `Task` tool with `subagent_type: "explore-opus"`. Worth it for substantial 
 | `session-start.sh` | `open-context.sh` | Same repo |
 | `session-start.sh` | `update-all.sh` | Lives in claude-config, scaffolded from `scripts/update-all.template.sh` |
 | `open-context.sh` | `arc-read.sh` | Same repo. Falls back to arc CLI if missing |
-| `arc-tactical.sh` | `jq` + `.arc/items.jsonl` | Direct jq read, no Python |
+| `arc-tactical.sh` | `jq` + `.arc/items.jsonl` | Direct jq read, no Python. Reads CWD from hook stdin. |
+| `session-end.sh` | `auto-handoff.sh` | Same repo. Safety net when /close not invoked |
 | `close-context.sh` | `check-home.sh` | Same repo |
 | Multiple scripts | `jq` | Critical dependency for arc reads and hook output |
 
 **Arc CLI** is used for writes (validation, ID generation, tactical step management). **arc-read.sh** handles reads via jq (~3ms vs ~30ms Python startup). The JSONL file is the interface between them — see `FIELD_REPORT_jq_consumers.md` in the arc repo for the field dependency list.
 
-## Extending claude-suite
+## Extending trousse
 
 ### Adding a New Skill
 

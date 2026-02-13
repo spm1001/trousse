@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# claude-suite installer
+# trousse installer
 # Run from the repo root: ./install.sh
 #
 
@@ -20,7 +20,7 @@ error() { echo -e "${RED}✗${NC} $1"; }
 
 # Where are we?
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EXPECTED_DIR="$HOME/Repos/claude-suite"
+EXPECTED_DIR="$HOME/Repos/trousse"
 
 # Detect platform
 detect_platform() {
@@ -38,7 +38,7 @@ VERIFY_ONLY=false
 UNINSTALL=false
 
 show_help() {
-    echo "claude-suite installer"
+    echo "trousse installer"
     echo ""
     echo "Usage: ./install.sh [OPTIONS]"
     echo ""
@@ -65,7 +65,7 @@ done
 # ============================================================
 if [[ "$UNINSTALL" == true ]]; then
     echo ""
-    echo "claude-suite uninstaller"
+    echo "trousse uninstaller"
     echo "========================"
     echo ""
 
@@ -74,7 +74,7 @@ if [[ "$UNINSTALL" == true ]]; then
     for link in ~/.claude/skills/*/; do
         [[ -L "${link%/}" ]] || continue
         target=$(readlink "${link%/}")
-        if [[ "$target" == *"claude-suite"* ]]; then
+        if [[ "$target" == *"trousse"* ]]; then
             rm "${link%/}"
             REMOVED=$((REMOVED + 1))
         fi
@@ -85,7 +85,7 @@ if [[ "$UNINSTALL" == true ]]; then
     for link in ~/.claude/scripts/*.sh; do
         [[ -L "$link" ]] || continue
         target=$(readlink "$link")
-        if [[ "$target" == *"claude-suite"* ]]; then
+        if [[ "$target" == *"trousse"* ]]; then
             rm "$link"
         fi
     done
@@ -95,7 +95,7 @@ if [[ "$UNINSTALL" == true ]]; then
     for link in ~/.claude/hooks/*.sh; do
         [[ -L "$link" ]] || continue
         target=$(readlink "$link")
-        if [[ "$target" == *"claude-suite"* ]]; then
+        if [[ "$target" == *"trousse"* ]]; then
             rm "$link"
         fi
     done
@@ -112,7 +112,7 @@ fi
 # ============================================================
 if [[ "$VERIFY_ONLY" == true ]]; then
     echo ""
-    echo "claude-suite verification"
+    echo "trousse verification"
     echo "========================="
     echo ""
 
@@ -140,7 +140,7 @@ if [[ "$VERIFY_ONLY" == true ]]; then
 
     # Check scripts
     info "Checking scripts..."
-    for script in open-context.sh close-context.sh claude-doctor.sh check-symlinks.sh; do
+    for script in open-context.sh close-context.sh claude-doctor.sh check-symlinks.sh auto-handoff.sh; do
         if [[ -L "$HOME/.claude/scripts/$script" ]]; then
             echo "  ✓ $script"
         else
@@ -209,7 +209,7 @@ fi
 # INSTALL MODE
 # ============================================================
 echo ""
-echo "claude-suite installer"
+echo "trousse installer"
 echo "======================"
 echo ""
 

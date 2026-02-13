@@ -1,7 +1,7 @@
 ---
 name: setup
 description: >
-  Install behavioral skills from claude-suite. Use FIRST when onboarding a new machine
+  Install behavioral skills from trousse. Use FIRST when onboarding a new machine
   or after fresh Claude Code install. Creates symlinks for session lifecycle, utilities,
   and optionally offers tool repos (todoist-gtd, garde-manger).
   Triggers on 'help me set up', 'install skills', '/setup'. (user)
@@ -15,7 +15,7 @@ Install Claude behavioral skills with one command.
 
 - Fresh Claude Code installation
 - New machine setup
-- After cloning claude-suite for the first time
+- After cloning trousse for the first time
 - When `/open` or `/close` commands don't work
 
 ## When NOT to Use
@@ -60,12 +60,12 @@ mkdir -p ~/.claude/hooks
 ### Phase 2: Clone and Symlink
 
 ```bash
-# Clone claude-suite if not present
-if [ ! -d ~/Repos/claude-suite ]; then
-    gh repo clone spm1001/claude-suite ~/Repos/claude-suite
+# Clone trousse if not present
+if [ ! -d ~/Repos/trousse ]; then
+    gh repo clone spm1001/trousse ~/Repos/trousse
 fi
 
-SUITE="$HOME/Repos/claude-suite"
+SUITE="$HOME/Repos/trousse"
 
 # Symlink all skills
 for skill in "$SUITE/skills/"*/; do
@@ -140,13 +140,13 @@ Tell user to restart Claude (`/exit` then `claude`) to load new skills.
 | Check | Command | Expected |
 |-------|---------|----------|
 | Skills directory | `ls ~/.claude/skills/` | 13+ skill symlinks |
-| Session skills | `ls -la ~/.claude/skills/open` | Points to claude-suite |
+| Session skills | `ls -la ~/.claude/skills/open` | Points to trousse |
 | Beads | `bd --version` | Shows version (install separately if missing) |
 
 ## Updating
 
 ```bash
-cd ~/Repos/claude-suite && git pull
+cd ~/Repos/trousse && git pull
 # Symlinks automatically point to updated content
 ```
 

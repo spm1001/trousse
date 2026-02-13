@@ -43,7 +43,7 @@ Use `/open` for:
 [ -x ~/.claude/scripts/open-context.sh ] && echo "OK" || echo "BROKEN: open-context.sh missing"
 ```
 
-If pre-flight fails, **STOP and diagnose** before proceeding. See `~/Repos/claude-suite/references/ERROR_PATTERNS.md` for common issues.
+If pre-flight fails, **STOP and diagnose** before proceeding. See `~/Repos/trousse/references/ERROR_PATTERNS.md` for common issues.
 
 ---
 
@@ -95,7 +95,7 @@ The session-start hook outputs a synthesized briefing:
 - Last-worked zoom (current action and its tactical steps)
 - Last session summary (Done, Next, Gotchas from latest handoff)
 
-**Context files are per-project.** The `<encoded-cwd>` is the working directory with all non-alphanumeric characters replaced by `-` (e.g., `-Users-modha-Repos-claude-suite`).
+**Context files are per-project.** The `<encoded-cwd>` is the working directory with all non-alphanumeric characters replaced by `-` (e.g., `-Users-modha-Repos-trousse`).
 
 **For deeper context, read the source files:**
 

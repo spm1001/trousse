@@ -7,7 +7,7 @@
 # Design: fast and graceful. If this fires in a subagent by accident,
 # the cost should be negligible — no guards needed.
 #
-# Lives in: claude-suite/hooks/
+# Lives in: trousse/hooks/
 # Symlinked from: ~/.claude/hooks/session-start.sh
 
 set -euo pipefail

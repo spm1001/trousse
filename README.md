@@ -1,4 +1,4 @@
-# claude-suite
+# trousse
 
 A toolkit for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (Anthropic's CLI coding assistant) that gives it session memory and specialized capabilities.
 
@@ -8,7 +8,7 @@ Claude Code is stateless. Every time you start a session, Claude has no memory o
 
 ## What This Does
 
-claude-suite solves this with two things:
+trousse solves this with two things:
 
 **A session protocol** — shell hooks that fire automatically when Claude Code starts and stops. At startup, Claude sees a briefing: what you were working on, what the previous session accomplished, and what's ready to pick up. At close, it writes a handoff for the next session. The gap between sessions becomes a baton pass, not a cold start.
 
@@ -17,8 +17,8 @@ claude-suite solves this with two things:
 ## Quick Start
 
 ```bash
-git clone https://github.com/spm1001/claude-suite ~/Repos/claude-suite
-cd ~/Repos/claude-suite
+git clone https://github.com/spm1001/trousse ~/Repos/trousse
+cd ~/Repos/trousse
 ./install.sh
 ```
 
@@ -51,7 +51,7 @@ Then restart Claude Code (`/exit` → `claude`).
 | `/server-checkup` | Linux server audit and management |
 | `/github-cleanup` | Audit repos, find stale forks and secrets |
 | `/sprite` | Manage Sprites.dev remote VMs |
-| `/setup` | Install claude-suite on a new machine |
+| `/setup` | Install trousse on a new machine |
 | `/skill-forge` | Build and validate new skills |
 | `/skill-check` | Quality gate for skill sharing |
 
@@ -67,7 +67,7 @@ Then restart Claude Code (`/exit` → `claude`).
 ### Directory Structure
 
 ```
-claude-suite/
+trousse/
 ├── hooks/                  # Shell scripts that fire on Claude Code events
 │   ├── session-start.sh    #   → runs open-context.sh at session start
 │   ├── session-end.sh      #   → cleanup at session end
@@ -135,7 +135,7 @@ These are separate repos that add their own skills:
 ## Updating
 
 ```bash
-cd ~/Repos/claude-suite && git pull
+cd ~/Repos/trousse && git pull
 # Symlinks mean changes take effect immediately
 ```
 

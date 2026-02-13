@@ -3,7 +3,7 @@
 # Session End Hook
 # Indexes session, extracts entities, and scans handoffs/beads for memory.
 #
-# Lives in: claude-suite/hooks/
+# Lives in: trousse/hooks/
 # Symlinked from: ~/.claude/hooks/session-end.sh
 #
 # Uses full daemonization to prevent terminal corruption.
@@ -30,8 +30,17 @@ fi
 # Read hook input from stdin (JSON with session_id, transcript_path, etc.)
 HOOK_INPUT=$(cat)
 
-# Extract transcript_path from JSON input (reliable, no race condition)
+# Extract fields from JSON input
 LATEST_SESSION=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // empty')
+HOOK_SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty')
+HOOK_CWD=$(echo "$HOOK_INPUT" | jq -r '.cwd // empty')
+[ -z "$HOOK_CWD" ] && HOOK_CWD="$(pwd -P)"
+
+# Auto-handoff safety net: generate minimal handoff if /close didn't run
+AUTO_HANDOFF="$HOME/.claude/scripts/auto-handoff.sh"
+if [ -n "$HOOK_SESSION_ID" ] && [ -x "$AUTO_HANDOFF" ]; then
+    "$AUTO_HANDOFF" "$HOOK_CWD" "$HOOK_SESSION_ID" 2>/dev/null || true
+fi
 
 # Fallback to ls -t if no transcript_path (shouldn't happen, but defensive)
 if [ -z "$LATEST_SESSION" ] || [ ! -f "$LATEST_SESSION" ]; then

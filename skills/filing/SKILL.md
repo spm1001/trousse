@@ -508,10 +508,10 @@ Development tools live in `~/Repos/` with prefix conventions:
 
 | Prefix | Contains | Example |
 |--------|----------|---------|
-| `claude-suite` | Core session skills | open, close, beads, filing |
+| `trousse` | Core session skills | open, close, beads, filing |
 | `skill-*` | Specialized skills | `skill-itv-styling` |
 | `mcp-*` | MCP servers | `mcp-workspace` |
 | `infra-*` | Infrastructure | `infra-openwrt` |
 | `claude-*` | Claude experiments | `claude-memory` |
 
-**Skills:** Symlinked to `~/.claude/skills/`. Core skills in `claude-suite/skills/`, specialized skills in individual repos, skills with tooling co-located with their infrastructure.
+**Skills:** Symlinked to `~/.claude/skills/`. Core skills in `trousse/skills/`, specialized skills in individual repos, skills with tooling co-located with their infrastructure.

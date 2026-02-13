@@ -13,7 +13,7 @@ Last audited: 2026-02-08
 ```
 settings.json SessionStart (matcher: "")
   |
-  +--> session-start.sh              [no guard] [owner: claude-suite]
+  +--> session-start.sh              [no guard] [owner: trousse]
          |
          +--> open-context.sh         latest handoff + arc (via jq) -> stdout
          +--> check .close-checkpoint incomplete /close warning
@@ -30,7 +30,7 @@ settings.json SessionStart (matcher: "")
 ```
 settings.json UserPromptSubmit (matcher: "")
   |
-  +--> arc-tactical.sh               [no guard] [owner: claude-suite]
+  +--> arc-tactical.sh               [no guard] [owner: trousse]
          reads .arc/items.jsonl via jq (~3ms)
          injects current arc step into every prompt
 ```
@@ -49,7 +49,9 @@ settings.json PostToolUse
 ```
 settings.json SessionEnd (matcher: "")
   |
-  +--> session-end.sh                [env var guard] [owner: claude-suite]
+  +--> session-end.sh                [env var guard] [owner: trousse]
+  |      |
+  |      +--> auto-handoff.sh        synchronous: writes minimal handoff if /close didn't
   |      |
   |      +--> daemonized background:
   |             garde process (index session transcript)
@@ -78,7 +80,7 @@ settings.json SessionEnd (matcher: "")
 
 ## Ownership Map
 
-### claude-suite (this repo)
+### trousse (this repo)
 
 Symlinked by `install.sh` to `~/.claude/`.
 
@@ -92,6 +94,7 @@ Symlinked by `install.sh` to `~/.claude/`.
 | `scripts/close-context.sh` | Script | `~/.claude/scripts/close-context.sh` |
 | `scripts/check-home.sh` | Script | `~/.claude/scripts/check-home.sh` |
 | `scripts/check-symlinks.sh` | Script | `~/.claude/scripts/check-symlinks.sh` |
+| `scripts/auto-handoff.sh` | Script | `~/.claude/scripts/auto-handoff.sh` |
 | `scripts/claude-doctor.sh` | Script | `~/.claude/scripts/claude-doctor.sh` |
 
 ### claude-config (~/.claude, standalone)
@@ -152,6 +155,7 @@ Reads `.arc/items.jsonl` directly with jq. Falls back to arc CLI if arc-read.sh 
 | Script | Called by | Purpose |
 |--------|----------|---------|
 | `check-symlinks.sh` | update-all.sh | Verifies critical symlinks intact |
+| `auto-handoff.sh` | session-end.sh | Writes minimal handoff if /close didn't run. Reads git log + arc state. |
 | `claude-doctor.sh` | Manual | Comprehensive health check: symlinks, tools, config, skills, memory, MCP |
 
 ### Infrastructure
@@ -169,7 +173,7 @@ The path encoding convention used for per-project directories:
 
 ```bash
 encoded=$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')
-# /Users/modha/Repos/claude-suite -> -Users-modha-Repos-claude-suite
+# /Users/modha/Repos/trousse -> -Users-modha-Repos-trousse
 ```
 
 Used in:

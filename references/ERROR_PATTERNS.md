@@ -57,7 +57,7 @@ find ~/.claude -type l -exec sh -c 'readlink "$1" | grep -q "old-name" && echo "
 
 **Fix:** Update each symlink to new path.
 
-**Lesson (Jan 2026):** When renaming repos, immediately audit symlinks. The claude-modus → claude-suite rename caused 7 days of silent failures.
+**Lesson (Jan 2026):** When renaming repos, immediately audit symlinks. The claude-modus → trousse rename caused 7 days of silent failures.
 
 ---
 

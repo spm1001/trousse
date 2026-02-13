@@ -16,7 +16,7 @@ Each project gets a subdirectory. The encoded path is derived from the project's
 pwd -P | sed 's/[^a-zA-Z0-9-]/-/g'
 ```
 
-- `/Users/modha/Repos/claude-suite` → `-Users-modha-Repos-claude-suite`
+- `/Users/modha/Repos/trousse` → `-Users-modha-Repos-trousse`
 - `/Users/modha/.claude` → `-Users-modha--claude`
 - Google Drive paths: `@`, spaces, `~` all become `-`
 - Leading dash is significant (from the leading `/`)
@@ -24,7 +24,7 @@ pwd -P | sed 's/[^a-zA-Z0-9-]/-/g'
 
 **v2 change (Feb 2026):** Encoding widened from `tr '/.' '-'` (v1, replaced only `/` and `.`) to `sed 's/[^a-zA-Z0-9-]/-/g'` (v2, replaces everything non-alphanumeric). Existing directories migrated in place. v1 and v2 produce identical results for `~/Repos/*` paths (no special characters beyond `/`).
 
-Canonical implementation: `claude-suite/scripts/open-context.sh`
+Canonical implementation: `trousse/scripts/open-context.sh`
 
 ## Discovery
 

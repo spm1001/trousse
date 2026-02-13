@@ -4,8 +4,14 @@
 # Uses jq on items.jsonl directly (~3ms) instead of arc CLI (~30ms).
 # Silent when: no .arc/, no active tactical, jq not available.
 
-[ -f .arc/items.jsonl ] || exit 0
 command -v jq &>/dev/null || exit 0
+
+# Read hook stdin once (consumed on first read) and cd to session CWD
+HOOK_INPUT=$(cat)
+CWD=$(echo "$HOOK_INPUT" | jq -r '.cwd // empty' 2>/dev/null)
+[ -n "$CWD" ] && cd "$CWD" 2>/dev/null
+
+[ -f .arc/items.jsonl ] || exit 0
 
 tactical=$(jq -r '
     select(.tactical and .status == "open") |

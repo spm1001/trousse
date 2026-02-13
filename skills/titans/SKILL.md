@@ -35,7 +35,7 @@ The three-lens pattern works for more than code. The underlying structure (hinds
 | **Process** | What's broken or painful? | Is it efficient and clear? | Will it scale with the team? |
 | **CLAUDE.md** | What's wrong or outdated? | Is it well-organized? | What should future Claude know? |
 
-**Discovered Jan 2026:** Used titans pattern to review claude-suite itself for CLAUDE.md updates. The three lenses surfaced different categories of findings — infrastructure bugs (Epimetheus), stale references (Metis), undocumented contracts (Prometheus) — that a single-pass review would have missed.
+**Discovered Jan 2026:** Used titans pattern to review trousse itself for CLAUDE.md updates. The three lenses surfaced different categories of findings — infrastructure bugs (Epimetheus), stale references (Metis), undocumented contracts (Prometheus) — that a single-pass review would have missed.
 
 **When adapting:** Adjust the reviewer briefs for the domain. The output structure (findings, assumptions, could-not-assess, questions) remains useful regardless of what you're reviewing.
 
