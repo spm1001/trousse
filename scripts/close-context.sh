@@ -130,6 +130,7 @@ is_container() {
     return 1
 }
 
+# Encoded path always starts with '-' — never use as bare arg; always prefix with absolute path
 ENCODED_PATH=$(echo "$CWD" | sed 's/[^a-zA-Z0-9-]/-/g')
 HANDOFF_DIR="$HOME/.claude/handoffs/$ENCODED_PATH"
 

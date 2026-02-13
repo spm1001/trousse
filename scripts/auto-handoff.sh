@@ -17,7 +17,7 @@ SESSION_ID="${2:-}"
 
 [ -z "$SESSION_ID" ] && exit 0
 
-# Compute encoded path
+# Encoded path always starts with '-' — never use as bare arg; always prefix with absolute path
 ENCODED=$(echo "$CWD" | sed 's/[^a-zA-Z0-9-]/-/g')
 HANDOFF_DIR="$HOME/.claude/handoffs/$ENCODED"
 

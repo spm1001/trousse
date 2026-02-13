@@ -45,7 +45,8 @@ fi
 # Fallback to ls -t if no transcript_path (shouldn't happen, but defensive)
 if [ -z "$LATEST_SESSION" ] || [ ! -f "$LATEST_SESSION" ]; then
     PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-    PROJECT_SLUG=$(echo "$PROJECT_DIR" | sed 's|/|-|g')
+    # Use canonical encoding (matches open-context.sh, close-context.sh, auto-handoff.sh)
+    PROJECT_SLUG=$(echo "$PROJECT_DIR" | sed 's/[^a-zA-Z0-9-]/-/g')
     SESSIONS_DIR="$HOME/.claude/projects/$PROJECT_SLUG"
     LATEST_SESSION=$(ls -t "$SESSIONS_DIR"/*.jsonl 2>/dev/null | head -1)
 fi

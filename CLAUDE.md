@@ -4,7 +4,7 @@ This repo provides two things for Claude Code:
 
 1. **A session protocol** — hooks and scripts that give Claude session memory. At startup, a hook briefs Claude on previous work. At close, a skill writes a handoff for the next session. The handoff contract (`references/HANDOFF-CONTRACT.md`) specifies the format.
 
-2. **A skill drawer** — 16 SKILL.md files that teach Claude specialized workflows (diagramming, code review, file organization, etc.). Installed as symlinks into `~/.claude/skills/`.
+2. **A skill drawer** — 14 SKILL.md files that teach Claude specialized workflows (diagramming, code review, file organization, etc.). Installed as symlinks into `~/.claude/skills/`.
 
 The session protocol is the load-bearing part — other tools (like [aboyeur](https://github.com/spm1001/aboyeur)) depend on its handoff format and encoding scheme. The skills are useful but modular — any can be removed without breaking the protocol.
 
@@ -47,7 +47,9 @@ pwd -P | sed 's/[^a-zA-Z0-9-]/-/g'
 # /Users/modha/Repos/trousse → -Users-modha-Repos-trousse
 ```
 
-This matches Claude Code's own encoding for `~/.claude/projects/`. **If this encoding changes, handoffs become orphaned.** The canonical implementation lives in `scripts/open-context.sh:11` and `scripts/close-context.sh:133`.
+This matches Claude Code's own encoding for `~/.claude/projects/`. **If this encoding changes, handoffs become orphaned.** The canonical implementation lives in `scripts/open-context.sh:12` and `scripts/close-context.sh:134`.
+
+**Legacy symlinks:** When a repo is renamed, the old encoded path becomes a symlink to the new one (e.g., `-Users-modha-Repos-claude-suite → -Users-modha-Repos-trousse`). These chains can be multi-level. **Do not clean up "stale" symlinks in `~/.claude/handoffs/` without checking** — they may be forwarding old session references to the current location.
 
 ## Session Behaviour
 
@@ -80,9 +82,9 @@ Session lifecycle skills follow GODAR:
 - `user-invocable: false` for skills loaded programmatically (companion skills)
 - Reference files live in `references/` subdirectory, linked from main SKILL.md
 
-### Current Skills (16)
+### Current Skills (14)
 
-beads, close, diagram, filing, github-cleanup, ia-presenter, open, picture, review, screenshot, server-checkup, setup, skill-check, skill-forge, sprite, titans
+close, diagram, filing, github-cleanup, ia-presenter, open, picture, review, screenshot, server-checkup, setup, skill-forge, sprite, titans
 
 ### Titans Review
 
@@ -138,7 +140,7 @@ Skills can have a `references/` subdirectory:
 ```bash
 uv run pytest           # All tests
 uv run pytest -x        # Stop on first failure
-uv run pytest -k beads  # Single skill
+uv run pytest -k close  # Single skill
 ```
 
 Tests check:
