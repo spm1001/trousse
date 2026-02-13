@@ -138,24 +138,30 @@ if [[ "$VERIFY_ONLY" == true ]]; then
         fi
     done
 
-    # Check scripts
+    # Check scripts (glob to match install mode)
     info "Checking scripts..."
-    for script in open-context.sh close-context.sh claude-doctor.sh check-symlinks.sh auto-handoff.sh; do
-        if [[ -L "$HOME/.claude/scripts/$script" ]]; then
-            echo "  ✓ $script"
+    for script in "$SCRIPT_DIR/scripts/"*.sh; do
+        [[ -f "$script" ]] || continue
+        script_name=$(basename "$script")
+        # Skip templates (copied, not symlinked)
+        [[ "$script_name" == *.template.sh ]] && continue
+        if [[ -L "$HOME/.claude/scripts/$script_name" ]]; then
+            echo "  ✓ $script_name"
         else
-            echo "  ✗ $script (missing)"
+            echo "  ✗ $script_name (missing)"
             ERRORS=$((ERRORS + 1))
         fi
     done
 
-    # Check hooks
+    # Check hooks (glob to match install mode)
     info "Checking hooks..."
-    for hook in session-start.sh arc-tactical.sh; do
-        if [[ -L "$HOME/.claude/hooks/$hook" ]]; then
-            echo "  ✓ $hook"
+    for hook in "$SCRIPT_DIR/hooks/"*.sh; do
+        [[ -f "$hook" ]] || continue
+        hook_name=$(basename "$hook")
+        if [[ -L "$HOME/.claude/hooks/$hook_name" ]]; then
+            echo "  ✓ $hook_name"
         else
-            echo "  ✗ $hook (missing)"
+            echo "  ✗ $hook_name (missing)"
             ERRORS=$((ERRORS + 1))
         fi
     done
@@ -469,13 +475,8 @@ fi
 # Optional tools (platform-aware)
 echo "Optional tools (not installed):"
 echo ""
-echo "  • bd CLI (for beads issue tracking)"
-if [[ "$PLATFORM" == "macos" ]]; then
-    echo "    brew install beads-dev/tap/bd"
-elif [[ "$PLATFORM" == "linux" ]]; then
-    echo "    # Download from https://github.com/beads-dev/bd/releases"
-    echo "    # Or: cargo install bd-cli"
-fi
+echo "  • arc (tactical outcome tracking)"
+echo "    uv tool install ~/Repos/arc"
 echo ""
 echo "  • todoist-gtd (GTD task management)"
 echo "    git clone https://github.com/spm1001/todoist-gtd ~/Repos/todoist-gtd"

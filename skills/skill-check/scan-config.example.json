@@ -1,8 +1,0 @@
-{
-  "email_domains_high_risk": ["@yourcompany.com"],
-  "path_usernames": ["your-username"],
-  "company_terms": [
-    "YourCompany", "InternalTool", "ProductName"
-  ],
-  "person_names": ["Your Name", "Colleague Name"]
-}
