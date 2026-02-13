@@ -1,6 +1,6 @@
 ---
 name: github-cleanup
-description: Progressive audit and cleanup of GitHub accounts - stale forks, orphaned secrets, failing workflows, security configs. Audit-first with user approval before destructive actions. Triggers on 'clean up GitHub', 'audit my repos', 'GitHub hygiene', 'stale forks', 'orphaned secrets'. Requires gh CLI. (user)
+description: Progressive audit and cleanup of GitHub accounts - stale forks, orphaned secrets, failing workflows, security configs, Dependabot alert triage (trace alerts to unused deps, prune or upgrade). Audit-first with user approval before destructive actions. Triggers on 'clean up GitHub', 'audit my repos', 'GitHub hygiene', 'stale forks', 'orphaned secrets', 'Dependabot trouble', 'fix Dependabot alerts', 'unused deps'. Requires gh CLI. (user)
 ---
 
 # Cleanup GitHub
@@ -14,6 +14,7 @@ This skill audits a GitHub account for:
 - Stale forks with no custom changes
 - Orphaned secrets not used by any workflow
 - Dependabot and security configuration
+- **Dependabot alert triage** — trace alerts to source, prune unused deps, upgrade transitive deps
 
 **Workflow:** Audit all categories → Present findings → Get approval → Execute cleanup
 
@@ -24,6 +25,7 @@ This skill audits a GitHub account for:
 - "clean up my GitHub" / "audit my repos"
 - "check for stale forks" / "orphaned secrets"
 - "GitHub hygiene" / "repo cleanup"
+- "Dependabot trouble" / "fix Dependabot alerts" / "unused deps"
 - Investigating failing GitHub Actions
 - Periodic account maintenance
 
@@ -53,6 +55,7 @@ Focus on specific category:
 check for stale forks
 check for orphaned secrets
 check failing workflows
+triage Dependabot alerts
 ```
 
 ## Phase Workflow
@@ -173,6 +176,122 @@ gh api repos/GH_USER/REPO/vulnerability-alerts 2>/dev/null && echo "Alerts enabl
 ```bash
 gh api repos/GH_USER/REPO/code-scanning/default-setup --jq '{state: .state, languages: .languages}'
 ```
+
+### Phase 4b: Dependabot Alert Triage
+
+Phase 4 checks if Dependabot is *configured*. This phase triages actual alerts by tracing them to their source and recommending the right fix: prune unused deps (preferred) or upgrade lock files.
+
+**Mental model:** `pyproject.toml`/`package.json` is the shopping list (direct deps). The lock file is the trolley (everything installed, including transitive deps). Dependabot scans the trolley. Unused items on the shopping list are pure waste — they expand the attack surface and drag in transitive deps you don't need.
+
+**Step 1: Scan all repos for open alerts**
+
+```bash
+# Only count real alerts (JSON arrays), not 403 errors (JSON objects)
+for repo in $(gh repo list GH_USER --limit 200 --json name --jq ".[].name"); do
+  result=$(gh api "repos/GH_USER/$repo/dependabot/alerts?state=open" 2>/dev/null)
+  count=$(echo "$result" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+print(len(d) if isinstance(d, list) else 0)
+" 2>/dev/null)
+  if [ "$count" != "0" ] && [ -n "$count" ]; then
+    echo "=== $repo ($count) ==="
+    echo "$result" | python3 -c "
+import sys,json
+for a in json.load(sys.stdin):
+    sev = a.get('security_advisory',{}).get('severity','?')
+    pkg = a.get('dependency',{}).get('package',{}).get('name','?')
+    eco = a.get('dependency',{}).get('package',{}).get('ecosystem','?')
+    manifest = a.get('dependency',{}).get('manifest_path','?')
+    fix = a.get('security_vulnerability',{}).get('first_patched_version')
+    fix_v = fix.get('identifier','no fix') if fix else 'no fix'
+    print(f'  [{sev:6s}] {pkg} ({eco}) via {manifest} -> fix: {fix_v}')
+"
+  fi
+done
+```
+
+**Key gotcha:** Repos with Dependabot *disabled* return HTTP 403 with a JSON error object (3 string fields). Naive JSON length-counting mistakes this for "3 alerts". Always check `isinstance(d, list)`.
+
+**Step 2: For each repo with alerts, audit direct deps**
+
+For Python repos (pyproject.toml + uv.lock):
+```bash
+# 1. List declared deps
+grep -A 50 '^\[project\]' pyproject.toml | grep -A 50 'dependencies' | head -20
+
+# 2. Find all third-party imports in source
+grep -rn "^import \|^from " src/ tests/ *.py 2>/dev/null | grep -v "from \." | sort -u
+
+# 3. Compare — any declared dep with zero imports is a removal candidate
+```
+
+For Node repos (package.json + package-lock.json):
+```bash
+# 1. List declared deps
+jq '.dependencies, .devDependencies' package.json
+
+# 2. Find all third-party imports in source
+grep -rn "from ['\"]" src/ --include="*.ts" --include="*.tsx" --include="*.js" | grep -v "from ['\"]\." | sort -u
+grep -rn "require(['\"]" src/ scripts/ --include="*.js" | sort -u
+```
+
+**Step 3: Categorise each alert**
+
+| Category | Description | Action |
+|----------|-------------|--------|
+| **Unused direct dep** | Declared but never imported | Remove from manifest, regenerate lock |
+| **Transitive of unused dep** | Alert pkg is transitive, but its parent is unused | Remove the parent — alert clears as side effect |
+| **Transitive of used dep** | Alert pkg is transitive, parent is genuinely used | `uv lock --upgrade-package PKG` or `npm update PKG` |
+| **Fork/upstream code** | Alert is in someone else's code you forked | Skip or PR upstream |
+
+**Prefer removal over upgrade.** Removing an unused dep is a permanent fix. Upgrading a lock file is a point-in-time fix — new CVEs will trigger new alerts against the same transitive chain.
+
+**Step 4: Execute fixes**
+
+For Python repos:
+```bash
+# Remove unused dep from pyproject.toml (edit manually)
+# Then regenerate and sync:
+uv lock --upgrade
+uv sync
+# Run tests if they exist:
+uv run pytest 2>/dev/null || echo "No tests"
+```
+
+For Node repos:
+```bash
+# Remove unused dep:
+npm uninstall PACKAGE_NAME
+# Or edit package.json then:
+npm install
+# Run tests:
+npm test 2>/dev/null || echo "No tests"
+```
+
+**Step 5: Commit and push per-repo**
+
+```bash
+git add pyproject.toml uv.lock  # or package.json package-lock.json
+git commit -m "Remove unused deps, upgrade transitive deps
+
+[describe what was removed and why]
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+git push
+```
+
+**Important:** GitHub's Dependabot scanner runs asynchronously after push. Alerts take a few minutes to clear. Don't wait — verify by checking the lock file no longer contains the vulnerable version.
+
+**Anti-patterns for this phase:**
+
+| Anti-Pattern | Problem | Fix |
+|--------------|---------|-----|
+| Patching transitive deps when parent is unused | Treats the symptom, not the disease | Remove the unused parent dep instead |
+| Adding version overrides for transitives | Adds maintenance burden, fragile | Only use as last resort when parent can't be updated |
+| Ignoring "imported but undeclared" deps | Works today via transitive hoisting, breaks on next update | Declare them explicitly |
+| Running `uv lock --upgrade` without auditing first | Might upgrade things you want pinned | Prefer `--upgrade-package PKG` for targeted fixes |
+| Counting 403 error fields as alerts | Repos with Dependabot disabled return 403 JSON objects | Check `isinstance(result, list)` |
 
 ### Phase 5: "What Did We Miss?" Checklist (MANDATORY)
 

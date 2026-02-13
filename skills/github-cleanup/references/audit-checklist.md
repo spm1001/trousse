@@ -28,6 +28,15 @@ Comprehensive "what did we miss?" checklist. Run through this BEFORE presenting 
 - [ ] Check code scanning (CodeQL) status
 - [ ] Review push protection settings
 
+### Dependabot Alert Triage
+- [ ] Scan all repos for open Dependabot alerts (filter 403s — those mean Dependabot is disabled, not "3 alerts")
+- [ ] For each repo with alerts, audit declared deps vs actual imports
+- [ ] Identify unused direct deps whose transitive tree contains the vulnerable package
+- [ ] Remove unused deps (preferred — permanent fix)
+- [ ] Upgrade lock files for remaining transitive alerts (`uv lock --upgrade` / `npm update`)
+- [ ] Check for "imported but undeclared" deps (work today via transitive hoisting, break tomorrow)
+- [ ] Skip forks of upstream code (not your deps to manage)
+
 ## Often Forgotten
 
 ### Local Development
