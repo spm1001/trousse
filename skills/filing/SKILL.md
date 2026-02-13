@@ -423,11 +423,11 @@ When triaging files, follow this 5-step process:
    - **After filing Meeting Notes:** Extract to memory for searchability
      ```bash
      # Re-scan to pick up the filed document
-     cd ~/Repos/claude-mem && uv run mem scan --source local_md
+     cd ~/Repos/garde-manger && uv run garde scan --source local_md
 
      # Extract entities from the filed document
      SOURCE_ID="local_md:$(basename "$DEST_PATH")"
-     cd ~/Repos/claude-mem && uv run mem extract "$SOURCE_ID" 2>/dev/null || true
+     cd ~/Repos/garde-manger && uv run garde extract "$SOURCE_ID" 2>/dev/null || true
      ```
 
 ## Archive vs Reference

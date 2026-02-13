@@ -71,7 +71,7 @@ Act           → Draw-down from Arc
 | Both `.arc/` and `.beads/` exist | Use arc only | Arc is authoritative |
 | Neither exists | Skip tracker loading | No work tracker in this project |
 | @Claude items in context OR Todoist in handoff | Offer `Skill(todoist-gtd)` | GTD framing, inbox check |
-| User seems disoriented about past work | Offer `Skill(memory)` | Ancestral lookup |
+| User seems disoriented about past work | Offer `Skill(garde)` | Ancestral lookup |
 
 **Work tracker is mandatory when present.** The draw-down pattern (item → `arc work` → `arc step`) is where drift gets caught. Tactical steps persist in `items.jsonl`, enforce serial execution, and survive session crashes.
 

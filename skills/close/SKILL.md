@@ -360,7 +360,7 @@ The JSON must match this schema exactly:
 
 **Write the file using the Write tool.** This is pure JSON, no markdown.
 
-The session-end hook will detect this file and use it instead of spawning `mem process`. If this step fails for any reason, the hook falls back to the old extraction path — so it's safe.
+The session-end hook will detect this file and use it instead of spawning `garde process`. If this step fails for any reason, the hook falls back to the old extraction path — so it's safe.
 
 ### Commit
 If git dirty **in the working directory** (where you started):
@@ -382,13 +382,13 @@ Say: "Type `/exit` to close." Don't exit programmatically.
 The hook (`~/.claude/hooks/session-end.sh`) fires automatically and takes one of two paths:
 
 1. **If staged extraction exists** (you wrote `~/.claude/.pending-extractions/<session_id>.json` above):
-   - Indexes the session with `mem index` (fast, no LLM)
-   - Stores your pre-generated extraction with `mem store-extraction`
+   - Indexes the session with `garde index` (fast, no LLM)
+   - Stores your pre-generated extraction with `garde store-extraction`
    - Removes the staging file
    - No subprocess spawned — your in-context extraction is used directly
 
 2. **If no staged extraction** (crash, ctrl-c, session ended without /close):
-   - Falls back to `mem process` which spawns `claude -p` for extraction
+   - Falls back to `garde process` which spawns `claude -p` for extraction
    - Same quality, just slower and costs a subprocess
 
 Either way, handoffs and beads are scanned afterward.

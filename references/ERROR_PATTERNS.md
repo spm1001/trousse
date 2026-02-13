@@ -187,7 +187,7 @@ echo '{"hookSpecificOutput": {"key": "value"}}'
 
 ---
 
-## Memory/claude-mem Failures
+## Memory/garde-manger Failures
 
 ### Pattern: "uv: command not found" in memory operations
 
@@ -221,7 +221,7 @@ When you encounter an error:
 4. **Run claude-doctor** — `~/.claude/scripts/claude-doctor.sh`
 5. **Trace execution** — `bash -x script.sh` for shell scripts
 6. **Check symlinks** — `ls -la` to see if symlinks are broken
-7. **Search memory** — "have we seen this before?" via mem skill
+7. **Search memory** — "have we seen this before?" via garde skill
 
 ---
 

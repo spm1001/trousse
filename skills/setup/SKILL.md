@@ -3,7 +3,7 @@ name: setup
 description: >
   Install behavioral skills from claude-suite. Use FIRST when onboarding a new machine
   or after fresh Claude Code install. Creates symlinks for session lifecycle, utilities,
-  and optionally offers tool repos (todoist-gtd, claude-mem).
+  and optionally offers tool repos (todoist-gtd, garde-manger).
   Triggers on 'help me set up', 'install skills', '/setup'. (user)
 ---
 
@@ -40,7 +40,7 @@ Install Claude behavioral skills with one command.
 
 **Optional tool repos** (offered after core install):
 - `todoist-gtd` — GTD-flavored Todoist integration
-- `claude-mem` — Searchable memory across sessions
+- `garde-manger` — Searchable memory across sessions
 
 ## Workflow
 
@@ -100,7 +100,7 @@ Use AskUserQuestion:
 Core skills installed. Want to add tool integrations?
 
 [ ] todoist-gtd — GTD task management with Todoist
-[ ] claude-mem — Search past sessions
+[ ] garde-manger — Search past sessions
 ```
 
 **If todoist-gtd selected:**
@@ -112,14 +112,14 @@ ln -sf ~/Repos/todoist-gtd/skills/todoist-gtd ~/.claude/skills/todoist-gtd
 todoist auth
 ```
 
-**If claude-mem selected:**
+**If garde-manger selected:**
 ```bash
-gh repo clone spm1001/claude-mem ~/Repos/claude-mem
-cd ~/Repos/claude-mem && uv sync
-ln -sf ~/Repos/claude-mem/skill ~/.claude/skills/mem
+gh repo clone spm1001/garde-manger ~/Repos/garde-manger
+cd ~/Repos/garde-manger && uv sync
+ln -sf ~/Repos/garde-manger/skill ~/.claude/skills/garde
 
 # Initial scan
-cd ~/Repos/claude-mem && uv run mem scan
+cd ~/Repos/garde-manger && uv run garde scan
 ```
 
 ### Phase 5: Verify

@@ -121,7 +121,7 @@ These are separate repos that add their own skills:
 | Repo | What it adds |
 |------|--------------|
 | [todoist-gtd](https://github.com/spm1001/todoist-gtd) | GTD-flavored Todoist integration |
-| [claude-mem](https://github.com/spm1001/claude-mem) | Search past Claude sessions |
+| [garde-manger](https://github.com/spm1001/garde-manger) | Search past Claude sessions |
 | [arc](https://github.com/spm1001/arc) | Work tracker CLI (outcomes + actions) |
 
 ## Troubleshooting

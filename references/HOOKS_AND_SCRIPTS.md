@@ -52,9 +52,9 @@ settings.json SessionEnd (matcher: "")
   +--> session-end.sh                [env var guard] [owner: claude-suite]
   |      |
   |      +--> daemonized background:
-  |             mem process (index session transcript)
-  |             mem scan (handoffs + beads)
-  |             mem backfill --limit 10 (Meeting Notes)
+  |             garde process (index session transcript)
+  |             garde scan (handoffs + beads)
+  |             garde backfill --limit 10 (Meeting Notes)
   |
   +--> sync-config.sh push           [owner: claude-config]
          git add/commit/push ~/.claude
@@ -72,7 +72,7 @@ settings.json SessionEnd (matcher: "")
 | arc-tactical.sh | ~8ms | jq reads items.jsonl instead of Python arc CLI |
 | session-end.sh | ~5ms | Just launches a daemon, actual work is backgrounded |
 
-**Exception: session-end.sh** keeps an env var guard (`MEM_SUBAGENT`, `CLAUDE_SUBAGENT`) because its side effect (mem process) spawns `claude -p` subagents — recursive fork bomb risk. The guard isn't about speed, it's about preventing recursion.
+**Exception: session-end.sh** keeps an env var guard (`GARDE_SUBAGENT`, `MEM_SUBAGENT`, `CLAUDE_SUBAGENT`) because its side effect (garde process) spawns `claude -p` subagents — recursive fork bomb risk. The guard isn't about speed, it's about preventing recursion.
 
 ---
 

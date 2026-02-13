@@ -272,8 +272,8 @@ fi
 section "Memory System"
 # ═══════════════════════════════════════════════════════════════
 
-if [ -d "$HOME/Repos/claude-mem" ]; then
-    pass "claude-mem repo exists"
+if [ -d "$HOME/Repos/garde-manger" ]; then
+    pass "garde-manger repo exists"
 
     if [ -f "$HOME/.claude/memory/memory.db" ]; then
         DB_SIZE=$(du -h "$HOME/.claude/memory/memory.db" 2>/dev/null | cut -f1)
@@ -283,7 +283,7 @@ if [ -d "$HOME/Repos/claude-mem" ]; then
         warn "Memory database not found at ~/.claude/memory/memory.db"
     fi
 else
-    warn "claude-mem repo not found - memory search unavailable"
+    warn "garde-manger repo not found - memory search unavailable"
 fi
 
 # ═══════════════════════════════════════════════════════════════
