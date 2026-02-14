@@ -133,30 +133,6 @@ cat ~/.claude.json | jq '.mcpServers'  # Global config
 
 ---
 
-## Beads/bd Failures
-
-### Pattern: "bd: database locked"
-
-**Symptom:** bd commands hang or fail with lock error.
-
-**Cause:** Another bd process or daemon holding the lock.
-
-**Fix:**
-```bash
-bd daemon --stop
-bd <your-command>
-```
-
-### Pattern: bd in Google Drive = corruption
-
-**Symptom:** Beads database errors, missing issues, weird state.
-
-**Cause:** SQLite + cloud sync = race conditions and corruption.
-
-**Prevention:** Never use bd in cloud-synced folders (Google Drive, Dropbox, iCloud Drive).
-
----
-
 ## Git Hook Failures
 
 ### Pattern: Hook runs but output not visible

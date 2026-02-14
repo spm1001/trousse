@@ -9,7 +9,7 @@ set -euo pipefail
 validate_dependencies() {
     local missing=""
 
-    # jq: required for JSON parsing of beads output
+    # jq: required for JSON parsing
     if ! command -v jq &>/dev/null; then
         missing="$missing jq(brew install jq)"
     fi
@@ -95,25 +95,6 @@ if [ -d ".arc" ]; then
     fi
 else
     echo "ARC_EXISTS=false"
-fi
-
-# === BEADS STATUS (legacy tracker) ===
-echo ""
-echo "=== BEADS ==="
-if [ -d ".beads" ] && command -v bd >/dev/null 2>&1; then
-    IN_PROGRESS=$(bd list --status in_progress --json 2>/dev/null | jq -r '.[] | "\(.id): \(.title)"' 2>/dev/null || true)
-    OPEN_COUNT=$(bd list --status open --json 2>/dev/null | jq -r 'length' 2>/dev/null || echo "0")
-
-    if [ -n "$IN_PROGRESS" ]; then
-        echo "IN_PROGRESS:"
-        echo "$IN_PROGRESS"
-    else
-        echo "IN_PROGRESS=0"
-    fi
-    echo "OPEN_COUNT=$OPEN_COUNT"
-    echo "BEADS_EXISTS=true"
-else
-    echo "BEADS_EXISTS=false"
 fi
 
 # === WORK LOCATION DETECTION ===

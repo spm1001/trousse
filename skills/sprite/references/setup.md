@@ -15,7 +15,7 @@
 - Wake instantly on any command
 - Checkpoints capture full filesystem state (milliseconds, copy-on-write)
 - **Pre-installed:** Claude Code, gh, Python, Node.js, Go
-- **NOT pre-installed:** uv, bd (beads), locale config, Ghostty terminfo
+- **NOT pre-installed:** uv, arc, locale config, Ghostty terminfo
 
 ### Sprite States
 
@@ -46,8 +46,8 @@ echo 'export LC_ALL=en_US.UTF-8' >> ~/.bashrc
 # 4. Install uv (not pre-installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 5. Install bd/beads (if using beads workflow)
-curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
+# 5. Install arc (work tracker)
+uv tool install git+https://github.com/spm1001/arc@main
 
 # 6. Clone config (HTTPS works with gh auth)
 rm -rf ~/.claude
@@ -57,7 +57,7 @@ git clone --recurse-submodules https://github.com/spm1001/claude-config.git ~/.c
 cd ~/.claude && ./scripts/setup-machine.sh
 
 # 8. Checkpoint so you don't repeat this
-sprite checkpoint create --comment "Fresh setup with gh, uv, bd, locale"
+sprite checkpoint create --comment "Fresh setup with gh, uv, arc, locale"
 ```
 
 ---
