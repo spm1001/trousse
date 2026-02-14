@@ -183,7 +183,8 @@ def check_name(frontmatter: dict, skill_dir: Path) -> list[Check]:
         ))
 
     # Gerund/capability form check (heuristic)
-    GOOD_SUFFIXES = ('ing', 'ity', 'ment', 'tion', 'ness', 'check', 'forge', 'fluency')
+    GOOD_SUFFIXES = ('ing', 'ity', 'ment', 'tion', 'ness', 'check', 'forge', 'fluency',
+                     'ist', 'er', 'or', 'yst', 'ant')  # Role nouns (analyst, builder, etc.)
     GOOD_PATTERNS = ('test-driven', 'root-cause', 'crash-recovery')
 
     if any(name.endswith(s) for s in GOOD_SUFFIXES) or any(p in name for p in GOOD_PATTERNS):
@@ -314,10 +315,11 @@ def check_description(frontmatter: dict) -> list[Check]:
         ))
 
     # Vague pattern detection
+    # "Provides" is only vague when not followed by specific content
     vague_patterns = [
         (r'\bhelps? with\b', "'Helps with' is vague"),
         (r'\bassists?\b', "'Assists' is vague"),
-        (r'\bprovides?\b', "'Provides' is vague - be specific"),
+        (r'\bprovides?\s+(?:a\s+)?(?:way|tool|method)\b', "'Provides a way/tool/method' is vague - name the thing"),
         (r'\bcan be used\b', "Passive voice - use active"),
     ]
 
@@ -361,13 +363,21 @@ def check_structure(skill_dir: Path, content: str) -> list[Check]:
         'anti_patterns': r'^##\s+anti[- ]?patterns?',
     }
 
+    # Anti-patterns are less important for methodology/reference skills
+    # (those with references/ dirs — they're cookbooks, not process gates)
+    has_references = (skill_dir / 'references').exists()
+
     for section, pattern in section_patterns.items():
         found = any(re.match(pattern, line, re.IGNORECASE) for line in lines)
+        if not found and section == 'anti_patterns' and has_references:
+            severity = "info"  # Downgrade for reference-heavy skills
+        else:
+            severity = "info" if found else "warning"
         checks.append(Check(
             name=f"section_{section}",
             passed=found,
             message=f"{'Has' if found else 'Missing'} '{section.replace('_', ' ')}' section",
-            severity="info" if found else "warning"
+            severity=severity
         ))
 
     # Reference depth check

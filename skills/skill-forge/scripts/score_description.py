@@ -301,13 +301,19 @@ def score_action_verbs(desc: str) -> ScoreComponent:
 
     first_word = desc.split()[0].lower() if desc else ""
 
-    # Check first word
+    # Check first word — domain-noun openers (e.g. "BigQuery data analysis —") are
+    # valid for methodology/reference skills, scored same as strong verbs
+    has_dash_separator = '—' in desc[:80] or ' - ' in desc[:80]
+
     if first_word in weak_starters:
         details.append(f"Starts with weak verb '{first_word}'")
         suggestions.append(f"Change '{first_word.capitalize()}...' to third-person: 'Orchestrates...', 'Validates...'")
     elif any(desc.lower().startswith(v) for v in strong_verbs):
         score += 7
         details.append("Starts with strong third-person verb")
+    elif has_dash_separator:
+        score += 5
+        details.append("Domain-noun opener with qualifier")
     else:
         details.append("Neutral opening")
         score += 3
