@@ -26,3 +26,4 @@ skills/skill-check/scan-config.json
 skills/skill-forge/scripts/init_skill.py
 skills/skill-forge/scripts/package_skill.py
 skills/skill-forge/scripts/quick_validate.py
+mise-fetch/
