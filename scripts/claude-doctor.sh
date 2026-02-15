@@ -231,7 +231,7 @@ if [ -f "$MANIFEST" ]; then
     fi
 else
     # No manifest — basic check
-    for skill in open close arc; do
+    for skill in open close bon; do
         SKILL_PATH="$SKILLS_DIR/$skill"
         if [ -L "$SKILL_PATH" ] && [ -e "$SKILL_PATH" ]; then
             pass "Skill $skill"
@@ -259,7 +259,7 @@ if [ -f "$MANIFEST" ]; then
         fi
     done
 else
-    for hook in session-start.sh session-end.sh arc-tactical.sh; do
+    for hook in session-start.sh session-end.sh bon-tactical.sh; do
         if [ -L "$HOOKS_DIR/$hook" ] && [ -e "$HOOKS_DIR/$hook" ]; then
             pass "$hook"
         else

@@ -1,7 +1,7 @@
 ---
 name: open
 description: >
-  Re-orient to session context on demand. Loads companion skills (arc, todoist-gtd)
+  Re-orient to session context on demand. Loads companion skills (bon, todoist-gtd)
   based on what's present. Use when you missed the startup context, want a fresh look
   at what's available, or after cd'ing to a different project.
   Triggers on /open, 'what were we working on', 'where did we leave off'.
@@ -18,9 +18,9 @@ Interpret context and load companion skills.
 
 Use `/open` for:
 - **Re-orientation** — "Show me the context again" (mid-session)
-- **Skill loading** — Ensures arc/todoist-gtd patterns are available
+- **Skill loading** — Ensures bon/todoist-gtd patterns are available
 - **After directory change** — Context is project-specific; if you cd'd, context may differ
-- **Deeper dig** — When you need full handoff content or complete arc hierarchy beyond the briefing
+- **Deeper dig** — When you need full handoff content or complete bon hierarchy beyond the briefing
 
 ## When NOT to Use
 
@@ -36,7 +36,7 @@ Use `/open` for:
 |-------|-----|-----------|
 | open-context.sh exists | `[ -x ~/.claude/scripts/open-context.sh ]` | Run `claude-doctor.sh` |
 | Script symlinks valid | `~/.claude/scripts/check-symlinks.sh` | Fix symlinks, see ERROR_PATTERNS.md |
-| arc available | `command -v arc` | Install: see ~/Repos/arc |
+| bon available | `command -v bon` | Install: see ~/Repos/arc |
 
 **Quick pre-flight:**
 ```bash
@@ -55,7 +55,7 @@ Gate          → Load required companion skills
 Gather        → Script output (already present from hook, or re-run if needed)
 Orient        → Synthesize what matters
 Decide        → User picks direction
-Act           → Draw-down from Arc
+Act           → Draw-down from Bon
 ```
 
 ---
@@ -66,21 +66,18 @@ Act           → Draw-down from Arc
 
 | Condition | Action | Why |
 |-----------|--------|-----|
-| `.arc/` exists | `Skill(arc)` | Default tracker — outcomes and actions, GTD vocabulary |
-| `.beads/` exists (no `.arc/`) | Suggest migration | Beads is deprecated — `arc migrate --from-beads .beads/` |
-| Both `.arc/` and `.beads/` exist | Use arc only | Arc is authoritative |
-| Neither exists | Skip tracker loading | No work tracker in this project |
+| `.bon/` exists | `Skill(bon)` | Default tracker — outcomes and actions, GTD vocabulary |
+| Neither `.bon/` nor tracker exists | Skip tracker loading | No work tracker in this project |
 | @Claude items in context OR Todoist in handoff | Offer `Skill(todoist-gtd)` | GTD framing, inbox check |
 | User seems disoriented about past work | Offer `Skill(garde)` | Ancestral lookup |
 
-**Work tracker is mandatory when present.** The draw-down pattern (item → `arc work` → `arc step`) is where drift gets caught. Tactical steps persist in `items.jsonl`, enforce serial execution, and survive session crashes.
+**Work tracker is mandatory when present.** The draw-down pattern (item → `bon work` → `bon step`) is where drift gets caught. Tactical steps persist in `items.jsonl`, enforce serial execution, and survive session crashes.
 
-- **Arc** is the default — outcomes and actions, simpler CLI, GTD vocabulary built-in
-- **Beads** is deprecated — if `.beads/` exists without `.arc/`, suggest migration
+- **Bon** is the default — outcomes and actions, simpler CLI, GTD vocabulary built-in
 
 **Todoist-gtd is conditional.** Offer it when relevant, don't load by default.
 
-> **Skill loading bias (Jan 2026 learning):** Loading todoist-gtd primes Claude to think about "where work belongs" (Todoist vs arc). This caused misinterpretation in past sessions. When a tracker skill is loaded, stay anchored to the user's explicit tool references ("in arc", "the outcomes").
+> **Skill loading bias (Jan 2026 learning):** Loading todoist-gtd primes Claude to think about "where work belongs" (Todoist vs bon). This caused misinterpretation in past sessions. When a tracker skill is loaded, stay anchored to the user's explicit tool references ("in bon", "the outcomes").
 
 **Memory is optional.** Offer when user seems confused about history, not by default.
 
@@ -91,7 +88,7 @@ Act           → Draw-down from Arc
 **Pattern: Compact briefing to stdout, detail on disk.**
 
 The session-start hook outputs a synthesized briefing:
-- Outcomes we're working towards (from arc)
+- Outcomes we're working towards (from bon)
 - Last-worked zoom (current action and its tactical steps)
 - Last session summary (Done, Next, Gotchas from latest handoff)
 
@@ -102,7 +99,7 @@ The session-start hook outputs a synthesized briefing:
 | What | File |
 |------|------|
 | Latest handoff | `~/.claude/handoffs/<encoded-cwd>/` (most recent `.md` by mtime) |
-| Arc context | `~/.claude/.session-context/<encoded-cwd>/arc.txt` |
+| Bon context | `~/.claude/.session-context/<encoded-cwd>/bon.txt` |
 | News | `~/.claude/.update-news` |
 
 **To compute the path:** `echo "$(pwd -P)" | sed 's/[^a-zA-Z0-9-]/-/g'` → use as subdirectory name.
@@ -144,18 +141,18 @@ ENCODED=$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')
 
 Then:
 1. **Read latest handoff** — `ls -t ~/.claude/handoffs/$ENCODED/*.md 2>/dev/null | head -1` (if empty, no prior sessions here)
-2. **Check tracker context** — read `~/.claude/.session-context/$ENCODED/arc.txt` if it exists
+2. **Check tracker context** — read `~/.claude/.session-context/$ENCODED/bon.txt` if it exists
 3. **News if relevant** — read `~/.claude/.update-news` if user asks or it's actionable
 
 ### Synthesize What Matters
 
 - **Handoff** — Done, Next, Gotchas from previous session
-- **Tracker hierarchy** — from arc.txt, show directly to user
-- **Ready work** — what's unblocked (arc ready)
+- **Tracker hierarchy** — from bon.txt, show directly to user
+- **Ready work** — what's unblocked (bon ready)
 - **Commands** — if handoff has a Commands section, offer to run them
 - **Scope mismatches** — if handoff "Next" doesn't match ready items, flag it
 
-> **CRITICAL: Output as text, not Bash.** When presenting tracker hierarchy or ready work, output it as text in your response. DO NOT run `arc list` via Bash — Claude Code collapses tool output >10 lines behind Ctrl+O, making it invisible to the user. The arc.txt file already contains formatted hierarchies; read it and output directly.
+> **CRITICAL: Output as text, not Bash.** When presenting tracker hierarchy or ready work, output it as text in your response. DO NOT run `bon list` via Bash — Claude Code collapses tool output >10 lines behind Ctrl+O, making it invisible to the user. The bon.txt file already contains formatted hierarchies; read it and output directly.
 
 ### Orphaned Local Handoffs
 
@@ -169,7 +166,7 @@ When stdout shows orphaned `.handoff*` files:
 
 The startup briefing already shows the latest handoff summary (Done, Next, Gotchas). For deeper detail, read the full handoff file.
 
-Present concisely: "Previous session did X. Next suggested: Y. Z arc items ready."
+Present concisely: "Previous session did X. Next suggested: Y. Z bon items ready."
 
 ---
 
@@ -177,7 +174,7 @@ Present concisely: "Previous session did X. Next suggested: Y. Z arc items ready
 
 User picks direction. Options typically:
 - Continue with handoff "Next"
-- Pick from ready work (arc items)
+- Pick from ready work (bon items)
 - @Claude inbox items
 - Something else
 
@@ -193,10 +190,10 @@ When user picks a work item:
 
 | Tracker | Read item | Mark in progress |
 |---------|-----------|------------------|
-| **Arc** | `arc show <id>` | (arc doesn't track in_progress) |
+| **Bon** | `bon show <id>` | (bon doesn't track in_progress) |
 
 Then:
-1. Read the item's criteria (arc: brief.why/what/done)
+1. Read the item's criteria (bon: brief.why/what/done)
 2. Break down into steps from those criteria
 3. Show user: "Breaking this down into: [list]. Sound right?"
 4. Work through steps with explicit pauses for direction checks
@@ -236,7 +233,7 @@ When user says "the email thing", "that feature", or similar:
 
 **No checkpoints = Drift compounds.**
 
-**Full draw-down patterns live in the tracker skill (arc)** — that's why gate-loading matters.
+**Full draw-down patterns live in the tracker skill (bon)** — that's why gate-loading matters.
 
 ---
 
@@ -244,9 +241,9 @@ When user says "the email thing", "that feature", or similar:
 
 | Pattern | Problem | Fix |
 |---------|---------|-----|
-| Run `arc list` or `bd ready` via Bash | Output collapsed, user can't see it | Read context file, output as text |
+| Run `bon list` or `bd ready` via Bash | Output collapsed, user can't see it | Read context file, output as text |
 | Skip draw-down on "continue X" | Scope ambiguity | Always read item, break into steps |
-| Skip tracker skill loading | Missing workflow patterns | Gate-load arc first |
+| Skip tracker skill loading | Missing workflow patterns | Gate-load bon first |
 | Ignore script failures | Partial context, drift | STOP and diagnose if script fails |
 | Guess at ambiguous references | Wrong work picked up | Ask user which item they mean |
 
@@ -254,9 +251,9 @@ When user says "the email thing", "that feature", or similar:
 
 | Phase | /open | /close |
 |-------|-------|--------|
-| **G**ate | Load arc, offer todoist | — |
-| **G**ather | Notifications (stdout) → Read files | Todos, arc, git, drift |
+| **G**ate | Load bon, offer todoist | — |
+| **G**ather | Notifications (stdout) → Read files | Todos, bon, git, drift |
 | **O**rient | "Where we left off" | Reflect (AskUserQuestion) |
 | **D**ecide | User picks direction | Crystallize actions (STOP) |
-| **A**ct | Draw-down from Arc | Execute, handoff, commit |
+| **A**ct | Draw-down from Bon | Execute, handoff, commit |
 | **R**emember | — | Captured in handoff |

@@ -1,4 +1,5 @@
 #!/bin/bash
+touch /tmp/gemini-hook-fired
 #
 # Session Start Hook
 # Outputs session context to stdout (Claude sees this automatically)

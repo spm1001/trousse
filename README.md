@@ -59,8 +59,8 @@ Then restart Claude Code (`/exit` → `claude`).
 
 | Skill | Loaded by | Purpose |
 |-------|-----------|---------|
-| `arc` | `/open` | Work tracking across sessions (outcomes + actions) |
-| `beads` | `/open` | Legacy work tracker (deprecated, use arc for new projects) |
+| `bon` | `/open` | Work tracking across sessions (outcomes + actions) |
+| `beads` | `/open` | Legacy work tracker (deprecated, use bon for new projects) |
 
 ## How It Works
 
@@ -71,11 +71,11 @@ trousse/
 ├── hooks/                  # Shell scripts that fire on Claude Code events
 │   ├── session-start.sh    #   → runs open-context.sh at session start
 │   ├── session-end.sh      #   → cleanup at session end
-│   └── arc-tactical.sh     #   → injects current work step into every prompt
+│   └── bon-tactical.sh     #   → injects current work step into every prompt
 ├── scripts/                # Utility scripts called by hooks and skills
 │   ├── open-context.sh     #   → generates session briefing
 │   ├── close-context.sh    #   → generates session handoff
-│   ├── arc-read.sh         #   → fast jq reads from arc's data file
+│   ├── bon-read.sh         #   → fast jq reads from bon's data file
 │   ├── claude-doctor.sh    #   → diagnose broken symlinks and config
 │   ├── check-home.sh       #   → detect home directory issues
 │   └── check-symlinks.sh   #   → verify symlink integrity
@@ -122,7 +122,7 @@ These are separate repos that add their own skills:
 |------|--------------|
 | [todoist-gtd](https://github.com/spm1001/todoist-gtd) | GTD-flavored Todoist integration |
 | [garde-manger](https://github.com/spm1001/garde-manger) | Search past Claude sessions |
-| [arc](https://github.com/spm1001/arc) | Work tracker CLI (outcomes + actions) |
+| [bon](https://github.com/spm1001/bon) | Work tracker CLI (outcomes + actions) |
 
 ## Troubleshooting
 

@@ -61,7 +61,7 @@ DEFAULT_CONFIG = {
     ],
     "exclude_dirs": [
         ".git", ".venv", "venv", "node_modules", "__pycache__",
-        ".beads", ".claude"
+        ".bon", ".claude"
     ],
     "exclude_files": [
         "*.pyc", "*.lock", "*.db", ".DS_Store"

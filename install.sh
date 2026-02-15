@@ -397,7 +397,7 @@ if [[ "$DRY_RUN" != true ]]; then
 
         register_hook "SessionStart" "" "$HOME/.claude/hooks/session-start.sh"
         register_hook "SessionEnd" "" "$HOME/.claude/hooks/session-end.sh"
-        register_hook "UserPromptSubmit" "" "$HOME/.claude/hooks/arc-tactical.sh"
+        register_hook "UserPromptSubmit" "" "$HOME/.claude/hooks/bon-tactical.sh"
 
         # PostToolUse inline hooks (no script files)
         if ! jq -e '.hooks.PostToolUse[]? | select(.matcher == "WebFetch")' "$SETTINGS_FILE" >/dev/null 2>&1; then
@@ -475,7 +475,7 @@ fi
 # Optional tools (platform-aware)
 echo "Optional tools (not installed):"
 echo ""
-echo "  • arc (tactical outcome tracking)"
+echo "  • bon (tactical outcome tracking)"
 echo "    uv tool install ~/Repos/arc"
 echo ""
 echo "  • todoist-gtd (GTD task management)"

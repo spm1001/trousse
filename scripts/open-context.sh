@@ -1,7 +1,7 @@
 #!/bin/bash
 # Session context gathering
 # Stdout: compact briefing for human and Claude to orient from
-# Disk: full detail (arc.txt) for Claude to read on demand
+# Disk: full detail (bon.txt) for Claude to read on demand
 
 set -euo pipefail
 
@@ -105,42 +105,42 @@ if [ -d "$PROJECT_FOLDER" ]; then
     fi
 fi
 
-# --- Arc context (jq reads, no Python startup) ---
-ARC_FILE="$CONTEXT_DIR/arc.txt"
-ARC_READ="$HOME/.claude/scripts/arc-read.sh"
-ARC_LIST_OUTPUT=""
-ARC_READY_OUTPUT=""
-ARC_CURRENT_OUTPUT=""
+# --- Bon context (jq reads, no Python startup) ---
+BON_FILE="$CONTEXT_DIR/bon.txt"
+BON_READ="$HOME/.claude/scripts/bon-read.sh"
+BON_LIST_OUTPUT=""
+BON_READY_OUTPUT=""
+BON_CURRENT_OUTPUT=""
 
-if [ -d ".arc" ] && [ -f ".arc/items.jsonl" ]; then
-    if [ -x "$ARC_READ" ]; then
-        ARC_LIST_OUTPUT=$("$ARC_READ" list 2>/dev/null || true)
-        ARC_READY_OUTPUT=$("$ARC_READ" ready 2>/dev/null || true)
-        ARC_CURRENT_OUTPUT=$("$ARC_READ" current 2>/dev/null || true)
-    elif command -v arc &>/dev/null; then
-        # Fallback to arc CLI if arc-read.sh not installed
-        ARC_LIST_OUTPUT=$(arc list 2>/dev/null || true)
-        ARC_READY_OUTPUT=$(arc list --ready 2>/dev/null || true)
-        ARC_CURRENT_OUTPUT=$(arc show --current 2>/dev/null || true)
+if [ -f ".bon/items.jsonl" ] || [ -f ".arc/items.jsonl" ]; then
+    if [ -x "$BON_READ" ]; then
+        BON_LIST_OUTPUT=$("$BON_READ" list 2>/dev/null || true)
+        BON_READY_OUTPUT=$("$BON_READ" ready 2>/dev/null || true)
+        BON_CURRENT_OUTPUT=$("$BON_READ" current 2>/dev/null || true)
+    elif command -v bon &>/dev/null; then
+        # Fallback to bon CLI if bon-read.sh not installed
+        BON_LIST_OUTPUT=$(bon list 2>/dev/null || true)
+        BON_READY_OUTPUT=$(bon list --ready 2>/dev/null || true)
+        BON_CURRENT_OUTPUT=$(bon show --current 2>/dev/null || true)
     fi
 
-    if [ -n "$ARC_LIST_OUTPUT" ]; then
+    if [ -n "$BON_LIST_OUTPUT" ]; then
         # Write full hierarchy to disk
         {
-            echo "# Arc Context (generated $(date '+%Y-%m-%d %H:%M'))"
+            echo "# Bon Context (generated $(date '+%Y-%m-%d %H:%M'))"
             echo "# Generated for: $CWD"
             echo ""
             echo "## Ready Work"
-            echo "$ARC_READY_OUTPUT"
+            echo "$BON_READY_OUTPUT"
             echo ""
             echo "## Full Hierarchy"
-            echo "$ARC_LIST_OUTPUT"
-        } > "$ARC_FILE"
+            echo "$BON_LIST_OUTPUT"
+        } > "$BON_FILE"
     else
-        rm -f "$ARC_FILE"
+        rm -f "$BON_FILE"
     fi
 else
-    rm -f "$ARC_FILE"
+    rm -f "$BON_FILE"
 fi
 
 # === STDOUT BRIEFING ===
@@ -160,27 +160,34 @@ fi
 echo "Good $TIME_OF_DAY. It's $(date '+%-d %b %Y, %H:%M')."
 echo ""
 
-# --- Arc: outcomes + zoom ---
-if [ -d ".arc" ] && [ -f ".arc/items.jsonl" ]; then
-    if [ -n "$ARC_READY_OUTPUT" ]; then
+# --- Bon: outcomes + zoom ---
+if [ -f ".bon/items.jsonl" ] || [ -f ".arc/items.jsonl" ]; then
+    # Detect which directory exists (.bon preferred)
+    if [ -f ".bon/items.jsonl" ]; then
+        BON_DIR=".bon"
+    else
+        BON_DIR=".arc"
+    fi
+
+    if [ -n "$BON_READY_OUTPUT" ]; then
         echo "Outcomes we're working towards:"
-        echo "$ARC_READY_OUTPUT" | while IFS= read -r line; do
+        echo "$BON_READY_OUTPUT" | while IFS= read -r line; do
             [ -n "$line" ] && echo "  $line"
         done
         echo ""
     fi
 
     # Zoom: show the outcome with active tactical steps (or note nothing active)
-    if [ -z "$ARC_CURRENT_OUTPUT" ]; then
+    if [ -z "$BON_CURRENT_OUTPUT" ]; then
         echo "Nothing in progress — pick an action to start."
         echo ""
     else
         # Get parent outcome via jq (no Python startup)
-        CURRENT_ACTION_ID=$(echo "$ARC_CURRENT_OUTPUT" | head -1 | grep -oE '\([a-zA-Z0-9-]+\)' | tr -d '()' || true)
+        CURRENT_ACTION_ID=$(echo "$BON_CURRENT_OUTPUT" | head -1 | grep -oE '\([a-zA-Z0-9-]+\)' | tr -d '()' || true)
         if [ -n "$CURRENT_ACTION_ID" ]; then
-            PARENT_ID=$(jq -r "select(.id == \"$CURRENT_ACTION_ID\") | .parent // empty" .arc/items.jsonl 2>/dev/null || true)
+            PARENT_ID=$(jq -r "select(.id == \"$CURRENT_ACTION_ID\") | .parent // empty" "$BON_DIR/items.jsonl" 2>/dev/null || true)
             if [ -n "$PARENT_ID" ]; then
-                PARENT_TITLE=$(jq -r "select(.id == \"$PARENT_ID\") | .title // empty" .arc/items.jsonl 2>/dev/null || true)
+                PARENT_TITLE=$(jq -r "select(.id == \"$PARENT_ID\") | .title // empty" "$BON_DIR/items.jsonl" 2>/dev/null || true)
                 if [ -n "$PARENT_TITLE" ]; then
                     echo "Last worked on: $PARENT_TITLE"
                     # Show actions from list output
@@ -198,14 +205,14 @@ if [ -d ".arc" ] && [ -f ".arc/items.jsonl" ]; then
                                 break
                             fi
                         fi
-                    done <<< "$ARC_LIST_OUTPUT"
+                    done <<< "$BON_LIST_OUTPUT"
                     echo ""
                 fi
             fi
         fi
     fi
-elif [ -d ".arc" ]; then
-    echo "Arc: .arc/ exists but jq not available"
+elif [ -d ".bon" ] || [ -d ".arc" ]; then
+    echo "Bon: directory exists but jq not available"
     echo ""
 fi
 
@@ -244,12 +251,6 @@ if [ -n "$LATEST_FILE" ]; then
             [ -n "$line" ] && echo "    $line"
         done
     fi
-    echo ""
-fi
-
-# --- Beads deprecation ---
-if [ -d ".beads" ]; then
-    echo "Beads (deprecated): .beads/ found — consider arc migrate --from-beads .beads/"
     echo ""
 fi
 

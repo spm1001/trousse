@@ -31,7 +31,7 @@ Deleting a remote repo without checking for local clones creates confusing orpha
 
 ```
 cleanup-github/
-├── .beads/              # Issue tracking (prefix: cg)
+├── .bon/                # Work tracking (prefix: cg)
 ├── CLAUDE.md            # This file
 ├── SKILL.md             # Main skill (<500 lines)
 └── references/
@@ -56,9 +56,9 @@ After each real usage, capture gaps and refine the audit checklist.
 From the original session:
 
 1. **Failing workflows** - CodeQL was misconfigured for JS/TS but repo had Apps Script (.gs)
-2. **Stale forks** - beads fork had 0 ahead, 445 behind - deleted
+2. **Stale forks** - deleted forks with 0 ahead, many behind
 3. **Skills fork** - same pattern, also deleted
 4. **Orphaned secrets** - 3 secrets no longer used by any workflow - deleted
-5. **Local clone check** - verified no local beads clone before deletion
+5. **Local clone check** - verified no local clone before deletion
 
 The "what did we miss?" prompt surfaced: orphaned secrets, Dependabot configs, other stale forks, CodeQL state discrepancy, local clones.

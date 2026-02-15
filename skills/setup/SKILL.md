@@ -35,7 +35,6 @@ Install Claude behavioral skills with one command.
 
 **Behavioral skills** (all installed together):
 - Session lifecycle: `/open`, `/close`
-- Issue tracking: `beads`
 - Utilities: diagram, screenshot, filing, github-cleanup, picture, server-checkup, skill-check, sprite, dbt
 
 **Optional tool repos** (offered after core install):
@@ -130,7 +129,6 @@ ls ~/.claude/skills/
 
 # Test key skills
 ls -la ~/.claude/skills/open
-ls -la ~/.claude/skills/beads
 ```
 
 Tell user to restart Claude (`/exit` then `claude`) to load new skills.
@@ -141,7 +139,6 @@ Tell user to restart Claude (`/exit` then `claude`) to load new skills.
 |-------|---------|----------|
 | Skills directory | `ls ~/.claude/skills/` | 13+ skill symlinks |
 | Session skills | `ls -la ~/.claude/skills/open` | Points to trousse |
-| Beads | `bd --version` | Shows version (install separately if missing) |
 
 ## Updating
 

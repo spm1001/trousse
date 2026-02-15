@@ -146,17 +146,6 @@ Key additions skill provides:
 - Pattern detection ("you're overcommitting")
 - Team vs personal boundary coaching
 
-### beads
-
-**CLI:** `bd` (Python, ~/Repos/claude-beads)
-**Pattern:** CLI provides issue tracking; skill provides session continuity
-
-Key additions skill provides:
-- Draw-down to TodoWrite at session start
-- Cross-project visibility
-- Dependency graph understanding
-- When beads vs TodoWrite
-
 ### appscript
 
 **CLI:** `itv-appscript` (Python, ~/Repos/itv-appscript-deploy)

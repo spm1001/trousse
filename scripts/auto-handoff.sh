@@ -2,7 +2,7 @@
 # Auto-handoff: mechanical safety net for sessions that end without /close
 #
 # Called by session-end.sh when no handoff was written by /close.
-# Generates a minimal handoff from git + arc state so the next session
+# Generates a minimal handoff from git + bon state so the next session
 # gets *something* rather than a cold start.
 #
 # The (auto) marker in the header tells /open this was mechanical,
@@ -44,14 +44,21 @@ if [ -e "$CWD/.git" ]; then
     GIT_DONE=$(git -C "$CWD" log --oneline --since="8 hours ago" 2>/dev/null | head -10 || true)
 fi
 
-# Arc open/ready items
-ARC_NEXT=""
-ARC_READ="$HOME/.claude/scripts/arc-read.sh"
-if [ -f "$CWD/.arc/items.jsonl" ]; then
-    if [ -x "$ARC_READ" ]; then
-        ARC_NEXT=$(cd "$CWD" && "$ARC_READ" ready 2>/dev/null || true)
+# Bon open/ready items
+BON_NEXT=""
+BON_READ="$HOME/.claude/scripts/bon-read.sh"
+# Check .bon first, fallback to .arc
+BON_ITEMS=""
+if [ -f "$CWD/.bon/items.jsonl" ]; then
+    BON_ITEMS="$CWD/.bon/items.jsonl"
+elif [ -f "$CWD/.arc/items.jsonl" ]; then
+    BON_ITEMS="$CWD/.arc/items.jsonl"
+fi
+if [ -n "$BON_ITEMS" ]; then
+    if [ -x "$BON_READ" ]; then
+        BON_NEXT=$(cd "$CWD" && "$BON_READ" ready 2>/dev/null || true)
     elif command -v jq &>/dev/null; then
-        ARC_NEXT=$(jq -r 'select(.status == "open" and (.waiting_for == null or .waiting_for == "")) | "- \(.title) (\(.id))"' "$CWD/.arc/items.jsonl" 2>/dev/null | head -10 || true)
+        BON_NEXT=$(jq -r 'select(.status == "open" and (.waiting_for == null or .waiting_for == "")) | "- \(.title) (\(.id))"' "$BON_ITEMS" 2>/dev/null | head -10 || true)
     fi
 fi
 
@@ -83,12 +90,12 @@ HANDOFF_FILE="$HANDOFF_DIR/${SHORT_ID}.md"
     fi
     echo ""
     echo "## Next"
-    if [ -n "$ARC_NEXT" ]; then
-        echo "$ARC_NEXT" | while IFS= read -r line; do
+    if [ -n "$BON_NEXT" ]; then
+        echo "$BON_NEXT" | while IFS= read -r line; do
             [ -n "$line" ] && echo "- $line"
         done
     else
-        echo "- (check arc or project state)"
+        echo "- (check bon or project state)"
     fi
     echo ""
     echo "## Gotchas"

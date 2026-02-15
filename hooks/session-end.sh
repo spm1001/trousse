@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Session End Hook
-# Indexes session, extracts entities, and scans handoffs/beads for memory.
+# Indexes session, extracts entities, and scans handoffs for memory.
 #
 # Lives in: trousse/hooks/
 # Symlinked from: ~/.claude/hooks/session-end.sh
@@ -101,11 +101,10 @@ nohup bash -c '
         EXIT_CODE=$?
     fi
 
-    # Also index handoffs and beads (written during /close)
-    # TODO: Add --source arc when garde supports it
+    # Also index handoffs and bon items (written during /close)
     echo "" >> "$LOG_FILE"
-    echo "=== Scanning handoffs and beads ===" >> "$LOG_FILE"
-    cd "$GARDE_PROJECT" && uv run garde scan --source handoffs --source beads >> "$LOG_FILE" 2>&1 || true
+    echo "=== Scanning handoffs and bon ===" >> "$LOG_FILE"
+    cd "$GARDE_PROJECT" && uv run garde scan --source handoffs --source bon >> "$LOG_FILE" 2>&1 || true
 
     # Nibble at unprocessed Meeting Notes (local_md source)
     # Rate: ~10 per session, ~50/day at 5 sessions/day

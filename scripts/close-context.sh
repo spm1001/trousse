@@ -69,16 +69,16 @@ else
     echo "GIT_EXISTS=false"
 fi
 
-# === ARC STATUS (default tracker) ===
+# === BON STATUS (default tracker) ===
 echo ""
-echo "=== ARC ==="
-if [ -d ".arc" ]; then
-    # Find arc CLI - check PATH first, then known location
-    ARC_CMD=$(command -v arc 2>/dev/null || echo "$HOME/Repos/arc/.venv/bin/arc")
+echo "=== BON ==="
+if [ -d ".bon" ] || [ -d ".arc" ]; then
+    # Find bon CLI - check PATH first, then known location
+    BON_CMD=$(command -v bon 2>/dev/null || echo "$HOME/Repos/arc/.venv/bin/bon")
 
-    if [ -x "$ARC_CMD" ]; then
-        # Arc doesn't track in_progress, but we can show open and waiting items
-        OPEN_OUTPUT=$("$ARC_CMD" list 2>/dev/null || true)
+    if [ -x "$BON_CMD" ]; then
+        # Bon doesn't track in_progress, but we can show open and waiting items
+        OPEN_OUTPUT=$("$BON_CMD" list 2>/dev/null || true)
         OPEN_COUNT=$(echo "$OPEN_OUTPUT" | grep -c "^○" 2>/dev/null) || OPEN_COUNT=0
         WAITING_COUNT=$(echo "$OPEN_OUTPUT" | grep -c "^⏳" 2>/dev/null) || WAITING_COUNT=0
 
@@ -88,13 +88,13 @@ if [ -d ".arc" ]; then
             echo "ITEMS:"
             echo "$OPEN_OUTPUT" | head -15
         fi
-        echo "ARC_EXISTS=true"
+        echo "BON_EXISTS=true"
     else
-        echo "ARC_EXISTS=false"
-        echo "ARC_ERROR=cli_not_found"
+        echo "BON_EXISTS=false"
+        echo "BON_ERROR=cli_not_found"
     fi
 else
-    echo "ARC_EXISTS=false"
+    echo "BON_EXISTS=false"
 fi
 
 # === WORK LOCATION DETECTION ===

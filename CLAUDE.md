@@ -12,7 +12,7 @@ The session protocol is the load-bearing part — other tools (like [aboyeur](ht
 
 **Tested with Claude Code:** 2.1.x
 **Minimum required:** 2.0 (hooks API)
-**Dependencies:** `jq` (critical — used by all hooks for arc state reads)
+**Dependencies:** `jq` (critical — used by all hooks for bon state reads)
 
 ## How the Session Protocol Works
 
@@ -23,16 +23,16 @@ Three hooks fire on Claude Code events:
 | Hook | Event | What it does |
 |------|-------|--------------|
 | `hooks/session-start.sh` | SessionStart | Calls `scripts/open-context.sh` to generate a briefing |
-| `hooks/arc-tactical.sh` | UserPromptSubmit | Injects current work step into every prompt |
+| `hooks/bon-tactical.sh` | UserPromptSubmit | Injects current work step into every prompt |
 | `hooks/session-end.sh` | SessionEnd | Cleanup (with subagent guard to prevent fork bombs) |
 
-**Performance:** Session start ~106ms, per-prompt ~8ms. Hooks read arc state via jq on `.arc/items.jsonl` (~3ms) instead of the Python arc CLI (~30ms).
+**Performance:** Session start ~106ms, per-prompt ~8ms. Hooks read bon state via jq on `.bon/items.jsonl` (~3ms) instead of the Python bon CLI (~30ms).
 
 ### Briefing Output
 
 `open-context.sh` writes two things:
 - **stdout** — compact briefing Claude sees immediately (outcomes, last session summary, ready work)
-- **disk** — `~/.claude/.session-context/<encoded-path>/arc.txt` with full hierarchy for deeper digs
+- **disk** — `~/.claude/.session-context/<encoded-path>/bon.txt` with full hierarchy for deeper digs
 
 ### Handoff Protocol
 
@@ -74,7 +74,7 @@ Session lifecycle skills follow GODAR:
 |------|---------|---------|
 | User-invocable | Slash command | `/diagram`, `/titans` |
 | Alias | Slash command → delegates | `/review` → titans |
-| Companion | Loaded by other skills | arc (loaded by /open when `.arc/` exists) |
+| Companion | Loaded by other skills | bon (loaded by /open when `.bon/` exists) |
 
 ### Conventions
 
@@ -104,13 +104,13 @@ Uses `Task` tool with `subagent_type: "explore-opus"`. Worth it for substantial 
 |--------|------------|------|
 | `session-start.sh` | `open-context.sh` | Same repo |
 | `session-start.sh` | `update-all.sh` | Lives in claude-config, scaffolded from `scripts/update-all.template.sh` |
-| `open-context.sh` | `arc-read.sh` | Same repo. Falls back to arc CLI if missing |
-| `arc-tactical.sh` | `jq` + `.arc/items.jsonl` | Direct jq read, no Python. Reads CWD from hook stdin. |
+| `open-context.sh` | `bon-read.sh` | Same repo. Falls back to bon CLI if missing |
+| `bon-tactical.sh` | `jq` + `.bon/items.jsonl` | Direct jq read, no Python. Reads CWD from hook stdin. |
 | `session-end.sh` | `auto-handoff.sh` | Same repo. Safety net when /close not invoked |
 | `close-context.sh` | `check-home.sh` | Same repo |
-| Multiple scripts | `jq` | Critical dependency for arc reads and hook output |
+| Multiple scripts | `jq` | Critical dependency for bon reads and hook output |
 
-**Arc CLI** is used for writes (validation, ID generation, tactical step management). **arc-read.sh** handles reads via jq (~3ms vs ~30ms Python startup). The JSONL file is the interface between them — see `FIELD_REPORT_jq_consumers.md` in the arc repo for the field dependency list.
+**Bon CLI** is used for writes (validation, ID generation, tactical step management). **bon-read.sh** handles reads via jq (~3ms vs ~30ms Python startup). The JSONL file is the interface between them — see `FIELD_REPORT_jq_consumers.md` in the arc repo for the field dependency list.
 
 ## Extending trousse
 
@@ -148,7 +148,7 @@ Tests check:
 - Referenced files exist
 - Scripts executable with shebang
 - Anti-patterns table format consistency
-- arc-read.sh edge cases (empty JSONL, malformed input, all-done items, tactical steps)
+- bon-read.sh edge cases (empty JSONL, malformed input, all-done items, tactical steps)
 
 ### Semantic (titans)
 

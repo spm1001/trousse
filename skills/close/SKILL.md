@@ -25,7 +25,7 @@ Capture learnings while context is rich, then commit and exit.
 ```
 Prerequisites → Verify infrastructure
 Pre-flight    → Return to home directory
-Gather        → todos, tracker (beads/arc), git, drift
+Gather        → todos, tracker (bon), git, drift
 Orient        → Claude observes → User co-reflects → Claude answers
 Decide        → crystallize actions (STOP — present before executing)
 Act           → execute, write handoff, commit, clear todos
@@ -71,7 +71,7 @@ You may have `cd`'d during work. Your system prompt contains `Working directory:
 ~/.claude/scripts/close-context.sh
 ```
 
-Script outputs: TIME, GIT, BEADS, ARC, LOCATION context.
+Script outputs: TIME, GIT, BON, LOCATION context.
 
 Use TIME_OF_DAY for greetings. Use YEAR to anchor the handoff date.
 
@@ -88,7 +88,7 @@ Use TIME_OF_DAY for greetings. Use YEAR to anchor the handoff date.
 From script output, assess:
 
 - **Work progress** — what's done, what's incomplete? (incomplete items surface in Decide)
-- **Tracker** — Beads: IN_PROGRESS items need notes or closure. Arc: open items to complete or defer
+- **Tracker** — Bon: open items to complete or defer
 - **Git** — UNCOMMITTED files? UNPUSHED commits?
 - **Drift** — what did /open say we'd do vs what we did?
 
@@ -206,7 +206,7 @@ AskUserQuestion([
     options: [
       // Adapt to actual session:
       // - Include incomplete work that needs dedicated time
-      // - Use arc new (default tracker)
+      // - Use bon new (default tracker)
       { label: "[Incomplete work]", description: "Needs dedicated time" },
       { label: "Investigate Y", description: "Needs dedicated exploration" },
       { label: "None", description: "Handoff captures everything needed" }
@@ -230,8 +230,7 @@ Do the selected actions: finish incomplete todos, close tracker items with notes
 
 ### Create "Next" items
 For each selected deferral, create a tracker item with enough context that a future Claude can pick it up.
-- **Arc:** `arc new "title" --why "..." --what "..." --done "..."` (default)
-- **Beads (legacy):** `bd create "title" --description "..." --design "..."`
+- **Bon:** `bon new "title" --why "..." --what "..." --done "..."`
 
 ### Write handoff
 
@@ -391,7 +390,7 @@ The hook (`~/.claude/hooks/session-end.sh`) fires automatically and takes one of
    - Falls back to `garde process` which spawns `claude -p` for extraction
    - Same quality, just slower and costs a subprocess
 
-Either way, handoffs and beads are scanned afterward.
+Either way, handoffs are scanned afterward.
 
 **You don't need to do anything here** — just tell the user to `/exit` and the hook takes care of the rest.
 
@@ -415,5 +414,5 @@ Either way, handoffs and beads are scanned afterward.
 | **G**ather | Handoff, tracker, script | Todos, tracker, drift | Todos, tracker, git, drift |
 | **O**rient | "Where we left off" | "What's drifted" | Claude observes → User co-reflects → Claude answers |
 | **D**ecide | User picks direction | Continue or adjust | Crystallize actions (STOP) |
-| **A**ct | Draw-down from Arc | Update tracker | Execute, handoff, commit |
+| **A**ct | Draw-down from Bon | Update tracker | Execute, handoff, commit |
 | **R**emember | — | Optional: memory skill | Index session (background) |
