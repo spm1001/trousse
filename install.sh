@@ -314,6 +314,22 @@ NEW_SKILLS=$((SKILL_COUNT - SKILL_UPDATED))
 ok "Symlinked $SKILL_COUNT skills ($NEW_SKILLS new, $SKILL_UPDATED updated)"
 [[ $SKILL_SKIPPED -gt 0 ]] && warn "Skipped $SKILL_SKIPPED (existing directories)" || true
 
+# Wire skill-forge to skill-creator scripts (machine-dependent, not in git)
+info "Wiring skill-forge → skill-creator scripts..."
+SKILL_CREATOR="$HOME/.claude/skills/skill-creator/scripts"
+FORGE_SCRIPTS="$SCRIPT_DIR/skills/skill-forge/scripts"
+
+if [[ -d "$SKILL_CREATOR" ]]; then
+    for script_name in init_skill.py package_skill.py quick_validate.py; do
+        if [[ "$DRY_RUN" != true ]]; then
+            ln -sfn "$SKILL_CREATOR/$script_name" "$FORGE_SCRIPTS/$script_name"
+        fi
+    done
+    ok "skill-forge → skill-creator (3 scripts linked)"
+else
+    warn "skill-creator not found at $SKILL_CREATOR — skill-forge init/package/validate won't work"
+fi
+
 # Symlink scripts
 info "Symlinking scripts..."
 SCRIPT_COUNT=0

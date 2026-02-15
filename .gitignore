@@ -21,3 +21,8 @@ __pycache__/
 # Local config (use .example templates)
 skills/skill-check/scan-config.json
 .claude/
+
+# Symlinks created at install time (point to skill-creator, machine-dependent)
+skills/skill-forge/scripts/init_skill.py
+skills/skill-forge/scripts/package_skill.py
+skills/skill-forge/scripts/quick_validate.py

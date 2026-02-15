@@ -1,1 +1,0 @@
-/Users/modha/.claude/skills/anthropic/skills/skill-creator/scripts/quick_validate.py
