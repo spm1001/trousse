@@ -150,3 +150,7 @@ cd ~/Repos/trousse && git pull
 ```
 
 Removes symlinks and hook registrations. Does not delete handoff history.
+
+## The Kitchen
+
+Trousse is part of [Batterie de Savoir](https://spm1001.github.io/batterie-de-savoir/) — a suite of tools for AI-assisted knowledge work. See the [full brigade and design principles](https://spm1001.github.io/batterie-de-savoir/) for how the tools fit together.
