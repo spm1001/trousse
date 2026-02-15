@@ -1,6 +1,6 @@
 ---
 name: diagram
-description: Create diagrams and visual explanations with iterative render-and-check workflow. Use when asked to 'create a diagram', 'Venn diagram', 'flow chart', 'architecture diagram', 'visualize this'. Renders SVG to PNG, self-critiques using CRAP principles, iterates until right. Composes with brand skills for styling. (user)
+description: Renders diagrams and visual explanations with iterative render-and-check workflow. Invoke FIRST when asked to 'create a diagram', 'Venn diagram', 'flow chart', 'architecture diagram', 'visualize this' — ensures CRAP-principled self-critique before showing user, preventing amateur layouts and low-contrast text. Composes with brand skills for styling. (user)
 ---
 
 # Diagramming
@@ -65,11 +65,13 @@ This keeps lines together as one selectable object in editors like Inkscape. (No
 
 ### 4. Render to PNG
 
+**Prerequisite:** `brew install librsvg` — required for arrow markers and full SVG rendering fidelity.
+
 ```bash
 rsvg-convert -w 1280 -h 720 input.svg -o /tmp/chart.png
 ```
 
-Note: `sips` is faster but doesn't support markers/arrows.
+`sips` is faster but **silently drops SVG markers** (arrows, arrowheads). Only use `sips` for diagrams with no markers. If `rsvg-convert` is not installed, warn the user before rendering — arrows will be missing.
 
 ### 5. Self-Critique (CRAP + Composition)
 
