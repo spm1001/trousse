@@ -1,6 +1,6 @@
 ---
 name: amp-close
-description: Amp end-of-session ritual. Invoke FIRST when session is ending — 4-phase GODAR loop (gather context, orient via reflection, decide now-vs-next, act and index to garde) that prevents silent work-dropping and persists searchable memory. MANDATORY before closing any substantial Amp thread. Triggers on 'wrap up', 'let's finish', 'close out', 'end of session'. (user)
+description: Amp end-of-session ritual. Invoke FIRST when session is ending — 4-phase GODAR loop (gather context, orient via reflection, decide now-vs-next, act with handoff and garde extraction) that prevents silent work-dropping, writes cross-harness handoffs CC can discover, and persists searchable memory. MANDATORY before closing any substantial Amp thread. Triggers on 'wrap up', 'let's finish', 'close out', 'end of session'. (user)
 ---
 
 # amp-close
@@ -28,7 +28,7 @@ Amp equivalent of the CC `/close` skill. Adapted for Amp's tool names, thread mo
 Gather  → git, bon, drift
 Orient  → Agent observes → User reflects → Agent answers
 Decide  → crystallise Now vs Next (STOP before executing)
-Act     → execute, write extraction, index in garde
+Act     → execute, write handoff, write extraction, index in garde
 ```
 
 ---
@@ -74,7 +74,7 @@ Compare what the session set out to do (first user message or handoff context) w
 
 Three beats. All three must complete before Decide.
 
-### Agent shares observations
+### Beat 1: Agent shares observations
 
 Share directly — don't compress into multiple-choice:
 
@@ -85,17 +85,90 @@ Share directly — don't compress into multiple-choice:
 >
 > What resonates? What am I missing?"
 
-### User reflects
+### Beat 2: The Six Questions — via Oracle
 
-Ask the user which reflections to explore:
+**This is the most important part of the close ritual.** Not a checklist — a genuine interrogation.
 
-**Looking Back:** What did we forget? What did we miss? What could we have done better?
+In Claude Code, the six questions go through AskUserQuestion — a mandatory pause that forces engagement. Amp has no such gate. Instead, we use **Oracle** (GPT-5.2 reasoning model) to break the self-reflection loop. Without Oracle, the same model that missed something answers "what did you miss?" — a closed loop. Oracle provides genuine cognitive diversity: different model, different priors, different blind spots.
 
-**Looking Ahead:** What could go wrong? What won't make sense later? What will we wish we'd done?
+**The six questions** (Oracle will address all of them):
 
-### Agent answers selected questions
+**Looking Back:**
+1. **What did we forget?** — Code we read but didn't update. Docs that are now stale. Tests we said we'd write. Files we touched that have downstream effects we didn't trace.
+2. **What did we miss?** — Edge cases in the code we wrote. Assumptions we didn't verify. Things that work in tests but might not work in production. Platform-specific behaviour we reasoned about but didn't test.
+3. **What could we have done better?** — Approaches that would have been simpler. Abstractions that are in the wrong place. Work we did twice because we didn't plan. Patterns from the codebase we ignored.
 
-Respond genuinely to whatever the user selected. Don't rush this — the reflection is where value compounds.
+**Looking Ahead:**
+4. **What could go wrong?** — Race conditions. State that doesn't survive restarts. Dependencies on things outside our control. Silent failures. Things that work now but will break when X changes.
+5. **What won't make sense later?** — Why we made a particular choice. Implicit knowledge that isn't written down. Code that looks wrong but is correct for a non-obvious reason. Relationships between files that aren't documented.
+6. **What will we wish we'd done?** — Tests we should have written. Manual verification we should have done. Documentation we should have updated. Conversations we should have had with the user.
+
+#### Substantive sessions: dispatch to Oracle
+
+**Gate:** Only invoke Oracle when the session had substance — multiple file changes, architectural decisions, non-trivial work. For trivial sessions (typo fix, config tweak), answer the six questions yourself and move to beat 3.
+
+**Prepare the Oracle prompt.** Like dispatching a Titan reviewer, quality depends on the brief. The prompt must reference *specific* session artifacts — not generic reflection prompts.
+
+```
+oracle(
+  task: "Session reflection — six questions",
+  context: "{see template below}",
+  files: ["{key files touched this session}"]
+)
+```
+
+**Oracle context template** — adapt to the actual session:
+
+```
+You are reviewing a coding session that is about to close. Your job is to
+find what the working agent (Claude on Amp) may have missed, normalised,
+or left fragile. Be specific and reference concrete files and decisions.
+
+SESSION SUMMARY:
+- Started with: {initial goal from first user message or handoff}
+- Key decisions: {list architectural choices, trade-offs made}
+- Files changed: {list with one-line description of each change}
+- What felt uncertain: {anything the agent wasn't confident about}
+- What drifted: {divergences from original plan}
+
+Answer these six questions with substance. Not bullet points — actual
+analysis. If you find yourself writing "Nothing" or "N/A", look harder.
+Every session has friction, gaps, and things that could go wrong.
+
+LOOKING BACK:
+1. What did we forget? (dropped intentions, stale docs, untested paths)
+2. What did we miss? (edge cases, unverified assumptions, platform gaps)
+3. What could we have done better? (simpler approaches, ignored patterns)
+
+LOOKING AHEAD:
+4. What could go wrong? (race conditions, silent failures, fragile deps)
+5. What won't make sense later? (implicit knowledge, non-obvious choices)
+6. What will we wish we'd done? (missing tests, skipped verification)
+```
+
+**Include files** — pass the key files touched this session via the `files` parameter. Oracle can read them and ground its analysis in actual code, not just your summary. This is what makes the difference between generic advice and genuine second opinion.
+
+#### Synthesise: agent + Oracle
+
+When Oracle responds, present **both perspectives** to the user — your own observations from beat 1 and Oracle's findings from beat 2. Flag where you agree, and especially where you disagree. Disagreements surface the most interesting risks.
+
+Format:
+
+> **Oracle flagged:**
+> - [finding 1 — with file/decision reference]
+> - [finding 2]
+>
+> **I agree on:** [which findings resonate with your own observations]
+> **I'd push back on:** [where Oracle may lack context you have]
+> **New to me:** [anything Oracle caught that you hadn't considered]
+
+#### Trivial sessions: self-reflect
+
+If the session was trivial (single small change, no decisions), skip Oracle. Answer the six questions yourself — briefly. The gate exists to prevent wasting an LLM call on sessions where self-reflection is adequate.
+
+### Beat 3: User reflects
+
+Present the synthesised view (agent observations + Oracle findings). Ask the user what resonates and what's missing. **Wait for their response before proceeding to Decide.** This is the natural pause point — Oracle provided the external signal, now the user closes the loop.
 
 ---
 
@@ -137,9 +210,66 @@ For each selected deferral, create a bon item:
 bon new "title" --why "..." --what "..." --done "..."
 ```
 
-### 3. Write extraction and index in garde
+### 3. Write handoff for cross-harness continuity
 
-This is the Remember phase — done inline because Amp has no session-end hook.
+**This is what makes the next CC session aware of Amp's work.** Without it, CC finds the last *CC* handoff — potentially hours or days stale.
+
+Write a handoff file to the same location CC uses:
+
+```bash
+# Compute handoff path (same encoding as CC)
+ENCODED_PATH=$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')
+HANDOFF_DIR="$HOME/.claude/handoffs/$ENCODED_PATH"
+mkdir -p "$HANDOFF_DIR"
+
+# Filename: amp- prefix + first 8 hex chars of thread ID
+# Thread ID: T-019c610d-5d24-7019-b282-6756505b8f66
+#                ^^^^^^^^ these 8
+FILENAME="amp-${THREAD_ID:2:8}.md"
+```
+
+**Handoff template** — same contract as CC, with Amp-specific metadata:
+
+```markdown
+# Handoff — {DATE}
+
+session_id: amp:{THREAD_ID}
+purpose: {first Done bullet, truncated to ~60 chars}
+source: amp
+thread_url: https://ampcode.com/threads/{THREAD_ID}
+
+## Done
+- [Completions in verb form — include item IDs if closing]
+
+## Gotchas
+[What would trip up next Claude]
+
+## Risks
+[What could go wrong with what we built]
+
+## Next
+[Direction for next session]
+
+## Reflection
+**Agent observed:** [Key observations from Orient]
+**User noted:** [What they added or emphasized]
+```
+
+**Write using a single Bash call:**
+
+```bash
+cat > "$HANDOFF_DIR/$FILENAME" << 'HANDOFF'
+{the generated handoff markdown}
+HANDOFF
+```
+
+**Why this matters:** CC's `open-context.sh` discovers handoffs via `ls -t ~/.claude/handoffs/<encoded-path>/*.md`. Same directory, same `.md` extension, same section headings = zero changes to the reader. The `source: amp` and `thread_url:` fields are bonus metadata — CC can mention "last session was Amp" and link back for resumption.
+
+**CWD validation:** Before writing, sanity-check that `pwd` matches the project you actually worked on. If the Amp session spanned multiple repos, write the handoff for the primary one (ask the user if ambiguous).
+
+### 4. Write extraction and index in garde
+
+This is the Remember phase — done inline because Amp has no session-end hook. The handoff (step 3) gives continuity; the extraction gives searchable memory. Both are valuable, don't merge them.
 
 **Generate extraction JSON** matching garde's schema:
 
@@ -195,9 +325,9 @@ uv run garde store-extraction "amp:{THREAD_ID}" --model amp-context < /tmp/amp-e
 rm /tmp/amp-extraction.json
 ```
 
-**If garde-manger is not installed** (`~/Repos/garde-manger` doesn't exist): skip the extraction steps, warn the user, and continue with commit. The session still gets value from the Orient reflection and Now/Next triage — memory indexing is a bonus, not a gate.
+**If garde-manger is not installed** (`~/Repos/garde-manger` doesn't exist): skip the extraction steps, warn the user, and continue with commit. The session still gets value from the Orient reflection, Now/Next triage, and the handoff file — memory indexing is a bonus, not a gate.
 
-### 4. Commit (if applicable)
+### 5. Commit (if applicable)
 
 If git dirty in the working directory:
 - Stage relevant files
@@ -206,7 +336,7 @@ If git dirty in the working directory:
 
 Only commit the working directory — never "helpfully" tidy other repos.
 
-### 5. Tell user session is complete
+### 6. Tell user session is complete
 
 Say: "All done — safe to close this thread."
 
@@ -218,6 +348,7 @@ Say: "All done — safe to close this thread."
 |---------|---------|-----|
 | Skip Orient reflection | Loses the highest-value part | Complete all three beats |
 | Silently drop incomplete work | Work disappears | Surface in Decide — finish, defer, or explicit drop |
+| Skip handoff, only write extraction | Next CC session finds stale CC handoff | Always write handoff file (step 3) — it's the cross-harness bridge |
 | Rush to extraction | Shallow summary | Reflect first, extract from reflection |
 | Commit other repos | Unwanted tidying | Only commit working directory |
 | Use `handoff` instead of closing | Context pipes forward but nothing persists to memory | Close first, handoff second if needed |
@@ -225,11 +356,16 @@ Say: "All done — safe to close this thread."
 | Chain Bash commands with `cd &&` | Amp doesn't persist cwd between calls | Use `cwd` parameter on each Bash call |
 | Use `--quiet` on `garde scan` | Flag doesn't exist | Omit it; output is brief anyway |
 | Treat "Next" items as notes | They'll be forgotten | File as bon items with --why/--what/--done |
+| Generic Oracle prompt | "Did we miss anything?" gets generic answers | Reference specific files, decisions, and uncertainties in the context |
+| Oracle on trivial sessions | Wasted call, superficial findings | Gate: only invoke for multi-file changes or architectural decisions |
+| Hide Oracle disagreements | Loses the highest-value signal | Surface where agent and Oracle disagree — those are the interesting risks |
+| Write handoff before garde extraction | Garde step could touch the file, messing up mtime | Write handoff last among persist steps (step 3 before 4 is fine — garde writes elsewhere) |
 
 ## Integration
 
 **Depends on:**
-- `garde` CLI (`uv run garde` from `~/Repos/garde-manger`)
+- `oracle` tool (Amp built-in — GPT-5.2 reasoning model, used in Orient phase)
+- `garde` CLI (`uv run garde` from `~/Repos/garde-manger`) — optional, degrades gracefully
 - `bon` CLI (if `.bon/` exists in working directory)
 
 **Complements:**
@@ -242,7 +378,7 @@ Say: "All done — safe to close this thread."
 | Phase | CC /close | amp-close |
 |-------|-----------|-----------|
 | **G**ather | `close-context.sh` script | Bash commands inline |
-| **O**rient | Claude observes → AskUserQuestion → Claude answers | Agent observes → plain text prompt → agent answers |
+| **O**rient | Claude observes → AskUserQuestion → Claude answers | Agent observes → Oracle second opinion → synthesise both → user reflects |
 | **D**ecide | AskUserQuestion multi-select | Plain text Now/Next lists |
-| **A**ct | Execute, handoff file, `.pending-extractions/`, commit | Execute, garde extraction inline, commit |
+| **A**ct | Execute, handoff file, `.pending-extractions/`, commit | Execute, handoff file, garde extraction inline, commit |
 | **R**emember | Session-end hook → `garde process` | Done in Act (no hook available) |
