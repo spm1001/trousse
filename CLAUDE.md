@@ -82,9 +82,9 @@ Session lifecycle skills follow GODAR:
 - `user-invocable: false` for skills loaded programmatically (companion skills)
 - Reference files live in `references/` subdirectory, linked from main SKILL.md
 
-### Current Skills (14)
+### Current Skills (15)
 
-close, diagram, filing, github-cleanup, ia-presenter, open, picture, review, screenshot, server-checkup, setup, skill-forge, sprite, titans
+close, diagram, filing, github-cleanup, google-devdocs, ia-presenter, open, picture, review, screenshot, server-checkup, setup, skill-forge, sprite, titans
 
 ### Titans Review
 

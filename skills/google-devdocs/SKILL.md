@@ -99,6 +99,7 @@ Max 20 documents per batch.
 | Using keywords instead of natural language | Poor search results | Ask a question: "How do I..." |
 | Fetching more than 3 full docs at once | Context overload | Read snippets, fetch only the most relevant |
 | Scraping the docs site instead | Fragile, may be blocked, stale | Use this API — that's what it's for |
+| Adding a corpus/site filter param | Doesn't exist in the API | Scope via natural language: "Firebase authentication" not "site:firebase.google.com auth" |
 
 ## Error Handling
 
