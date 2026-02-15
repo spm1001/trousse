@@ -74,7 +74,7 @@ echo ""
 echo "=== BON ==="
 if [ -d ".bon" ] || [ -d ".arc" ]; then
     # Find bon CLI - check PATH first, then known location
-    BON_CMD=$(command -v bon 2>/dev/null || echo "$HOME/Repos/arc/.venv/bin/bon")
+    BON_CMD=$(command -v bon 2>/dev/null || echo "$HOME/Repos/bon/.venv/bin/bon")
 
     if [ -x "$BON_CMD" ]; then
         # Bon doesn't track in_progress, but we can show open and waiting items

@@ -266,7 +266,7 @@ session_id: {full uuid from above command}
 purpose: {first Done bullet, truncated to ~60 chars}
 
 ## Done
-- [Completions in verb form — include item ID if closing one, e.g., "Fixed auth bug (claude-go-xyz)" or "Completed migration (arc-gutowa)"]
+- [Completions in verb form — include item ID if closing one, e.g., "Fixed auth bug (claude-go-xyz)" or "Completed migration (bon-gutowa)"]
 
 ## Gotchas
 [What would trip up next Claude]

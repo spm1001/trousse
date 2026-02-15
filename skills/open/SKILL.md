@@ -36,7 +36,7 @@ Use `/open` for:
 |-------|-----|-----------|
 | open-context.sh exists | `[ -x ~/.claude/scripts/open-context.sh ]` | Run `claude-doctor.sh` |
 | Script symlinks valid | `~/.claude/scripts/check-symlinks.sh` | Fix symlinks, see ERROR_PATTERNS.md |
-| bon available | `command -v bon` | Install: see ~/Repos/arc |
+| bon available | `command -v bon` | Install: `uv tool install ~/Repos/bon` |
 
 **Quick pre-flight:**
 ```bash

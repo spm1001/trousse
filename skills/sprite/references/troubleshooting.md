@@ -125,13 +125,9 @@ sprite exec bash -c "cd ~/project && npm test"
 
 ### beads "legacy database" error
 
-**Cause:** Old beads format.
+**Cause:** Old beads format (deprecated).
 
-**Fix:** Run migration:
-
-```bash
-bd migrate --update-repo-id
-```
+**Fix:** Beads is deprecated. Migrate to bon with `bon migrate --from-beads .beads/`.
 
 ### "can't set the locale" warnings
 

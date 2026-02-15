@@ -133,7 +133,7 @@ fi
 
 # ── CUSTOMIZE: Add your quick checks below ────────────────
 # Examples:
-#   - bd doctor (if using beads): bd doctor --quiet >> "$LOG_FILE" 2>&1
+#   - bon list (check work tracker): bon list --quiet >> "$LOG_FILE" 2>&1
 #   - Config backup: cmp -s "$SOURCE" "$BACKUP" || cp "$SOURCE" "$BACKUP"
 #   - Stale artifact cleanup: [ -d "$HOME/.claude/old-thing" ] && rm -rf ...
 

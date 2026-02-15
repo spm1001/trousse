@@ -60,7 +60,6 @@ Then restart Claude Code (`/exit` → `claude`).
 | Skill | Loaded by | Purpose |
 |-------|-----------|---------|
 | `bon` | `/open` | Work tracking across sessions (outcomes + actions) |
-| `beads` | `/open` | Legacy work tracker (deprecated, use bon for new projects) |
 
 ## How It Works
 

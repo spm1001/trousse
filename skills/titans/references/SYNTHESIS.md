@@ -212,7 +212,7 @@ Repeated across reviewers:
 - Treat all findings as equal priority
 - Resolve all conflicts yourself without surfacing them
 - Ignore "could not assess" — it's signal, not noise
-- Create beads for every item (that's debt accumulation)
+- Create bon items for every finding (that's debt accumulation)
 
 **Do:**
 - Synthesize, don't concatenate

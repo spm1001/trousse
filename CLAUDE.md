@@ -110,7 +110,7 @@ Uses `Task` tool with `subagent_type: "explore-opus"`. Worth it for substantial 
 | `close-context.sh` | `check-home.sh` | Same repo |
 | Multiple scripts | `jq` | Critical dependency for bon reads and hook output |
 
-**Bon CLI** is used for writes (validation, ID generation, tactical step management). **bon-read.sh** handles reads via jq (~3ms vs ~30ms Python startup). The JSONL file is the interface between them — see `FIELD_REPORT_jq_consumers.md` in the arc repo for the field dependency list.
+**Bon CLI** is used for writes (validation, ID generation, tactical step management). **bon-read.sh** handles reads via jq (~3ms vs ~30ms Python startup). The JSONL file is the interface between them — see `FIELD_REPORT_jq_consumers.md` in the bon repo for the field dependency list.
 
 ## Extending trousse
 

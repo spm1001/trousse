@@ -120,7 +120,7 @@ if command -v bd &>/dev/null; then
     BD_VERSION=$(bd --version 2>/dev/null | head -1 || echo "installed")
     pass "bd ($BD_VERSION)"
 else
-    warn "bd not found - beads tracking unavailable (brew install bd)"
+    info "bd not found (beads deprecated — use bon instead)"
 fi
 
 # ═══════════════════════════════════════════════════════════════

@@ -476,7 +476,7 @@ fi
 echo "Optional tools (not installed):"
 echo ""
 echo "  • bon (tactical outcome tracking)"
-echo "    uv tool install ~/Repos/arc"
+echo "    uv tool install ~/Repos/bon"
 echo ""
 echo "  • todoist-gtd (GTD task management)"
 echo "    git clone https://github.com/spm1001/todoist-gtd ~/Repos/todoist-gtd"
