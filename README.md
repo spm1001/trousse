@@ -1,9 +1,11 @@
 # trousse
 
-> **Status:** Stable — used daily
-> **Works with:** Claude Code (session lifecycle), any agent (skills)
-> **Install:** `git clone` + `install.sh`
-> **Requires:** Claude Code CLI (for hooks), none (for skills alone)
+## Status
+
+**Robustness:** Stable — used daily
+**Works with:** Claude Code (session lifecycle), any agent (skills)
+**Install:** `git clone` + `install.sh`
+**Requires:** Claude Code CLI (for hooks), none (for skills alone)
 
 A toolkit for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (Anthropic's CLI coding assistant) that gives it session memory and specialized capabilities.
 
