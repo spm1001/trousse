@@ -37,13 +37,13 @@ Act     → execute, write extraction, index in garde
 
 ### Thread ID
 
-Extract from the system prompt. The `Amp Thread URL` line contains it:
+Extract from your system prompt. Look for the `Amp Thread URL` line:
 
 ```
-Amp Thread URL: https://ampcode.com/threads/T-019c6312-ed70-71bb-ad56-ea2887bb55e4
+Amp Thread URL: https://ampcode.com/threads/T-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-The thread ID is `T-019c6312-ed70-71bb-ad56-ea2887bb55e4`. Use this for the extraction filename.
+The thread ID is the `T-...` portion. Use this for the garde source ID (`amp:T-...`).
 
 ### Context
 
@@ -169,23 +169,33 @@ This is the Remember phase — done inline because Amp has no session-end hook.
 
 **Write and index:**
 
+Run each step as a separate Bash call (Amp doesn't persist `cd` between calls):
+
 ```bash
-# Write extraction to temp file
+# Step 1: Write extraction to temp file
 cat > /tmp/amp-extraction.json << 'EXTRACTION'
 {the generated JSON}
 EXTRACTION
+```
 
-# Ensure thread is indexed
-cd ~/Repos/garde-manger && uv run garde scan --source amp --quiet
+```bash
+# Step 2: Ensure thread is indexed in garde
+uv run garde scan --source amp
+# cwd: ~/Repos/garde-manger
+```
 
-# Store extraction against this thread
-cd ~/Repos/garde-manger && uv run garde store-extraction "amp:THREAD_ID" --model amp-context < /tmp/amp-extraction.json
+```bash
+# Step 3: Store extraction against this thread
+uv run garde store-extraction "amp:{THREAD_ID}" --model amp-context < /tmp/amp-extraction.json
+# cwd: ~/Repos/garde-manger
+```
 
-# Clean up
+```bash
+# Step 4: Clean up
 rm /tmp/amp-extraction.json
 ```
 
-Replace `THREAD_ID` with the thread ID from Gather (e.g., `T-019c6312-ed70-71bb-ad56-ea2887bb55e4`).
+**If garde-manger is not installed** (`~/Repos/garde-manger` doesn't exist): skip the extraction steps, warn the user, and continue with commit. The session still gets value from the Orient reflection and Now/Next triage — memory indexing is a bonus, not a gate.
 
 ### 4. Commit (if applicable)
 
@@ -212,6 +222,9 @@ Say: "All done — safe to close this thread."
 | Commit other repos | Unwanted tidying | Only commit working directory |
 | Use `handoff` instead of closing | Context pipes forward but nothing persists to memory | Close first, handoff second if needed |
 | Forget `garde scan` before `store-extraction` | Thread not yet indexed, extraction orphaned | Always scan first |
+| Chain Bash commands with `cd &&` | Amp doesn't persist cwd between calls | Use `cwd` parameter on each Bash call |
+| Use `--quiet` on `garde scan` | Flag doesn't exist | Omit it; output is brief anyway |
+| Treat "Next" items as notes | They'll be forgotten | File as bon items with --why/--what/--done |
 
 ## Integration
 
