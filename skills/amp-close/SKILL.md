@@ -148,19 +148,22 @@ LOOKING AHEAD:
 
 **Include files** — pass the key files touched this session via the `files` parameter. Oracle can read them and ground its analysis in actual code, not just your summary. This is what makes the difference between generic advice and genuine second opinion.
 
-#### Synthesise: agent + Oracle
+#### Report Oracle's findings — don't debate them
 
-When Oracle responds, present **both perspectives** to the user — your own observations from beat 1 and Oracle's findings from beat 2. Flag where you agree, and especially where you disagree. Disagreements surface the most interesting risks.
+**You are a reporter here, not a defendant.** You wrote the code Oracle is critiquing. Your instinct will be to argue — resist it. Oracle's job is to find what you normalised; your job is to relay its findings to the user honestly.
 
-Format:
+Present Oracle's findings directly, adding context only where it helps the user decide — never to dismiss:
 
-> **Oracle flagged:**
+> **Oracle found:**
 > - [finding 1 — with file/decision reference]
 > - [finding 2]
+> - [finding 3]
 >
-> **I agree on:** [which findings resonate with your own observations]
-> **I'd push back on:** [where Oracle may lack context you have]
-> **New to me:** [anything Oracle caught that you hadn't considered]
+> **Context that might matter:** [facts Oracle didn't have — e.g., "we considered X but ruled it out because Y"]
+>
+> **What should we act on?**
+
+**The user is the circuit breaker.** Oracle provides the signal; the user converts it to action. Don't filter, don't rank, don't argue. If Oracle flagged it, the user sees it.
 
 #### Trivial sessions: self-reflect
 
@@ -358,7 +361,7 @@ Say: "All done — safe to close this thread."
 | Treat "Next" items as notes | They'll be forgotten | File as bon items with --why/--what/--done |
 | Generic Oracle prompt | "Did we miss anything?" gets generic answers | Reference specific files, decisions, and uncertainties in the context |
 | Oracle on trivial sessions | Wasted call, superficial findings | Gate: only invoke for multi-file changes or architectural decisions |
-| Hide Oracle disagreements | Loses the highest-value signal | Surface where agent and Oracle disagree — those are the interesting risks |
+| Argue with Oracle findings | Agent defends its own work, user never sees the critique | Report findings directly — agent is reporter, user is circuit breaker |
 | Write handoff before garde extraction | Garde step could touch the file, messing up mtime | Write handoff last among persist steps (step 3 before 4 is fine — garde writes elsewhere) |
 
 ## Integration
