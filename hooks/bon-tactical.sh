@@ -1,5 +1,4 @@
 #!/bin/bash
-touch /tmp/gemini-tactical-fired
 # Bon tactical step reminder — UserPromptSubmit hook
 # Injects current tactical step into every prompt so Claude stays on track.
 # Uses jq on items.jsonl directly (~3ms) instead of bon CLI (~30ms).

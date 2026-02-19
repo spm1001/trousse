@@ -254,6 +254,24 @@ if [ -n "$LATEST_FILE" ]; then
     echo ""
 fi
 
+# --- Repo sync status (no network — uses cached remote tracking) ---
+_BEHIND=0
+_AHEAD=0
+for dir in "$HOME/Repos"/*/; do
+    [ -d "$dir/.git" ] || continue
+    b=$(git -C "$dir" rev-list HEAD..@{u} --count 2>/dev/null || echo 0)
+    a=$(git -C "$dir" rev-list @{u}..HEAD --count 2>/dev/null || echo 0)
+    [ "$b" -gt 0 ] && _BEHIND=$((_BEHIND + 1))
+    [ "$a" -gt 0 ] && _AHEAD=$((_AHEAD + 1))
+done
+if [ "$_BEHIND" -gt 0 ] || [ "$_AHEAD" -gt 0 ]; then
+    _SYNC_MSG="Repos:"
+    [ "$_BEHIND" -gt 0 ] && _SYNC_MSG="$_SYNC_MSG ${_BEHIND} pulling in background"
+    [ "$_AHEAD" -gt 0 ] && _SYNC_MSG="$_SYNC_MSG | ${_AHEAD} need push"
+    echo "$_SYNC_MSG"
+    echo ""
+fi
+
 # --- News (only mention if present) ---
 NEWS_FILE="$HOME/.claude/.update-news"
 if [ -f "$NEWS_FILE" ]; then

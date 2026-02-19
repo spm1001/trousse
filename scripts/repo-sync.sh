@@ -26,6 +26,7 @@ wait  # Wait for all fetches before checking behind/ahead
 PULLED=0
 SKIPPED=0
 CONFLICT_LINES=""
+PUSH_LINES=""
 
 for dir in "$REPOS_DIR"/*/; do
     [ -d "$dir/.git" ] || continue
@@ -56,18 +57,33 @@ for dir in "$REPOS_DIR"/*/; do
     fi
 done
 
+# Check for repos that are ahead (need pushing) — separate loop, no fetch needed
+for dir in "$REPOS_DIR"/*/; do
+    [ -d "$dir/.git" ] || continue
+    name=$(basename "$dir")
+    ahead=$(git -C "$dir" rev-list @{u}..HEAD 2>/dev/null | wc -l | tr -d ' ')
+    [ "$ahead" -gt 0 ] && PUSH_LINES="${PUSH_LINES}\n- **${name}**: ↑${ahead} unpushed commit(s)"
+done
+
 log "Repo sync complete: $PULLED pulled, $SKIPPED skipped"
 
-# Append conflicts to the news file (created if absent)
-if [ -n "$CONFLICT_LINES" ]; then
+# Append to news file if anything needs attention
+if [ -n "$CONFLICT_LINES" ] || [ -n "$PUSH_LINES" ]; then
     TODAY=$(date '+%Y-%m-%d')
     {
-        echo ""
-        echo "## Repos needing manual sync ($TODAY)"
-        printf "%b" "$CONFLICT_LINES"
-        echo ""
-        echo ""
-        echo "Run: cd ~/Repos/<name> && git status"
+        if [ -n "$CONFLICT_LINES" ]; then
+            echo ""
+            echo "## Repos needing manual sync ($TODAY)"
+            printf "%b" "$CONFLICT_LINES"
+            echo ""
+            echo "Run: cd ~/Repos/<name> && git status"
+        fi
+        if [ -n "$PUSH_LINES" ]; then
+            echo ""
+            echo "## Repos with unpushed commits ($TODAY)"
+            printf "%b" "$PUSH_LINES"
+            echo ""
+        fi
     } >> "$NEWS_FILE"
-    log "Conflict summary appended to $NEWS_FILE"
+    log "Sync summary appended to $NEWS_FILE"
 fi
