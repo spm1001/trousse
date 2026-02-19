@@ -259,8 +259,8 @@ _BEHIND=0
 _AHEAD=0
 for dir in "$HOME/Repos"/*/; do
     [ -d "$dir/.git" ] || continue
-    b=$(git -C "$dir" rev-list HEAD..@{u} --count 2>/dev/null || echo 0)
-    a=$(git -C "$dir" rev-list @{u}..HEAD --count 2>/dev/null || echo 0)
+    b=$(timeout 2s git -C "$dir" rev-list HEAD..@{u} --count 2>/dev/null || echo 0)
+    a=$(timeout 2s git -C "$dir" rev-list @{u}..HEAD --count 2>/dev/null || echo 0)
     [ "$b" -gt 0 ] && _BEHIND=$((_BEHIND + 1))
     [ "$a" -gt 0 ] && _AHEAD=$((_AHEAD + 1))
 done
