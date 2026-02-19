@@ -131,6 +131,19 @@ else
     rm -f "$NOTIFY_FILE"
 fi
 
+# 4. Repo sync (pull ff-only on repos that are behind remote)
+REPO_SYNC="$HOME/.claude/scripts/repo-sync.sh"
+if [ -x "$REPO_SYNC" ]; then
+    log "Syncing repos..."
+    if "$REPO_SYNC"; then
+        log "✓ Repo sync complete"
+    else
+        log "⚠ Repo sync had issues (check log)"
+    fi
+else
+    log "⚠ repo-sync.sh not found — run setup-from-manifest.sh"
+fi
+
 # ── CUSTOMIZE: Add your quick checks below ────────────────
 # Examples:
 #   - bon list (check work tracker): bon list --quiet >> "$LOG_FILE" 2>&1
