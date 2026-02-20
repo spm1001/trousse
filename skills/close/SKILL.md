@@ -25,11 +25,11 @@ Capture learnings while context is rich, then commit and exit.
 ```
 Prerequisites → Verify infrastructure
 Pre-flight    → Return to home directory
-Gather        → todos, tracker (bon), git, drift
-Orient        → Claude observes → User co-reflects → Claude answers
-Decide        → crystallize actions (STOP — present before executing)
-Act           → execute, write handoff, commit, clear todos
-Remember      → index session (background)
+Gather        → todos, tracker (bon), git, drift, SESSION_ID
+Orient        → Claude answers six questions in prose → user responds
+Decide        → Claude proposes Now/Next plan → user amends (STOP)
+Act           → execute, write handoff, stage extraction, commit
+Remember      → index session (background, automatic)
 ```
 
 ---
@@ -71,9 +71,9 @@ You may have `cd`'d during work. Your system prompt contains `Working directory:
 ~/.claude/scripts/close-context.sh
 ```
 
-Script outputs: TIME, GIT, BON, LOCATION context.
+Script outputs: TIME, GIT, BON, LOCATION context, HANDOFF_DIR, SESSION_ID.
 
-Use TIME_OF_DAY for greetings. Use YEAR to anchor the handoff date.
+Use TIME_OF_DAY for greetings. Use YEAR to anchor the handoff date. **Hold onto HANDOFF_DIR and SESSION_ID — you'll need both in Act.**
 
 ### Script Failure Handling
 
@@ -87,10 +87,10 @@ Use TIME_OF_DAY for greetings. Use YEAR to anchor the handoff date.
 
 From script output, assess:
 
-- **Work progress** — what's done, what's incomplete? (incomplete items surface in Decide)
+- **Work progress** — what's done, what's incomplete?
 - **Tracker** — Bon: open items to complete or defer
-- **Git** — UNCOMMITTED files? UNPUSHED commits?
-- **Drift** — what did /open say we'd do vs what we did?
+- **Git** — uncommitted files? unpushed commits?
+- **Drift** — what did /open say we'd do vs what we actually did?
 
 Surface stale artifacts: screenshots, temp files, old sketches, superseded plans.
 
@@ -98,139 +98,77 @@ Surface stale artifacts: screenshots, temp files, old sketches, superseded plans
 
 ## Orient
 
-**This is THE reflection — complete it here.** What emerges in Orient feeds into the handoff. There is no second reflection later.
+**This is THE reflection.** What emerges here feeds the handoff and the extraction. There is no second pass later.
 
-Orient has three beats. All three must complete before moving to Decide.
+Answer all six questions in prose — don't compress into bullets, don't pre-bake options. The point is surfacing what you noticed that the user might not have.
 
-### Claude shares observations
+**Looking Back:**
+1. **What did we forget?** — Dropped intentions, docs now stale, tests we said we'd write, files touched with untraced downstream effects
+2. **What did we miss?** — Edge cases, unverified assumptions, things that work in test but may not in production
+3. **What could we have done better?** — Simpler approaches, abstractions in the wrong place, patterns from the codebase we ignored
 
-**Anti-pattern: Don't compress reflection into multiple-choice answers.** The point is surfacing what YOU (Claude) noticed that the user might not have. Pre-baked options defeat this.
+**Looking Ahead:**
+4. **What could go wrong?** — Race conditions, silent failures, fragile dependencies, things that work now but break when X changes
+5. **What won't make sense later?** — Why we made a particular choice, implicit knowledge not written down, non-obvious relationships between files
+6. **What will we wish we'd done?** — Tests, verification, documentation, conversations we should have had
 
-Share your observations directly:
+Share these directly, then ask: **"What resonates? What am I missing?"**
 
-> "Before we wrap up, here's what stood out to me this session:
-> - [specific observation about the work]
-> - [pattern or connection you noticed]
-> - [something that felt unfinished or risky]
->
-> What resonates? What am I missing?"
-
-### User co-reflects + selects ritual
-
-Immediately after sharing observations, present a combined AskUserQuestion. This captures which deeper reflections you should answer:
-
-```
-AskUserQuestion([
-  {
-    header: "Looking Back",
-    question: "Which backward reflections should I answer?",
-    multiSelect: true,
-    options: [
-      { label: "All of these", description: "Full retrospective" },
-      { label: "What did we forget?", description: "Dropped intentions" },
-      { label: "What did we miss?", description: "Blind spots" },
-      { label: "What could we have done better?", description: "Quality gaps" }
-    ]
-  },
-  {
-    header: "Looking Ahead",
-    question: "Which forward reflections should I answer?",
-    multiSelect: true,
-    options: [
-      { label: "All of these", description: "Full prospective" },
-      { label: "What could go wrong?", description: "Risks, fragile bits" },
-      { label: "What won't make sense later?", description: "Clarity gaps" },
-      { label: "What will we wish we'd done?", description: "Missed opportunities" }
-    ]
-  }
-])
-```
-
-Option 3 ("Type something") for either question provides free text input.
-
-### Claude answers selected questions
-
-**Orient is not complete until this step finishes.** Respond to the selected Looking Back/Looking Ahead questions genuinely — the user's selection transforms them into real asks, not template following.
-
-Don't rush this. The reflection is where value compounds.
+Wait for the user's response. Their additions and corrections go into the handoff Reflection section verbatim.
 
 ---
 
 ## Decide
 
-**STOP.** Do not proceed to Act without completing this phase.
+**STOP.** Do not execute anything until this phase completes.
 
-From Gather + Orient, crystallize actions into two buckets.
+From Gather + Orient, identify all incomplete work and draft a concrete plan. **Present it — don't ask the user what they want.** Propose; let them amend.
 
-### Surfacing incomplete work
+### Bucket everything
 
-**Before presenting options, identify incomplete work from the session.** Any unfinished task must appear in the Decide AskUserQuestion — either as a "Now" option (finish it) or "Next" option (create tracker item). Don't silently drop work.
+**Now** — executes before /exit, benefits from current context:
+- Incomplete work finishable in under 2 minutes
+- Close a tracker item with resolution notes
+- Update CLAUDE.md (local or global) when a clear pattern emerged
+- Quick fixes where the how is obvious
 
-### Now vs Next
+**Bon** — each becomes a tracked item for a future session. Before filing any bon, answer: *"If this never gets done, what breaks?"* If the answer is "not much", it belongs in the handoff Next section, not a bon. This is the gate.
 
-**Now** = actions that execute immediately, benefiting from current context:
-- Incomplete todos that can be finished quickly
-- Close a tracker item with resolution notes (context makes notes better)
-- Update CLAUDE.md — Local (./CLAUDE.md) or Global (~/.claude/CLAUDE.md)
-- Quick fixes (< 2 minutes, obvious how)
+**Handoff only** — direction, context, and risks that don't rise to bon level.
 
-**Next** = deferrals that create work for a future session:
-- Incomplete todos that need dedicated time
-- Create a tracker item (by definition, you're deferring it)
-- Anything needing "fresh thinking"
-- Anything you're uncertain how to approach
+### Present the plan
 
-**The test:** If it creates something for later, it's Next. If it completes something now, it's Now.
+> "Here's my plan:
+>
+> **Now:** [concrete list — things I'll do before /exit]
+>
+> **Bons to file:** [each with one line on what breaks if skipped]
+>
+> **Handoff only:** [things worth noting but not tracking]
+>
+> Tell me if anything should move."
 
-```
-AskUserQuestion([
-  {
-    header: "Now",
-    question: "Execute now while context is fresh?",
-    multiSelect: true,
-    options: [
-      // Adapt to actual session:
-      // - Include incomplete work as options
-      // - Include CLAUDE.md updates when insights emerged
-      { label: "Finish [incomplete work]", description: "Can complete quickly" },
-      { label: "Close [item-id]", description: "Add resolution notes" },
-      { label: "Update Local CLAUDE.md", description: "Project-specific pattern" },
-      { label: "Update Global CLAUDE.md", description: "Cross-project learning" },
-      { label: "None", description: "Nothing needs immediate action" }
-    ]
-  },
-  {
-    header: "Next",
-    question: "Create tracker items for future sessions?",
-    multiSelect: true,
-    options: [
-      // Adapt to actual session:
-      // - Include incomplete work that needs dedicated time
-      // - Use bon new (default tracker)
-      { label: "[Incomplete work]", description: "Needs dedicated time" },
-      { label: "Investigate Y", description: "Needs dedicated exploration" },
-      { label: "None", description: "Handoff captures everything needed" }
-    ]
-  }
-])
-```
-
-User gets explicit choice over timing. "Next" ≠ abandoned — it's queued with context.
-
-**After Decide completes:** All incomplete work has been addressed (user chose to finish, defer, or drop).
+Wait for approval. Nothing executes until the user confirms or amends.
 
 ---
 
 ## Act
 
-Execute in this order:
+Execute in this order.
 
 ### Execute "Now" items
-Do the selected actions: finish incomplete todos, close tracker items with notes, update CLAUDE.md, quick fixes.
 
-### Create "Next" items
-For each selected deferral, create a tracker item with enough context that a future Claude can pick it up.
-- **Bon:** `bon new "title" --why "..." --what "..." --done "..."`
+Do the approved immediate actions: finish incomplete todos, close tracker items with notes, update CLAUDE.md, quick fixes.
+
+### File bons
+
+For each approved item:
+
+```bash
+bon new "title" --why "consequence if not done" --what "concrete actions" --done "definition of done"
+```
+
+**`--why` quality gate:** must state the consequence of skipping, not describe the work. "Prevents next Claude rediscovering the problem from scratch" is a consequence. "Because we need to do this" is not.
 
 ### Write handoff
 
@@ -240,7 +178,7 @@ For each selected deferral, create a tracker item with enough context that a fut
 ~/.claude/scripts/close-context.sh | grep -E 'HANDOFF_DIR|SESSION_ID'
 ```
 
-This outputs both `HANDOFF_DIR` and `SESSION_ID` — use them directly, never recompute.
+This outputs both — use them directly, never recompute.
 
 | Rule | Why |
 |------|-----|
@@ -248,24 +186,27 @@ This outputs both `HANDOFF_DIR` and `SESSION_ID` — use them directly, never re
 | Never write locally (`.handoff.md` in project) | /open won't find it — information becomes invisible |
 | Never compute path yourself | Encoding differences cause folder fragmentation |
 
-**Why this matters (Jan 2026 incident):** A Claude wrote to `.handoff-kube-migration.md` locally instead of the central location. The next session's /open couldn't find it — loaded a stale handoff instead. The information existed but was invisible.
+**Why this matters (Jan 2026 incident):** A Claude wrote to `.handoff-kube-migration.md` locally. The next session's /open loaded a stale handoff instead — the work existed but was invisible to the protocol.
 
 **Fallback:** If SESSION_ID is empty (script failed), use timestamp: `2026-01-04-2215.md`
 
-Example: `SESSION_ID=51d17dc5-b714-481c-9dfb-6d4128800e7b` → filename `51d17dc5.md` (first 8 chars)
-Full path: `{HANDOFF_DIR}/51d17dc5.md`
+Filename: first 8 chars of SESSION_ID + `.md`
+Example: `SESSION_ID=51d17dc5-b714-481c-9dfb-6d4128800e7b` → `51d17dc5.md`
 
-```markdown
+Handoff template:
+
+```
 # Handoff — {DATE}
 
-session_id: {SESSION_ID from script}
+session_id: {SESSION_ID}
 purpose: {first Done bullet, truncated to ~60 chars}
 
 ## Done
-- [Completions in verb form — include item ID if closing one, e.g., "Fixed auth bug (claude-go-xyz)" or "Completed migration (bon-gutowa)"]
+- [Completions in verb form — include item ID if closing one]
+  e.g., "Fixed auth bug (claude-go-xyz)" or "Completed migration (bon-gutowa)"
 
 ## Gotchas
-[What would trip up next Claude]
+[What would trip up next Claude — specific, not generic]
 
 ## Risks
 [What could go wrong with what we built]
@@ -274,12 +215,10 @@ purpose: {first Done bullet, truncated to ~60 chars}
 [Direction for next session]
 
 ## Artifacts
-[Only if Google Drive work — see Knowledge Work section below]
+[Only if Google Drive work — see Knowledge Work section]
 
 ## Commands
-```bash
-# Optional — verification or continuation that might help
-```
+  # Optional — verification or continuation commands
 
 ## Reflection
 **Claude observed:** [Key observations from Orient]
@@ -288,14 +227,11 @@ purpose: {first Done bullet, truncated to ~60 chars}
 
 #### Knowledge Work Context (Google Drive)
 
-**When working in Google Drive (not ~/Repos):** Add an Artifacts section to the handoff.
+**When working in Google Drive (not ~/Repos):** Add an Artifacts section.
 
-You already know what you touched — you called MCP tools during the session. Recall:
-- Which docs you read (`get_content`)
-- Which docs you updated (`update_doc`, `append_to_doc`)
-- Which folders you browsed (`list_files`)
+You already know what you touched — you called MCP tools during the session. Recall which docs you read (`get_content`), updated (`update_doc`, `append_to_doc`), or browsed (`list_files`).
 
-```markdown
+```
 ## Artifacts
 Working folder: [Project Name](https://drive.google.com/drive/folders/xxx)
 
@@ -305,17 +241,13 @@ This session:
 - Referenced: [Budget Template](https://docs.google.com/.../d/www) — read-only
 ```
 
-**Why this matters:** Knowledge work doesn't have commits. This section is the equivalent — what changed, where.
-
-**Rehydration:** Next Claude can `get_content()` on these links to pull current state. The links are stable; content is always fresh from source.
-
-**Purpose line** is auto-generated from first Done bullet — enables `claude -r` style picker at /open.
+Knowledge work doesn't have commits. This is the equivalent. Next Claude can `get_content()` on these links to pull current state — links are stable, content is always fresh.
 
 ### Stage extraction for memory
 
-**After writing the handoff, generate a session extraction from your live context.** This replaces the expensive `claude -p` subprocess that the session-end hook would otherwise spawn. You already have the full conversation in context — use it.
+**After writing the handoff, generate a session extraction from your live context.** This replaces the expensive `claude -p` subprocess the session-end hook would otherwise spawn.
 
-**Generate the extraction JSON** using the Write tool to write to `/tmp/garde-extraction.json`. (Static filename is fine — if you need safety from a concurrent session, use `/tmp/garde-extraction-$SESSION_ID.json` where SESSION_ID came from the Gather script.)
+**Write the extraction JSON** using the Write tool. Filename: `/tmp/garde-extraction-${SESSION_ID:0:8}.json`
 
 ```json
 {
@@ -333,54 +265,54 @@ This session:
 }
 ```
 
-**Guidelines:**
-- `summary` captures the "so what" — why this session mattered
-- `builds` = concrete artifacts: code, config, docs, skills modified
+Guidelines:
+- `summary` = the "so what" — why this session mattered, not what was done
+- `builds` = concrete artifacts: code, config, docs, skills
 - `learnings` = insights that transfer to other contexts (not just "I learned X exists")
-- `friction` = things harder than expected and how resolved
-- `patterns` = meta-observations about how we worked, recurring themes
-- `open_threads` = deferred work, not abandoned
+- `friction` = things harder than expected and how they resolved
+- `open_threads` = deferred, not abandoned
 
-**Then stage it** — the script computes the correct filename and places it where the hook expects:
+**Then stage it:**
 
 ```bash
-~/.claude/scripts/stage-extraction.sh < /tmp/garde-extraction.json && rm /tmp/garde-extraction.json
+~/.claude/scripts/stage-extraction.sh < /tmp/garde-extraction-${SESSION_ID:0:8}.json \
+    && rm /tmp/garde-extraction-${SESSION_ID:0:8}.json
 ```
 
-The script finds the current session's full UUID from `~/.claude/projects/<encoded-cwd>/` and writes to `~/.claude/.pending-extractions/<uuid>.json`. The session-end hook picks it up automatically. If staging fails for any reason (script not found — run `install.sh` from trousse to fix), the hook falls back to `garde process` — safe to continue.
+The script computes the correct UUID filename and places it where the hook expects. If the script is missing (fresh install before `install.sh` runs), the hook falls back to `garde process` — safe to continue.
 
 ### Commit
-If git dirty **in the working directory** (where you started):
-- Stage relevant files (including handoff if in repo)
+
+If git dirty in the working directory:
+- Stage relevant files (handoff too if the repo is the project)
 - Commit with standard message + co-authorship
 - Push if user approves
 
-**Anti-pattern: Don't commit other repos.** You may have seen dirty state in other repos during the session. That's not your concern — only commit where you're working. Being "helpful" by tidying other repos is unwanted.
+**Only commit the working directory.** Other repos' dirty state is not your concern.
 
 ### Tell user to exit
+
 Say: "Type `/exit` to close." Don't exit programmatically.
 
 ---
 
 ## Remember
 
-**Automatic — handled by session-end hook.** You don't invoke this; it happens when the user runs `/exit`.
+**Automatic — handled by session-end hook.** You don't invoke this.
 
-The hook (`~/.claude/hooks/session-end.sh`) fires automatically and takes one of two paths:
+The hook (`~/.claude/hooks/session-end.sh`) takes one of two paths when the user runs `/exit`:
 
-1. **If staged extraction exists** (you wrote `~/.claude/.pending-extractions/<session_id>.json` above):
-   - Indexes the session with `garde index` (fast, no LLM)
-   - Stores your pre-generated extraction with `garde store-extraction`
-   - Removes the staging file
-   - No subprocess spawned — your in-context extraction is used directly
+1. **Staged extraction exists** (the file you wrote above):
+   - `garde index` on the session (fast, no LLM)
+   - `garde store-extraction` with your pre-generated JSON
+   - Staging file removed
+   - No subprocess spawned
 
-2. **If no staged extraction** (crash, ctrl-c, session ended without /close):
-   - Falls back to `garde process` which spawns `claude -p` for extraction
-   - Same quality, just slower and costs a subprocess
+2. **No staged extraction** (crash, ctrl-c, no /close):
+   - Falls back to `garde process` — spawns `claude -p` to extract from the raw transcript
+   - Same quality, slower, costs a subprocess
 
-Either way, handoffs are scanned afterward.
-
-**You don't need to do anything here** — just tell the user to `/exit` and the hook takes care of the rest.
+Either way, handoffs are scanned afterward. Just tell the user to `/exit`.
 
 ---
 
@@ -388,19 +320,23 @@ Either way, handoffs are scanned afterward.
 
 | Pattern | Problem | Fix |
 |---------|---------|-----|
-| Compress reflection into multiple-choice | Defeats surfacing unexpected observations | Share observations first, then ask |
+| Compress Orient into bullets or options | Misses unexpected observations | Answer six questions in prose |
+| Ask "what do you want?" in Decide | Puts burden on user, invites deferral | Propose a concrete plan; user amends |
+| File bons with weak `--why` | Future Claude can't prioritise | State the consequence of skipping |
 | Skip pre-flight cd check | Handoff written to wrong project | Always run check-home.sh |
 | Write handoff locally (.handoff.md) | /open won't find it | Use HANDOFF_DIR from script |
-| Silently drop incomplete work | Work disappears | Surface in Decide — finish, defer, or explicit drop |
+| Silently drop incomplete work | Work disappears | Every piece in Now, bon, or handoff Next |
 | Commit other repos | Unwanted "helpful" tidying | Only commit working directory |
-| Rush Orient to get to Act | Value compounds in reflection | Complete all three beats |
+| Recompute SESSION_ID or HANDOFF_DIR | Encoding drift, folder fragmentation | Read from close-context.sh output |
+
+---
 
 ## GODAR Reference
 
-| Phase | /open | /ground | /close |
-|-------|-------|---------|--------|
-| **G**ather | Handoff, tracker, script | Todos, tracker, drift | Todos, tracker, git, drift |
-| **O**rient | "Where we left off" | "What's drifted" | Claude observes → User co-reflects → Claude answers |
-| **D**ecide | User picks direction | Continue or adjust | Crystallize actions (STOP) |
-| **A**ct | Draw-down from Bon | Update tracker | Execute, handoff, commit |
-| **R**emember | — | Optional: memory skill | Index session (background) |
+| Phase | /open | /close |
+|-------|-------|--------|
+| **G**ather | Handoff, tracker, script | Tracker, git, drift; HANDOFF_DIR + SESSION_ID |
+| **O**rient | "Where we left off" | Six questions in prose → user responds |
+| **D**ecide | User picks direction | Claude proposes Now/Bon/Handoff plan → user amends |
+| **A**ct | Draw-down from Bon | Execute, write handoff, stage extraction, commit |
+| **R**emember | — | Index session (background, automatic on /exit) |
