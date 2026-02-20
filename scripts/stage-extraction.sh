@@ -2,11 +2,11 @@
 # stage-extraction.sh — place extraction JSON in pending-extractions with the correct filename
 #
 # Usage:
-#   cat extraction.json | stage-extraction.sh [PROJECT_DIR]
-#   stage-extraction.sh [PROJECT_DIR] < extraction.json
+#   cat extraction.json | stage-extraction.sh
+#   stage-extraction.sh < extraction.json
 #
-# PROJECT_DIR defaults to pwd -P (the session's working directory).
-# Pass it explicitly if you've cd'd away before calling this script.
+# Always uses pwd -P as the project directory. /close pre-flight guarantees
+# Claude is in the session's home directory before this script runs.
 #
 # The filename must match what session-end.sh expects: the full UUID from
 # the session's .jsonl file. This script computes that — the caller never
@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${1:-$(pwd -P)}"
+PROJECT_DIR=$(pwd -P)
 ENCODED=$(echo "$PROJECT_DIR" | sed 's/[^a-zA-Z0-9-]/-/g')
 SESSIONS_DIR="$HOME/.claude/projects/$ENCODED"
 PENDING_DIR="$HOME/.claude/.pending-extractions"

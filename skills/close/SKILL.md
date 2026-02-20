@@ -1,6 +1,6 @@
 ---
 name: close
-description: End-of-session ritual. Use when session is ending — context nearly full, work complete, or user says 'wrap up'. Triggers on /close, 'wrap up', 'let's finish'. Pairs with /open. (user)
+description: Orchestrates end-of-session capture via 5-phase GODAR framework — prevents work loss between sessions by surfacing learnings, triaging incomplete work into Now/Bon/Handoff, writing cross-session handoff, and staging memory extraction while context is rich. MANDATORY before /exit. Invoke FIRST on 'wrap up', 'lets finish', 'close out', '/close'. Pairs with /open. (user)
 ---
 
 # /close
@@ -247,7 +247,7 @@ Knowledge work doesn't have commits. This is the equivalent. Next Claude can `ge
 
 **After writing the handoff, generate a session extraction from your live context.** This replaces the expensive `claude -p` subprocess the session-end hook would otherwise spawn.
 
-**Write the extraction JSON** using the Write tool. Filename: `/tmp/garde-extraction-${SESSION_ID:0:8}.json`
+**Write the extraction JSON** using the Write tool to `/tmp/garde-extraction.json`:
 
 ```json
 {
@@ -275,8 +275,8 @@ Guidelines:
 **Then stage it:**
 
 ```bash
-~/.claude/scripts/stage-extraction.sh < /tmp/garde-extraction-${SESSION_ID:0:8}.json \
-    && rm /tmp/garde-extraction-${SESSION_ID:0:8}.json
+~/.claude/scripts/stage-extraction.sh < /tmp/garde-extraction.json \
+    && rm /tmp/garde-extraction.json
 ```
 
 The script computes the correct UUID filename and places it where the hook expects. If the script is missing (fresh install before `install.sh` runs), the hook falls back to `garde process` — safe to continue.
