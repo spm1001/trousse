@@ -115,8 +115,14 @@ is_container() {
 ENCODED_PATH=$(echo "$CWD" | sed 's/[^a-zA-Z0-9-]/-/g')
 HANDOFF_DIR="$HOME/.claude/handoffs/$ENCODED_PATH"
 
-# Always output HANDOFF_DIR - even containers need handoffs
+# Always output HANDOFF_DIR and SESSION_ID - even containers need handoffs
 echo "HANDOFF_DIR=$HANDOFF_DIR"
+SESSION_ID=$(ls -t "$HOME/.claude/projects/$ENCODED_PATH"/*.jsonl 2>/dev/null \
+    | grep -v agent \
+    | head -1 \
+    | xargs -I{} basename {} .jsonl 2>/dev/null \
+    || true)
+echo "SESSION_ID=${SESSION_ID}"
 
 if is_container "$CWD"; then
     echo "IS_CONTAINER=true"

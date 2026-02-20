@@ -237,8 +237,10 @@ For each selected deferral, create a tracker item with enough context that a fut
 **Handoff location is non-negotiable.** The script computes the path; you use it exactly.
 
 ```bash
-~/.claude/scripts/close-context.sh | grep HANDOFF_DIR
+~/.claude/scripts/close-context.sh | grep -E 'HANDOFF_DIR|SESSION_ID'
 ```
+
+This outputs both `HANDOFF_DIR` and `SESSION_ID` — use them directly, never recompute.
 
 | Rule | Why |
 |------|-----|
@@ -248,21 +250,15 @@ For each selected deferral, create a tracker item with enough context that a fut
 
 **Why this matters (Jan 2026 incident):** A Claude wrote to `.handoff-kube-migration.md` locally instead of the central location. The next session's /open couldn't find it — loaded a stale handoff instead. The information existed but was invisible.
 
-**Get session ID:**
-```bash
-ls -t ~/.claude/projects/$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')/*.jsonl 2>/dev/null | grep -v agent | head -1 | xargs basename -s .jsonl
-```
-Use first 8 characters for filename.
-
 **Fallback:** If SESSION_ID is empty (script failed), use timestamp: `2026-01-04-2215.md`
 
-Example: session `51d17dc5-b714-481c-9dfb-6d4128800e7b` → filename `51d17dc5.md`
+Example: `SESSION_ID=51d17dc5-b714-481c-9dfb-6d4128800e7b` → filename `51d17dc5.md` (first 8 chars)
 Full path: `{HANDOFF_DIR}/51d17dc5.md`
 
 ```markdown
 # Handoff — {DATE}
 
-session_id: {full uuid from above command}
+session_id: {SESSION_ID from script}
 purpose: {first Done bullet, truncated to ~60 chars}
 
 ## Done
@@ -319,19 +315,8 @@ This session:
 
 **After writing the handoff, generate a session extraction from your live context.** This replaces the expensive `claude -p` subprocess that the session-end hook would otherwise spawn. You already have the full conversation in context — use it.
 
-**Get the full session ID** (you already computed this for the handoff filename):
-```bash
-SESSION_ID=$(ls -t ~/.claude/projects/$(pwd -P | sed 's/[^a-zA-Z0-9-]/-/g')/*.jsonl 2>/dev/null | grep -v agent | head -1 | xargs basename -s .jsonl)
-```
+**Generate the extraction JSON** using the Write tool to write to `/tmp/garde-extraction.json`. (Static filename is fine — if you need safety from a concurrent session, use `/tmp/garde-extraction-$SESSION_ID.json` where SESSION_ID came from the Gather script.)
 
-**Create the staging directory:**
-```bash
-mkdir -p ~/.claude/.pending-extractions
-```
-
-**Generate and write the extraction JSON** to `~/.claude/.pending-extractions/${SESSION_ID}.json`.
-
-The JSON must match this schema exactly:
 ```json
 {
     "summary": "2-3 sentences — what happened and why it matters",
@@ -348,18 +333,21 @@ The JSON must match this schema exactly:
 }
 ```
 
-**Guidelines for in-context extraction:**
-- Focus on OUTCOMES and STORY, not just what was mentioned
-- `summary` should capture the "so what" — why this session mattered
+**Guidelines:**
+- `summary` captures the "so what" — why this session mattered
 - `builds` = concrete artifacts: code, config, docs, skills modified
 - `learnings` = insights that transfer to other contexts (not just "I learned X exists")
-- `friction` = things that were harder than expected and how they were resolved
+- `friction` = things harder than expected and how resolved
 - `patterns` = meta-observations about how we worked, recurring themes
-- `open_threads` = work that was deferred, not abandoned — future sessions should pick these up
+- `open_threads` = deferred work, not abandoned
 
-**Write the file using the Write tool.** This is pure JSON, no markdown.
+**Then stage it** — the script computes the correct filename and places it where the hook expects:
 
-The session-end hook will detect this file and use it instead of spawning `garde process`. If this step fails for any reason, the hook falls back to the old extraction path — so it's safe.
+```bash
+~/.claude/scripts/stage-extraction.sh < /tmp/garde-extraction.json && rm /tmp/garde-extraction.json
+```
+
+The script finds the current session's full UUID from `~/.claude/projects/<encoded-cwd>/` and writes to `~/.claude/.pending-extractions/<uuid>.json`. The session-end hook picks it up automatically. If staging fails for any reason (script not found — run `install.sh` from trousse to fix), the hook falls back to `garde process` — safe to continue.
 
 ### Commit
 If git dirty **in the working directory** (where you started):
