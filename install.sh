@@ -395,38 +395,26 @@ if [[ "$DRY_RUN" != true ]]; then
         # Register all hook events (idempotent — checks before adding)
         register_hook() {
             local event="$1" matcher="$2" hook_cmd="$3"
-            if jq -e ".hooks.${event}[]?.hooks[]? | select(.command == \"$hook_cmd\")" "$SETTINGS_FILE" >/dev/null 2>&1; then
-                echo "  ✓ $event ($hook_cmd) already registered"
-            else
-                trap 'rm -f "$SETTINGS_FILE.tmp"' ERR
-                jq --arg event "$event" --arg matcher "$matcher" --arg cmd "$hook_cmd" '
-                    .hooks[$event] = ((.hooks[$event] // []) + [{
-                        matcher: $matcher,
-                        hooks: [{type: "command", command: $cmd}]
-                    }])
-                ' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
-                mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-                trap - ERR
-                echo "  + $event ($hook_cmd) registered"
-            fi
+            trap 'rm -f "$SETTINGS_FILE.tmp"' ERR
+            # Remove any existing entry for this event+matcher, then add the canonical one.
+            # This prevents duplicates when command strings change between versions.
+            jq --arg event "$event" --arg matcher "$matcher" --arg cmd "$hook_cmd" '
+                .hooks[$event] = ([(.hooks[$event] // [])[] | select(.matcher != $matcher)] + [{
+                    matcher: $matcher,
+                    hooks: [{type: "command", command: $cmd}]
+                }])
+            ' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
+            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+            trap - ERR
+            echo "  + $event ($hook_cmd) registered"
         }
 
         register_hook "SessionStart" "" "$HOME/.claude/hooks/session-start.sh"
         register_hook "SessionEnd" "" "$HOME/.claude/hooks/session-end.sh"
         register_hook "UserPromptSubmit" "" "$HOME/.claude/hooks/bon-tactical.sh"
 
-        # PostToolUse inline hooks (no script files)
-        if ! jq -e '.hooks.PostToolUse[]? | select(.matcher == "WebFetch")' "$SETTINGS_FILE" >/dev/null 2>&1; then
-            trap 'rm -f "$SETTINGS_FILE.tmp"' ERR
-            jq '.hooks.PostToolUse = ((.hooks.PostToolUse // []) + [
-                {matcher: "WebFetch", hooks: [{type: "command", command: "echo \u0027{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"STOP: WebFetch returns AI summaries, not raw content. For documentation you need to understand, you MUST use curl to fetch the actual page. Do not proceed with summarized documentation.\"}}\u0027"}]}
-            ])' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
-            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            trap - ERR
-            echo "  + PostToolUse (WebFetch) registered"
-        else
-            echo "  ✓ PostToolUse already registered"
-        fi
+        # PostToolUse inline hooks (no script files) — uses same replace-by-matcher pattern
+        register_hook "PostToolUse" "WebFetch" "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"STOP: WebFetch returns AI summaries, not raw content. For documentation you need to understand, you MUST use curl to fetch the actual page. Do not proceed with summarized documentation.\"}}'"
 
         ok "All hooks registered"
     else
