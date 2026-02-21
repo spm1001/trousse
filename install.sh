@@ -419,12 +419,11 @@ if [[ "$DRY_RUN" != true ]]; then
         if ! jq -e '.hooks.PostToolUse[]? | select(.matcher == "WebFetch")' "$SETTINGS_FILE" >/dev/null 2>&1; then
             trap 'rm -f "$SETTINGS_FILE.tmp"' ERR
             jq '.hooks.PostToolUse = ((.hooks.PostToolUse // []) + [
-                {matcher: "WebFetch", hooks: [{type: "command", command: "echo \u0027{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"STOP: WebFetch returns AI summaries, not raw content. For documentation you need to understand, you MUST use curl to fetch the actual page. Do not proceed with summarized documentation.\"}}\u0027"}]},
-                {matcher: "Bash", hooks: [{type: "command", command: "if git rev-parse --is-inside-work-tree &>/dev/null && ! git symbolic-ref HEAD &>/dev/null 2>&1; then echo \u0027{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"⚠️ WARNING: HEAD is detached! Run git checkout main (or appropriate branch) immediately to avoid losing commits.\"}}\u0027; fi"}]}
+                {matcher: "WebFetch", hooks: [{type: "command", command: "echo \u0027{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"STOP: WebFetch returns AI summaries, not raw content. For documentation you need to understand, you MUST use curl to fetch the actual page. Do not proceed with summarized documentation.\"}}\u0027"}]}
             ])' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
             mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
             trap - ERR
-            echo "  + PostToolUse (WebFetch, Bash) registered"
+            echo "  + PostToolUse (WebFetch) registered"
         else
             echo "  ✓ PostToolUse already registered"
         fi
