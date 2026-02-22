@@ -1,11 +1,11 @@
 ---
 name: skill-forge
-description: MANDATORY gate for skill development. Invoke FIRST when building, validating, or improving skills. Unified 6-step workflow with automated validation, CSO scoring, and subagent testing. Triggers on 'create skill', 'new skill', 'validate skill', 'check skill quality', 'improve skill discovery', 'check this skill', 'can I share this', 'scan for sharing'. (user)
+description: Orchestrates ALL skill development — MANDATORY gate BEFORE writing or editing any SKILL.md file. Invoke FIRST when building, validating, improving, or refactoring skills. Supersedes skill-creator. Unified 6-step workflow with automated validation, CSO scoring, and subagent testing. Triggers on 'create skill', 'new skill', 'validate skill', 'check skill quality', 'improve skill discovery', 'check this skill', 'write SKILL.md', 'edit SKILL.md', 'update skill description', 'can I share this', 'scan for sharing'. (user)
 ---
 
 # Skill Forge
 
-Unified skill development toolkit. Combines Anthropic's creation process (skill-creator) with quality validation, description optimization, and testing.
+Unified skill development toolkit. Supersedes `skill-creator` — combines its creation process with quality validation, description optimization, and testing.
 
 **Iron Law: Skills must be discovered to be useful.** The description is everything.
 
@@ -22,6 +22,14 @@ Unified skill development toolkit. Combines Anthropic's creation process (skill-
 - One-off instructions (put in CLAUDE.md instead)
 - Simple tool usage Claude already knows
 - Tasks that don't repeat across sessions
+
+## Rationalizations to Block
+
+Claude frequently skips this skill by reasoning:
+- **"I already know how to create skills"** — You know the generic pattern. This skill adds CSO scoring, lint, and project-specific conventions you don't have in training.
+- **"skill-creator covers this"** — skill-forge supersedes skill-creator. Use forge, not creator.
+- **"I'll validate later"** — Validation after writing is expensive rework. Forge-first, always.
+- **"This is just a small edit to an existing skill"** — Small edits to descriptions are exactly where CSO scoring matters most.
 
 ## Quick Start
 
