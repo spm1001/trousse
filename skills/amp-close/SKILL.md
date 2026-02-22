@@ -302,7 +302,7 @@ This is the Remember phase — done inline because Amp has no session-end hook. 
 
 **Write and index:**
 
-Run each step as a separate Bash call (Amp doesn't persist `cd` between calls):
+Write the extraction JSON to `/tmp/amp-extraction.json` using a Bash heredoc, then send it:
 
 ```bash
 # Step 1: Write extraction to temp file
@@ -312,23 +312,12 @@ EXTRACTION
 ```
 
 ```bash
-# Step 2: Ensure thread is indexed in garde
-uv run garde scan --source amp
-# cwd: ~/Repos/garde-manger
+# Step 2: Send to garde (scan + store + cleanup in one call)
+~/.claude/scripts/send-amp-extraction.sh "{THREAD_ID}" < /tmp/amp-extraction.json \
+    && rm /tmp/amp-extraction.json
 ```
 
-```bash
-# Step 3: Store extraction against this thread
-uv run garde store-extraction "amp:{THREAD_ID}" --model amp-context < /tmp/amp-extraction.json
-# cwd: ~/Repos/garde-manger
-```
-
-```bash
-# Step 4: Clean up
-rm /tmp/amp-extraction.json
-```
-
-**If garde-manger is not installed** (`~/Repos/garde-manger` doesn't exist): skip the extraction steps, warn the user, and continue with commit. The session still gets value from the Orient reflection, Now/Next triage, and the handoff file — memory indexing is a bonus, not a gate.
+**If garde-manger is not installed** (`~/Repos/garde-manger` doesn't exist): the script degrades gracefully — warns and exits 0. The session still gets value from Orient, triage, and the handoff file.
 
 ### 5. Commit (if applicable)
 
