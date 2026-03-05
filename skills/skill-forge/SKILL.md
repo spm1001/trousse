@@ -144,6 +144,17 @@ description: Coach on outcome quality. Triggers on 'check my outcomes', 'is this
 ```
 Why: explicit phrases in quotes, context qualifier.
 
+**Good: Negative triggers to prevent over-triggering**
+```yaml
+description: Advanced data analysis for CSV files — statistical modelling, regression, clustering. Do NOT use for simple data exploration (use data-viz skill instead).
+```
+Why: "Do NOT use for..." in the description itself steers Claude away at trigger-decision time, before the body loads. Anti-patterns in the body come too late — by then, the skill is already loaded and consuming tokens.
+
+**When to add negative triggers:**
+- Skill overlaps with another skill's domain
+- Skill triggers on common words that appear in unrelated requests
+- Users report the skill loading when it shouldn't
+
 **Bad patterns to avoid:**
 
 | Pattern | Problem | Fix |
@@ -153,6 +164,7 @@ Why: explicit phrases in quotes, context qualifier.
 | No timing condition | Optional invocation | Add BEFORE/FIRST/MANDATORY |
 | Generic actions | Claude "knows" without loading | Domain-specific phrases |
 | Command doesn't name skill | Not discoverable | "**Invoke the `name` skill**" |
+| Over-triggers on related topics | Loads when it shouldn't | Add "Do NOT use for..." in description |
 
 Run `scripts/score_description.py` to validate. See `references/cso-guide.md` for full guidance.
 
@@ -213,6 +225,7 @@ Creates `.skill` file (zip format) for distribution.
 - [ ] Context qualifiers included (when appropriate)
 - [ ] Method preview gives Claude enough to decide relevance
 - [ ] If paired with command, command names the skill explicitly
+- [ ] Negative triggers ("Do NOT use for...") added if skill overlaps with others
 
 ## Skill Patterns
 
