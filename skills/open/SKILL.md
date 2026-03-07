@@ -98,6 +98,7 @@ The session-start hook outputs a synthesized briefing:
 
 | What | File |
 |------|------|
+| Project understanding | `.bon/understanding.md` (if exists — read first, orients faster than anything else) |
 | Latest handoff | `~/.claude/handoffs/<encoded-cwd>/` (most recent `.md` by mtime) |
 | Bon context | `~/.claude/.session-context/<encoded-cwd>/bon.txt` |
 | News | `~/.claude/.update-news` |
@@ -143,6 +144,12 @@ Then:
 1. **Read latest handoff** — `ls -t ~/.claude/handoffs/$ENCODED/*.md 2>/dev/null | head -1` (if empty, no prior sessions here)
 2. **Check tracker context** — read `~/.claude/.session-context/$ENCODED/bon.txt` if it exists
 3. **News if relevant** — read `~/.claude/.update-news` if user asks or it's actionable
+
+### Synthesize Understanding (if contributions exist)
+
+If `.bon/contributions/` contains files, synthesize them into `.bon/understanding.md` before proceeding. Read the existing understanding document, read all contribution files, then rewrite the understanding document — not append, rewrite. Make salience judgments: what still matters, what's been superseded, what's new. Delete the contribution files after synthesis. This keeps the understanding document current without unbounded growth.
+
+If no understanding document exists yet but the project has substantial history (handoffs, mature codebase), consider writing one from scratch. This is expensive but only happens once.
 
 ### Synthesize What Matters
 

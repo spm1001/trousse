@@ -243,6 +243,14 @@ This session:
 
 Knowledge work doesn't have commits. This is the equivalent. Next Claude can `get_content()` on these links to pull current state — links are stable, content is always fresh.
 
+### Contribute to project understanding
+
+**If `.bon/` exists and you learned something durable this session**, write a contribution. Not every session produces one — only when you discovered something a future Claude should know: a landmine, a decision with real alternatives, an architectural insight, a taste judgment.
+
+Write a short prose fragment (one paragraph, not a form) to `.bon/contributions/YYYY-MM-DDTHHMMSS.md`. The next session's /open will synthesize it into `.bon/understanding.md`.
+
+**The test:** Would a Claude who never saw this project benefit from knowing this? If yes, contribute. If it's session-specific (what you did, what's next), it belongs in the handoff, not here.
+
 ### Stage extraction for memory
 
 **After writing the handoff, generate a session extraction from your live context.** This replaces the expensive `claude -p` subprocess the session-end hook would otherwise spawn.
