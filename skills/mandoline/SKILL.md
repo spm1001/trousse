@@ -59,6 +59,7 @@ for f in t.schema:
 | **Type** | STRING for decoded categories, BOOL for binary, INT64 for Likert, FLOAT64 for measurements |
 | **Drop** | Constants, internal IDs, platform metadata |
 | **Decode** | Categories to labels. Keep Likert as INT for AVG(). Single-select to STRING |
+| **Nets** | For pre-aggregated tables with Likert scales, include `is_net` rows for top-2-box (e.g. "Net: Agree" = Strongly Agree + Somewhat Agree) and bottom-2-box. Label names should match the scale (Agree/Disagree, Worried/Not worried). Without these, downstream models have no path to stakeholder-friendly summary scores — the linter blocks SUM(pct) |
 
 **Exit criterion:** Complete raw -> clean mapping table.
 
