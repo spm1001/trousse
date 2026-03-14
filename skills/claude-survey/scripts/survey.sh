@@ -47,20 +47,17 @@ mkdir -p "$OUTDIR"
 # Copy scenarios file for reproducibility
 cp "$SCENARIOS_FILE" "$OUTDIR/scenarios.sh"
 
-GLOBAL_MD="$HOME/.claude/CLAUDE.md"
-GLOBAL_MD_BAK="$HOME/.claude/CLAUDE.md.survey-bak"
-
-restore() {
-  if [ -f "$GLOBAL_MD_BAK" ]; then
-    mv "$GLOBAL_MD_BAK" "$GLOBAL_MD"
-    echo "[survey] Restored ~/.claude/CLAUDE.md"
-  fi
-}
-trap restore EXIT
-
-if [ -f "$GLOBAL_MD" ]; then
-  mv "$GLOBAL_MD" "$GLOBAL_MD_BAK"
-  echo "[survey] Temporarily hidden ~/.claude/CLAUDE.md"
+# Find neutral-claude.sh (sibling in trousse/scripts/)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+NEUTRAL="$SCRIPT_DIR/../../../scripts/neutral-claude.sh"
+if [ ! -x "$NEUTRAL" ]; then
+  # Fallback: try via skills symlink path
+  NEUTRAL="$(dirname "$SCRIPT_DIR")/../../scripts/neutral-claude.sh"
+fi
+if [ ! -x "$NEUTRAL" ]; then
+  echo "Error: neutral-claude.sh not found" >&2
+  echo "Expected at: $SCRIPT_DIR/../../../scripts/neutral-claude.sh" >&2
+  exit 1
 fi
 
 SYSPROMPT="You are a helpful assistant. You have no tools available. Respond with text only."
@@ -76,6 +73,7 @@ echo "Survey output: $OUTDIR"
 echo "Scenarios: ${SCENARIO_NAMES[*]}"
 echo "Runs per scenario: $RUNS"
 echo "Total invocations: $TOTAL"
+echo "Isolation: neutral-claude.sh (env scrub)"
 echo ""
 
 for scenario in "${SCENARIO_NAMES[@]}"; do
@@ -89,7 +87,7 @@ for scenario in "${SCENARIO_NAMES[@]}"; do
 
 ${JSON_INSTRUCTION}"
 
-    echo "$PROMPT" | claude -p \
+    echo "$PROMPT" | "$NEUTRAL" --stdin \
       --max-turns 1 \
       --tools "" \
       --system-prompt "$SYSPROMPT" \
@@ -110,7 +108,6 @@ echo "=== ANALYSIS ==="
 echo ""
 
 # Run analysis
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 python3 "$SCRIPT_DIR/analyze.py" "$OUTDIR"
 
 echo ""

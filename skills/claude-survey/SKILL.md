@@ -25,25 +25,17 @@ Poll isolated Claude instances to discover what model weights naturally produce 
 - Evaluating code quality or correctness
 - Questions with objectively right answers (use tests, not surveys)
 
-## Isolation Checklist
+## Isolation
 
-Claude Code injects context through multiple layers. ALL must be suppressed for clean results:
+Survey scripts use `neutral-claude.sh` (in `trousse/scripts/`) for isolation. This handles all context leakage via three mechanisms:
 
-| Layer | How it leaks | How to block |
-|-------|-------------|--------------|
-| Global `~/.claude/CLAUDE.md` | Always loaded | Temporarily `mv` it aside (script does this with trap restore) |
-| Project `CLAUDE.md` | Loaded when cwd is in a repo | Run from `/tmp` |
-| `skills/` in repo | Subagents glob and find SKILL.md files | Run from `/tmp` |
-| `~/.claude/skills/` | Loaded via skill registry | `--system-prompt` replaces default but **does NOT block CLAUDE.md** — must physically hide |
-| Session hooks | Fire on every session start | Cannot suppress — accept minor leakage (hook output mentions ecosystem names but not domain knowledge) |
-| Tools | Model attempts tool use, burns `--max-turns` | `--tools ""` (NOT `--allowed-tools ""` — that filters but model still tries) |
-| MCP servers | Available even with `--tools ""` | Accept — they don't influence DSL instincts |
+| Mechanism | What it blocks |
+|-----------|---------------|
+| `env -i` | All inherited env vars including `CLAUDECODE=1` (nesting detection) |
+| `HOME=<tmpdir>` with only `.credentials.json` | CLAUDE.md, settings, hooks, skills, MCP config |
+| `cd /tmp` | Project CLAUDE.md, git repo context |
 
-### What `--system-prompt` Does and Doesn't Do
-
-- **Does:** Replaces the default system prompt (the "you are Claude Code" preamble)
-- **Does NOT:** Suppress CLAUDE.md injection — that's a separate loader
-- **Does NOT:** Suppress session hooks
+The old approach (physically `mv` CLAUDE.md aside with trap/restore) is superseded — `neutral-claude.sh` achieves the same isolation without touching real files.
 
 ### The `--tools` vs `--allowed-tools` Trap
 
@@ -53,6 +45,19 @@ Claude Code injects context through multiple layers. ALL must be suppressed for 
 | `--allowed-tools ""` | Tools offered but all blocked. Model tries, gets rejected, **burns a turn**. With `--max-turns 1`, you get `Error: Reached max turns`. |
 
 Always use `--tools ""` for surveys.
+
+### Background: Six Layers of Context Leakage
+
+These are the layers `neutral-claude.sh` blocks. Documented here for understanding, not because you need to handle them manually:
+
+| Layer | How it leaks | How neutral-claude.sh blocks it |
+|-------|-------------|-------------------------------|
+| Global `~/.claude/CLAUDE.md` | Always loaded from `$HOME` | Fake HOME has no CLAUDE.md |
+| Project `CLAUDE.md` | Loaded from CWD/parents | CWD is `/tmp` (no repo) |
+| `~/.claude/skills/` | Skill registry under `$HOME` | Fake HOME has no skills/ |
+| `~/.claude/settings.json` | Hooks config | Fake HOME has no settings |
+| `CLAUDECODE=1` env var | Nesting detection / resistance | `env -i` scrubs it |
+| Tools | Model burns turns on tool attempts | Pass `--tools ""` in survey scripts |
 
 ## Methodology
 
@@ -171,8 +176,9 @@ High parse failure rates (>50%) mean your valid responses are a biased subsample
 |---------|---------|-----|
 | Using real tool name | Model has training data about it | Fictional name |
 | `--allowed-tools ""` | Model burns turns on tool attempts | `--tools ""` |
-| `--system-prompt` alone | CLAUDE.md still loads | Physically hide the file |
-| Testing in project directory | Project context leaks | Run from `/tmp` |
+| Manual `mv` CLAUDE.md | Fragile, trap can fail | Use `neutral-claude.sh` (env scrub) |
+| `--system-prompt` alone | CLAUDE.md still loads | Use `neutral-claude.sh` |
+| Testing in project directory | Project context leaks | Use `neutral-claude.sh` (runs from /tmp) |
 | n=1 per scenario | No distribution signal | Minimum n=3, prefer n=10 |
-| Subagents instead of `claude -p` | Inherit full parent context | Always use `claude -p` |
+| Subagents instead of `claude -p` | Inherit full parent context | Always use `claude -p` via `neutral-claude.sh` |
 | Compound tool name | Primes model with components | Bland 2-letter name |

@@ -1,29 +1,24 @@
 #!/usr/bin/env bash
-# probe.sh — Verify Claude -p isolation before running a survey
-# Run from /tmp to avoid project context leakage
+# probe.sh — Verify Claude isolation before running a survey
+# Uses neutral-claude.sh for env-scrubbed isolation (no mv/trap dance).
 
 set -euo pipefail
 
-GLOBAL_MD="$HOME/.claude/CLAUDE.md"
-GLOBAL_MD_BAK="$HOME/.claude/CLAUDE.md.survey-bak"
-
-restore() {
-  if [ -f "$GLOBAL_MD_BAK" ]; then
-    mv "$GLOBAL_MD_BAK" "$GLOBAL_MD"
-    echo "[probe] Restored ~/.claude/CLAUDE.md"
-  fi
-}
-trap restore EXIT
-
-if [ -f "$GLOBAL_MD" ]; then
-  mv "$GLOBAL_MD" "$GLOBAL_MD_BAK"
-  echo "[probe] Temporarily hidden ~/.claude/CLAUDE.md"
+# Find neutral-claude.sh (sibling in trousse/scripts/)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+NEUTRAL="$SCRIPT_DIR/../../../scripts/neutral-claude.sh"
+if [ ! -x "$NEUTRAL" ]; then
+  NEUTRAL="$(dirname "$SCRIPT_DIR")/../../scripts/neutral-claude.sh"
+fi
+if [ ! -x "$NEUTRAL" ]; then
+  echo "Error: neutral-claude.sh not found" >&2
+  exit 1
 fi
 
 SYSPROMPT="You are a helpful assistant. You have no tools available. Respond with text only."
 
 ask() {
-  echo "$1" | claude -p \
+  echo "$1" | "$NEUTRAL" --stdin \
     --max-turns 1 \
     --tools "" \
     --system-prompt "$SYSPROMPT" \
