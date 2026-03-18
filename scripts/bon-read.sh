@@ -1,8 +1,7 @@
 #!/bin/bash
 #
-# bon-read.sh — fast jq-based reads from .bon/items.jsonl
+# bon-read.sh — fast reads from .bon/items.jsonl
 # Replaces bon CLI for read-only operations in hooks and scripts.
-# Bon CLI (~30ms Python startup) vs jq (~3ms).
 #
 # Usage:
 #   bon-read.sh list          # Full hierarchy (outcomes + actions)
@@ -23,59 +22,83 @@ else
     exit 0
 fi
 
-case "${1:-}" in
-    list)
-        # Full hierarchy: open outcomes with all their actions (including done)
-        # Capture output — command substitution strips trailing newlines,
-        # which removes the blank-line separator after the last group.
-        output=$(jq -r -s '
-            # Group actions by parent
-            (map(select(.parent)) | group_by(.parent) | map({key: .[0].parent, value: (. | sort_by(.order))}) | from_entries) as $children |
-            # Show open outcomes in order
-            map(select(.type == "outcome" and .status == "open" and (.parent == null or .parent == ""))) | sort_by(.order)[] |
-            . as $outcome |
-            (if .status == "done" then "\u2713" else "\u25cb" end) + " " + .title + " (" + .id + ")",
-            (($children[.id] // []) | to_entries[] |
-                "  " + ((.value.order // (.key + 1)) | tostring) + ". " +
-                (if .value.status == "done" then "\u2713" else "\u25cb" end) + " " +
-                .value.title + " (" + .value.id + ")"),
-            ""
-        ' "$ITEMS" 2>/dev/null) || true
-        if [ -n "$output" ]; then printf '%s\n' "$output"; fi
-        ;;
+MODE="${1:-}"
 
-    ready)
-        # Ready items: open outcomes with only open+non-waiting actions
-        output=$(jq -r -s '
-            (map(select(.parent and .status == "open" and (.waiting_for == null or .waiting_for == ""))) | group_by(.parent) | map({key: .[0].parent, value: (. | sort_by(.order))}) | from_entries) as $ready_children |
-            map(select(.type == "outcome" and .status == "open" and (.parent == null or .parent == ""))) | sort_by(.order)[] |
-            . as $outcome |
-            "\u25cb " + .title + " (" + .id + ")",
-            (($ready_children[.id] // []) | to_entries[] |
-                "  " + ((.key + 1) | tostring) + ". \u25cb " +
-                .value.title + " (" + .value.id + ")"),
-            ""
-        ' "$ITEMS" 2>/dev/null) || true
-        if [ -n "$output" ]; then printf '%s\n' "$output"; fi
-        ;;
+python3 << PYEOF
+import json, sys
 
-    current)
-        # Active tactical: find item with .tactical field and status=open
-        jq -r '
-            select(.tactical and .status == "open") |
-            . as $item |
-            "Working: \(.title) (\(.id))",
-            (.tactical.steps | to_entries[] |
-                (if .key < $item.tactical.current then "\u2713"
-                 elif .key == $item.tactical.current then "\u2192"
-                 else " " end) +
-                " " + (.key + 1 | tostring) + ". " + .value +
-                (if .key == $item.tactical.current then " [current]" else "" end))
-        ' "$ITEMS" 2>/dev/null || true
-        ;;
+items = []
+with open("$ITEMS") as f:
+    for line in f:
+        line = line.strip()
+        if line:
+            items.append(json.loads(line))
 
-    *)
-        echo "Usage: bon-read.sh {list|ready|current}" >&2
-        exit 1
-        ;;
-esac
+mode = "$MODE"
+
+def by_order(item):
+    return item.get("order", 999)
+
+if mode == "list":
+    # Group actions by parent
+    children = {}
+    for item in items:
+        p = item.get("parent")
+        if p:
+            children.setdefault(p, []).append(item)
+    for v in children.values():
+        v.sort(key=by_order)
+    # Show open outcomes
+    outcomes = sorted(
+        [i for i in items if i.get("type") == "outcome" and i.get("status") == "open" and not i.get("parent")],
+        key=by_order,
+    )
+    for o in outcomes:
+        mark = "\u2713" if o.get("status") == "done" else "\u25cb"
+        print(f'{mark} {o["title"]} ({o["id"]})')
+        for idx, a in enumerate(children.get(o["id"], []), 1):
+            am = "\u2713" if a.get("status") == "done" else "\u25cb"
+            print(f'  {idx}. {am} {a["title"]} ({a["id"]})')
+        print()
+
+elif mode == "ready":
+    # Ready: open outcomes with only open, non-waiting actions
+    children = {}
+    for item in items:
+        p = item.get("parent")
+        if p and item.get("status") == "open" and not item.get("waiting_for"):
+            children.setdefault(p, []).append(item)
+    for v in children.values():
+        v.sort(key=by_order)
+    outcomes = sorted(
+        [i for i in items if i.get("type") == "outcome" and i.get("status") == "open" and not i.get("parent")],
+        key=by_order,
+    )
+    for o in outcomes:
+        print(f'\u25cb {o["title"]} ({o["id"]})')
+        for idx, a in enumerate(children.get(o["id"], []), 1):
+            print(f'  {idx}. \u25cb {a["title"]} ({a["id"]})')
+        print()
+
+elif mode == "current":
+    # Active tactical steps
+    for item in items:
+        if item.get("tactical") and item.get("status") == "open":
+            t = item["tactical"]
+            print(f'Working: {item["title"]} ({item["id"]})')
+            for idx, step in enumerate(t.get("steps", [])):
+                current = t.get("current", 0)
+                if idx < current:
+                    mark = "\u2713"
+                elif idx == current:
+                    mark = "\u2192"
+                else:
+                    mark = " "
+                suffix = " [current]" if idx == current else ""
+                print(f'{mark} {idx + 1}. {step}{suffix}')
+            break
+
+else:
+    print("Usage: bon-read.sh {list|ready|current}", file=sys.stderr)
+    sys.exit(1)
+PYEOF

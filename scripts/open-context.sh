@@ -25,8 +25,8 @@ mkdir -p "$CONTEXT_DIR"
 # === SELF-VALIDATION ===
 validate_dependencies() {
     local missing=""
-    if ! command -v jq &>/dev/null; then
-        missing="$missing jq(brew install jq)"
+    if ! command -v python3 &>/dev/null; then
+        missing="$missing python3"
     fi
     if ! command -v stat &>/dev/null; then
         missing="$missing stat"
@@ -105,7 +105,7 @@ if [ -d "$PROJECT_FOLDER" ]; then
     fi
 fi
 
-# --- Bon context (jq reads, no Python startup) ---
+# --- Bon context ---
 BON_FILE="$CONTEXT_DIR/bon.txt"
 BON_READ="$HOME/.claude/scripts/bon-read.sh"
 BON_LIST_OUTPUT=""
@@ -182,12 +182,24 @@ if [ -f ".bon/items.jsonl" ] || [ -f ".arc/items.jsonl" ]; then
         echo "Nothing in progress — pick an action to start."
         echo ""
     else
-        # Get parent outcome via jq (no Python startup)
+        # Get parent outcome from items.jsonl
         CURRENT_ACTION_ID=$(echo "$BON_CURRENT_OUTPUT" | head -1 | grep -oE '\([a-zA-Z0-9-]+\)' | tr -d '()' || true)
         if [ -n "$CURRENT_ACTION_ID" ]; then
-            PARENT_ID=$(jq -r "select(.id == \"$CURRENT_ACTION_ID\") | .parent // empty" "$BON_DIR/items.jsonl" 2>/dev/null || true)
+            PARENT_ID=$(python3 -c "
+import json, sys
+for line in open('$BON_DIR/items.jsonl'):
+    item = json.loads(line)
+    if item.get('id') == '$CURRENT_ACTION_ID':
+        print(item.get('parent', '')); break
+" 2>/dev/null || true)
             if [ -n "$PARENT_ID" ]; then
-                PARENT_TITLE=$(jq -r "select(.id == \"$PARENT_ID\") | .title // empty" "$BON_DIR/items.jsonl" 2>/dev/null || true)
+                PARENT_TITLE=$(python3 -c "
+import json
+for line in open('$BON_DIR/items.jsonl'):
+    item = json.loads(line)
+    if item.get('id') == '$PARENT_ID':
+        print(item.get('title', '')); break
+" 2>/dev/null || true)
                 if [ -n "$PARENT_TITLE" ]; then
                     echo "Last worked on: $PARENT_TITLE"
                     # Show actions from list output
@@ -212,7 +224,7 @@ if [ -f ".bon/items.jsonl" ] || [ -f ".arc/items.jsonl" ]; then
         fi
     fi
 elif [ -d ".bon" ] || [ -d ".arc" ]; then
-    echo "Bon: directory exists but jq not available"
+    echo "Bon: directory exists but items not readable"
     echo ""
 fi
 

@@ -57,8 +57,14 @@ fi
 if [ -n "$BON_ITEMS" ]; then
     if [ -x "$BON_READ" ]; then
         BON_NEXT=$(cd "$CWD" && "$BON_READ" ready 2>/dev/null || true)
-    elif command -v jq &>/dev/null; then
-        BON_NEXT=$(jq -r 'select(.status == "open" and (.waiting_for == null or .waiting_for == "")) | "- \(.title) (\(.id))"' "$BON_ITEMS" 2>/dev/null | head -10 || true)
+    elif command -v python3 &>/dev/null; then
+        BON_NEXT=$(python3 -c "
+import json
+for line in open('$BON_ITEMS'):
+    item = json.loads(line)
+    if item.get('status') == 'open' and not item.get('waiting_for'):
+        print(f'- {item[\"title\"]} ({item[\"id\"]})')
+" 2>/dev/null | head -10 || true)
     fi
 fi
 

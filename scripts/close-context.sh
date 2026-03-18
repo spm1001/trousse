@@ -9,9 +9,9 @@ set -euo pipefail
 validate_dependencies() {
     local missing=""
 
-    # jq: required for JSON parsing
-    if ! command -v jq &>/dev/null; then
-        missing="$missing jq(brew install jq)"
+    # python3: required for JSON parsing
+    if ! command -v python3 &>/dev/null; then
+        missing="$missing python3"
     fi
 
     if [ -n "$missing" ]; then
