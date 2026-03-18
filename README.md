@@ -3,25 +3,27 @@
 ## Status
 
 **Robustness:** Stable — used daily
-**Works with:** Claude Code (session lifecycle), any agent (skills)
-**Install:** `git clone` + `install.sh`
-**Requires:** Claude Code CLI (for hooks), none (for skills alone)
+**Works with:** Claude Code (plugin or manual install)
+**Requires:** Claude Code CLI 2.0+
 
-A toolkit for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (Anthropic's CLI coding assistant) that gives it session memory and specialized capabilities.
-
-## The Problem
-
-Claude Code is stateless. Every time you start a session, Claude has no memory of what you worked on before — what was done, what's next, what to watch out for. If you're using Claude Code daily, you spend the first few minutes of every session re-explaining context.
+A skill drawer for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — slash commands that teach Claude specialized workflows.
 
 ## What This Does
 
-trousse solves this with two things:
+Trousse provides 17 skills as SKILL.md files. Each one is a structured instruction set Claude reads and follows when you invoke the slash command.
 
-**A session protocol** — shell hooks that fire automatically when Claude Code starts and stops. At startup, Claude sees a briefing: what you were working on, what the previous session accomplished, and what's ready to pick up. At close, it writes a handoff for the next session. The gap between sessions becomes a baton pass, not a cold start.
-
-**A skill drawer** — a collection of slash commands (`/diagram`, `/review`, `/filing`, etc.) that teach Claude Code specialized workflows. Skills are SKILL.md files — structured instructions that Claude reads and follows. They're installed as symlinks into `~/.claude/skills/`.
+Session lifecycle (startup briefings, handoffs, tactical tracking) is handled by [bon](https://github.com/spm1001/bon), not trousse. Trousse is purely skills.
 
 ## Quick Start
+
+### Via plugin (recommended)
+
+```
+/plugin
+# → batterie-de-savoir → trousse
+```
+
+### Via manual install
 
 ```bash
 git clone https://github.com/spm1001/trousse ~/Repos/trousse
@@ -33,20 +35,7 @@ Then restart Claude Code (`/exit` → `claude`).
 
 **Verify:** `./install.sh --verify`
 
-**Dependencies:** `jq` (required — `brew install jq` on Mac, `apt install jq` on Linux).
-
-## What You Get
-
-### Session Lifecycle (automatic after install)
-
-| What | When | How |
-|------|------|-----|
-| **Startup briefing** | Every session start | Hook runs `open-context.sh`, shows outcomes and last session summary |
-| **Tactical reminders** | Every prompt | Hook shows current work step so Claude doesn't drift |
-| `/open` | On demand | Re-orient mid-session or after changing directories |
-| `/close` | End of session | Reflect on work done, write handoff for next session |
-
-### Skills (slash commands)
+## Skills
 
 | Skill | What it does |
 |-------|--------------|
@@ -54,89 +43,40 @@ Then restart Claude Code (`/exit` → `claude`).
 | `/diagram` | Create diagrams with iterative render-and-check |
 | `/screenshot` | Capture screen to verify changes |
 | `/filing` | Organize files using PARA method |
-| `/picture` | Generate images with AI |
+| `/picture` | Generate images with Google Imagen |
 | `/server-checkup` | Linux server audit and management |
-| `/github-cleanup` | Audit repos, find stale forks and secrets |
+| `/github-cleanup` | Audit repos, find stale forks and deps |
 | `/sprite` | Manage Sprites.dev remote VMs |
-| `/setup` | Install trousse on a new machine |
 | `/skill-forge` | Build and validate new skills |
-| `/skill-check` | Quality gate for skill sharing |
+| `/ia-presenter` | Write iA Presenter slide decks |
+| `/google-devdocs` | Look up Google developer documentation |
+| `/mandoline` | Transform raw data into clean BigQuery tables |
+| `/toise` | Architecture review (8 checks, letter grades) |
+| `/claude-survey` | Survey naive Claude instances for design research |
+| `/neutral-claude` | Spawn context-isolated Claude instances |
+| `/amp-close` | End-of-session ritual for Amp (CC uses bon's /close) |
 
-### Companion Skills (loaded by other skills, not invoked directly)
-
-| Skill | Loaded by | Purpose |
-|-------|-----------|---------|
-| `bon` | `/open` | Work tracking across sessions (outcomes + actions) |
-
-## How It Works
-
-### Directory Structure
+## Directory Structure
 
 ```
 trousse/
-├── hooks/                  # Shell scripts that fire on Claude Code events
-│   ├── session-start.sh    #   → runs open-context.sh at session start
-│   ├── session-end.sh      #   → cleanup at session end
-│   └── bon-tactical.sh     #   → injects current work step into every prompt
-├── scripts/                # Utility scripts called by hooks and skills
-│   ├── open-context.sh     #   → generates session briefing
-│   ├── close-context.sh    #   → generates session handoff
-│   ├── bon-read.sh         #   → fast jq reads from bon's data file
-│   ├── claude-doctor.sh    #   → diagnose broken symlinks and config
-│   ├── check-home.sh       #   → detect home directory issues
-│   └── check-symlinks.sh   #   → verify symlink integrity
-├── skills/                 # Skill definitions (SKILL.md files)
-│   ├── open/               #   → session orientation
-│   ├── close/              #   → session handoff
+├── skills/                 # 17 skill definitions (SKILL.md files)
 │   ├── titans/             #   → three-lens code review
 │   ├── diagram/            #   → diagramming workflow
-│   └── ...                 #   → (16 skills total)
+│   ├── skill-forge/        #   → skill development + validation
+│   └── ...
+├── scripts/                # Utility scripts used by skills
+│   ├── neutral-claude.sh   #   → context isolation for spawned Claudes
+│   └── bon-survey.py       #   → survey automation for claude-survey skill
+├── hooks/
+│   └── hooks.json          #   → empty (trousse registers no hooks)
 ├── references/             # Architecture docs (not loaded automatically)
 │   ├── HANDOFF-CONTRACT.md #   → handoff format specification
-│   ├── HOOKS_AND_SCRIPTS.md#   → hook architecture audit
 │   └── ERROR_PATTERNS.md   #   → troubleshooting guide
 ├── tests/                  # pytest suite
-├── install.sh              # Installer (creates symlinks, registers hooks)
+├── install.sh              # Manual installer (symlinks skills + scripts)
 └── CLAUDE.md               # Instructions Claude reads when working in this repo
 ```
-
-### Installation Mechanics
-
-`install.sh` creates symlinks — it doesn't copy files:
-- Each `skills/<name>/` directory gets symlinked to `~/.claude/skills/<name>`
-- Each `scripts/<name>.sh` gets symlinked to `~/.claude/scripts/<name>.sh`
-- Each `hooks/<name>.sh` gets symlinked to `~/.claude/hooks/<name>.sh`
-- Hook events are registered in `~/.claude/settings.json`
-
-This means `git pull` updates everything — symlinks point to the repo, so changes take effect immediately (skills hot-reload; hooks and scripts are re-read each invocation).
-
-### The Handoff Protocol
-
-When a session ends, `/close` writes a handoff file to `~/.claude/handoffs/<project>/`. The next session's startup hook reads it and includes the summary in Claude's briefing. The handoff contains:
-
-- **Done** — what was accomplished
-- **Next** — suggested next steps
-- **Gotchas** — things to watch out for
-
-The full specification is in `references/HANDOFF-CONTRACT.md`.
-
-## Optional Companion Tools
-
-These are separate repos that add their own skills:
-
-| Repo | What it adds |
-|------|--------------|
-| [todoist-gtd](https://github.com/spm1001/todoist-gtd) | GTD-flavored Todoist integration |
-| [garde-manger](https://github.com/spm1001/garde-manger) | Search past Claude sessions |
-| [bon](https://github.com/spm1001/bon) | Work tracker CLI (outcomes + actions) |
-
-## Troubleshooting
-
-**Skills don't appear?** Restart required after first install. Run `/exit` then `claude`.
-
-**Hooks not firing?** Run `./install.sh --verify` to check symlinks. Run `~/.claude/scripts/claude-doctor.sh` for diagnostics.
-
-**Need more help?** See `references/ERROR_PATTERNS.md` for common issues and fixes.
 
 ## Updating
 
@@ -151,8 +91,8 @@ cd ~/Repos/trousse && git pull
 ./install.sh --uninstall
 ```
 
-Removes symlinks and hook registrations. Does not delete handoff history.
+Removes symlinks. Does not delete handoff history.
 
 ## The Kitchen
 
-Trousse is part of [Batterie de Savoir](https://spm1001.github.io/batterie-de-savoir/) — a suite of tools for AI-assisted knowledge work. See the [full brigade and design principles](https://spm1001.github.io/batterie-de-savoir/) for how the tools fit together.
+Trousse is part of [Batterie de Savoir](https://spm1001.github.io/batterie-de-savoir/) — a suite of tools for AI-assisted knowledge work.
