@@ -1,6 +1,6 @@
 ---
 name: toise
-description: Orchestrates architecture review for Claude-maintained software — 3-phase process (measure, grade, report) across 8 checks that produces letter grades with evidence, ensuring architectural debt is caught before it compounds. Invoke BEFORE adding significant complexity or when inheriting an unfamiliar repo. Triggers on 'toise review', 'review this architecture', 'is this Claude-friendly', 'check maintainability', 'before we add complexity', 'measure this codebase'. Do NOT use for pure code review (use titans). (user)
+description: Orchestrates architecture review — MANDATORY BEFORE adding significant complexity or inheriting an unfamiliar repo. 3-phase process (measure, grade, report) across 8 checks that prevents architectural debt from compounding undetected. Produces letter grades with evidence. Triggers on 'toise review', 'review this architecture', 'is this Claude-friendly', 'check maintainability', 'before we add complexity', 'measure this codebase'. Do NOT use for code review (use titans). (user)
 ---
 
 # Toise
