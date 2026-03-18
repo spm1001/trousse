@@ -5,6 +5,5 @@
   "author": { "name": "Sameer Modha", "url": "https://github.com/spm1001" },
   "repository": "https://github.com/spm1001/trousse",
   "license": "MIT",
-  "keywords": ["session", "lifecycle", "hooks", "review", "skills"],
-  "hooks": "./hooks/hooks.json"
+  "keywords": ["session", "lifecycle", "hooks", "review", "skills"]
 }
