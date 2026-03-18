@@ -1,6 +1,6 @@
 {
   "name": "trousse",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Utility skills for Claude Code — code review, diagrams, screenshots, filing, architecture review, and more",
   "author": { "name": "Sameer Modha", "url": "https://github.com/spm1001" },
   "repository": "https://github.com/spm1001/trousse",
