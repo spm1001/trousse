@@ -90,6 +90,6 @@ For "does this skill actually make sense?" — use `/titans`. Three Opus reviewe
 
 | Document | What it covers |
 |----------|---------------|
-| `references/ERROR_PATTERNS.md` | Common issues and troubleshooting |
+| `docs/error-patterns.md` | Common issues and troubleshooting |
 
 The handoff contract (`HANDOFF-CONTRACT.md`) lives in bon — it specifies bon's session protocol.
