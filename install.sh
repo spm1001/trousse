@@ -20,7 +20,9 @@ error() { echo -e "${RED}✗${NC} $1"; }
 
 # Where are we?
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Accept plugin cache or ~/Repos/trousse as valid locations
 EXPECTED_DIR="$HOME/Repos/trousse"
+PLUGIN_CACHE_PATTERN="$HOME/.claude/plugins/cache/"
 
 # Detect platform
 detect_platform() {
@@ -181,10 +183,10 @@ if [[ "$VERIFY_ONLY" == true ]]; then
 
     # Check dependencies
     info "Checking dependencies..."
-    if command -v jq &>/dev/null; then
-        echo "  ✓ jq"
+    if command -v python3 &>/dev/null; then
+        echo "  ✓ python3"
     else
-        echo "  ✗ jq (required for open-context.sh)"
+        echo "  ✗ python3 (required for hook registration and scripts)"
         ERRORS=$((ERRORS + 1))
     fi
 
@@ -225,9 +227,9 @@ if [[ "$DRY_RUN" == true ]]; then
 fi
 
 # Validate location
-if [[ "$SCRIPT_DIR" != "$EXPECTED_DIR" ]]; then
+if [[ "$SCRIPT_DIR" != "$EXPECTED_DIR" ]] && [[ "$SCRIPT_DIR" != "$PLUGIN_CACHE_PATTERN"* ]]; then
     warn "Running from $SCRIPT_DIR"
-    warn "Expected location: $EXPECTED_DIR"
+    warn "Expected location: $EXPECTED_DIR (or plugin cache)"
     echo ""
     echo "Symlinks will point to current location, which may cause issues"
     echo "if you move or delete this directory."
@@ -248,14 +250,9 @@ fi
 info "Checking dependencies..."
 DEPS_MISSING=false
 
-if ! command -v jq &>/dev/null; then
-    warn "jq not found (required for session scripts)"
+if ! command -v python3 &>/dev/null; then
+    warn "python3 not found (required for hook registration)"
     DEPS_MISSING=true
-    if [[ "$PLATFORM" == "macos" ]]; then
-        echo "  Install with: brew install jq"
-    elif [[ "$PLATFORM" == "linux" ]]; then
-        echo "  Install with: sudo apt-get install jq"
-    fi
 fi
 
 if [[ "$DEPS_MISSING" == true ]] && [[ "$DRY_RUN" != true ]]; then
@@ -391,35 +388,36 @@ if [[ "$DRY_RUN" != true ]]; then
         echo '{}' > "$SETTINGS_FILE"
     fi
 
-    if command -v jq &>/dev/null; then
-        # Register all hook events (idempotent — checks before adding)
-        register_hook() {
-            local event="$1" matcher="$2" hook_cmd="$3"
-            trap 'rm -f "$SETTINGS_FILE.tmp"' ERR
-            # Remove any existing entry for this event+matcher, then add the canonical one.
-            # This prevents duplicates when command strings change between versions.
-            jq --arg event "$event" --arg matcher "$matcher" --arg cmd "$hook_cmd" '
-                .hooks[$event] = ([(.hooks[$event] // [])[] | select(.matcher != $matcher)] + [{
-                    matcher: $matcher,
-                    hooks: [{type: "command", command: $cmd}]
-                }])
-            ' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp"
-            mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
-            trap - ERR
-            echo "  + $event ($hook_cmd) registered"
-        }
+    # Register hooks using python3 (available everywhere, no jq dependency)
+    register_hook() {
+        local event="$1" matcher="$2" hook_cmd="$3"
+        python3 << PYEOF
+import json, sys
+try:
+    with open("$SETTINGS_FILE") as f:
+        data = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    data = {}
+hooks = data.setdefault("hooks", {})
+entries = hooks.get("$event", [])
+# Remove existing entry for this matcher, then add canonical one
+entries = [e for e in entries if e.get("matcher") != "$matcher"]
+entries.append({"matcher": "$matcher", "hooks": [{"type": "command", "command": "$hook_cmd"}]})
+hooks["$event"] = entries
+with open("$SETTINGS_FILE", "w") as f:
+    json.dump(data, f, indent=2)
+PYEOF
+        echo "  + $event ($hook_cmd) registered"
+    }
 
-        register_hook "SessionStart" "" "$HOME/.claude/hooks/session-start.sh"
-        register_hook "SessionEnd" "" "$HOME/.claude/hooks/session-end.sh"
-        register_hook "UserPromptSubmit" "" "$HOME/.claude/hooks/bon-tactical.sh"
+    register_hook "SessionStart" "" "$HOME/.claude/hooks/session-start.sh"
+    register_hook "SessionEnd" "" "$HOME/.claude/hooks/session-end.sh"
+    register_hook "UserPromptSubmit" "" "$HOME/.claude/hooks/bon-tactical.sh"
 
-        # PostToolUse inline hooks (no script files) — uses same replace-by-matcher pattern
-        register_hook "PostToolUse" "WebFetch" "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"STOP: WebFetch returns AI summaries, not raw content. For documentation you need to understand, you MUST use curl to fetch the actual page. Do not proceed with summarized documentation.\"}}'"
+    # PostToolUse inline hooks (no script files)
+    register_hook "PostToolUse" "WebFetch" "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"STOP: WebFetch returns AI summaries, not raw content. For documentation you need to understand, you MUST use curl to fetch the actual page. Do not proceed with summarized documentation.\"}}'"
 
-        ok "All hooks registered"
-    else
-        warn "jq not available — manual hook registration needed"
-    fi
+    ok "All hooks registered"
 else
     echo "  Would register hooks in settings.json"
 fi
