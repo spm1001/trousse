@@ -71,7 +71,6 @@ trousse/
 ├── hooks/
 │   └── hooks.json          #   → empty (trousse registers no hooks)
 ├── references/             # Architecture docs (not loaded automatically)
-│   ├── HANDOFF-CONTRACT.md #   → handoff format specification
 │   └── ERROR_PATTERNS.md   #   → troubleshooting guide
 ├── tests/                  # pytest suite
 ├── install.sh              # Manual installer (symlinks skills + scripts)
