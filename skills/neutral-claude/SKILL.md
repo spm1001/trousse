@@ -100,7 +100,7 @@ The `env -i` scrub removes `CLAUDECODE=1`, so the inner Claude doesn't know it's
 
 ## Anti-Patterns
 
-| Don't | Do Instead | Why |
+| Anti-Pattern | Problem | Fix |
 |-------|-----------|-----|
 | Use Agent/Task tool for "naive" testing | Use this script via Bash tool | Subagents inherit full parent context |
 | Pass `--system-prompt` and assume isolation | Use neutral-claude.sh | `--system-prompt` does NOT suppress CLAUDE.md loading |

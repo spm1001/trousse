@@ -269,10 +269,10 @@ Only expand checks that score C or below. A and B grades get the one-line verdic
 
 ## Anti-Patterns
 
-| Anti-pattern | What happens |
-|---|---|
-| Skipping measurement | Opinions without evidence. Run phase 1 first. |
-| Grading everything A | Sycophantic review helps nobody. The point is finding improvements. |
-| Reviewing code style | That's titans' job. Getting Real reviews architecture decisions. |
-| Proposing rewrites | The review identifies issues. Whether to rewrite is the user's call. |
-| Ignoring Claude-Readiness | The eighth check is the novel contribution. Don't skip it. |
+| Anti-Pattern | Problem | Fix |
+|---|---|---|
+| Skipping measurement | Opinions without evidence | Run phase 1 first |
+| Grading everything A | Sycophantic review helps nobody | Use the full scale — the point is finding improvements |
+| Reviewing code style | Wrong lens for this tool | Use titans for code-level review |
+| Proposing rewrites | Overstepping the review's role | Identify issues; whether to rewrite is the user's call |
+| Ignoring Claude-Readiness | Missing the novel contribution | The eighth check is what distinguishes toise from generic reviews |
