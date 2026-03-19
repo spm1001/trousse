@@ -41,16 +41,16 @@ scripts/init_skill.py my-skill --path ~/.claude/skills
 # 2. Edit SKILL.md (see Workflow below)
 
 # 3. Lint for structure issues
-scripts/lint_skill.py ~/.claude/skills/my-skill
+${CLAUDE_SKILL_DIR}/scripts/lint_skill.py /path/to/skill
 
 # 4. Score description quality (CSO)
-scripts/score_description.py ~/.claude/skills/my-skill
+${CLAUDE_SKILL_DIR}/scripts/score_description.py /path/to/skill
 
 # 5. Test with subagent (optional but recommended)
-scripts/test_skill.py ~/.claude/skills/my-skill
+${CLAUDE_SKILL_DIR}/scripts/test_skill.py /path/to/skill
 
 # 6. Package for distribution (optional)
-scripts/package_skill.py ~/.claude/skills/my-skill
+${CLAUDE_SKILL_DIR}/scripts/package_skill.py /path/to/skill
 ```
 
 ## Workflow: 6-Step Process

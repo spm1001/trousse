@@ -515,4 +515,4 @@ Development tools live in `~/Repos/` with prefix conventions:
 | `infra-*` | Infrastructure | `infra-openwrt` |
 | `claude-*` | Claude experiments | `claude-memory` |
 
-**Skills:** Symlinked to `~/.claude/skills/`. Core skills in `trousse/skills/`, specialized skills in individual repos, skills with tooling co-located with their infrastructure.
+**Skills:** Installed via plugins (batterie-de-savoir marketplace). Core skills in `trousse/skills/`, specialized skills in individual repos.

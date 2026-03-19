@@ -17,25 +17,25 @@ Take screenshots to see what's on screen. Captures persist as files (unlike brow
 
 ```bash
 # Capture specific app window
-~/.claude/skills/screenshot/scripts/look.py --app Ghostty
+${CLAUDE_SKILL_DIR}/scripts/look.py --app Ghostty
 
 # Capture window by title match
-~/.claude/skills/screenshot/scripts/look.py --app Chrome --title "LinkedIn"
+${CLAUDE_SKILL_DIR}/scripts/look.py --app Chrome --title "LinkedIn"
 
 # Capture full screen
-~/.claude/skills/screenshot/scripts/look.py --screen
+${CLAUDE_SKILL_DIR}/scripts/look.py --screen
 
 # List available windows
-~/.claude/skills/screenshot/scripts/look.py --list
+${CLAUDE_SKILL_DIR}/scripts/look.py --list
 
 # List windows grouped by category
-~/.claude/skills/screenshot/scripts/look.py --categories
+${CLAUDE_SKILL_DIR}/scripts/look.py --categories
 
 # List only browser windows
-~/.claude/skills/screenshot/scripts/look.py --category browsers
+${CLAUDE_SKILL_DIR}/scripts/look.py --category browsers
 
 # Native resolution (skip resize)
-~/.claude/skills/screenshot/scripts/look.py --app Safari --native
+${CLAUDE_SKILL_DIR}/scripts/look.py --app Safari --native
 ```
 
 **Categories:** browsers, terminals, editors, communication, documents, media, other

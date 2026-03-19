@@ -121,7 +121,7 @@ Don't test one task — test several that exercise different aspects:
 ### Quick Probe (verify isolation)
 
 ```bash
-~/.claude/skills/claude-survey/scripts/probe.sh
+${CLAUDE_SKILL_DIR}/scripts/probe.sh
 ```
 
 Runs 5 checks: project context visibility, domain knowledge, name priming, file access, baseline instinct. Review output before running full survey.
@@ -129,7 +129,7 @@ Runs 5 checks: project context visibility, domain knowledge, name priming, file 
 ### Full Survey
 
 ```bash
-~/.claude/skills/claude-survey/scripts/survey.sh <scenarios_file> [runs_per_scenario]
+${CLAUDE_SKILL_DIR}/scripts/survey.sh <scenarios_file> [runs_per_scenario]
 ```
 
 The scenarios file is bash — declare an associative array:
@@ -151,7 +151,7 @@ JSON_FIELDS='{
 ### Analysis
 
 ```bash
-~/.claude/skills/claude-survey/scripts/analyze.py <output_dir>
+${CLAUDE_SKILL_DIR}/scripts/analyze.py <output_dir>
 ```
 
 Reads all JSON files, extracts with fallback regex, produces per-scenario frequency tables with percentage bars.

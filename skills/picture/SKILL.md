@@ -41,7 +41,7 @@ Clarify with user:
 
 Use the fast model for initial iterations:
 ```bash
-~/.claude/skills/picture/imagen.sh "prompt" --model gemini-2.5-flash-image
+${CLAUDE_SKILL_DIR}/imagen.sh "prompt" --model gemini-2.5-flash-image
 ```
 
 ### 3. Review and Refine
@@ -49,14 +49,14 @@ Use the fast model for initial iterations:
 Open the image, assess, iterate:
 ```bash
 # Edit mode: refine previous output
-~/.claude/skills/picture/imagen.sh "make it warmer, add more contrast" --input ./images/previous.png
+${CLAUDE_SKILL_DIR}/imagen.sh "make it warmer, add more contrast" --input ./images/previous.png
 ```
 
 ### 4. Final Render with Pro
 
 For client-facing or final deliverables:
 ```bash
-~/.claude/skills/picture/imagen.sh "prompt" --model gemini-3-pro-image-preview
+${CLAUDE_SKILL_DIR}/imagen.sh "prompt" --model gemini-3-pro-image-preview
 ```
 
 ## Command Reference
