@@ -16,7 +16,7 @@ Two paths:
 | Path | Command | Skill names |
 |------|---------|-------------|
 | **Plugin** (recommended) | `/plugin` → batterie-de-savoir → trousse | `/trousse:diagram` |
-| **Manual** | `git clone` + `./install.sh` | `/diagram` |
+| **Manual** | `git clone` → plugin auto-discovers | `/diagram` |
 
 The plugin system discovers skills from `skills/*/SKILL.md` — no hooks, no settings.json registration needed.
 

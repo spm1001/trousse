@@ -12,14 +12,7 @@ Enables Claude to capture and analyze screen state:
 
 ## Installation
 
-```bash
-ln -s /path/to/skill-screenshotting ~/.claude/skills/screenshotting
-```
-
-Ensure the skill venv exists:
-```bash
-cd ~/.claude && uv venv
-```
+Install via batterie-de-savoir marketplace: `/plugin marketplace add spm1001/batterie-de-savoir` then `/plugin install trousse`
 
 ## When Claude Uses This Skill
 
@@ -36,16 +29,16 @@ cd ~/.claude && uv venv
 
 ```bash
 # Capture specific app
-~/.claude/.venv/bin/python ~/.claude/skills/screenshotting/scripts/look.py --app Chrome
+uv run ${CLAUDE_SKILL_DIR}/scripts/look.py --app Chrome
 
 # Capture by window title
-~/.claude/.venv/bin/python ~/.claude/skills/screenshotting/scripts/look.py --app Chrome --title "GitHub"
+uv run ${CLAUDE_SKILL_DIR}/scripts/look.py --app Chrome --title "GitHub"
 
 # Full screen
-~/.claude/.venv/bin/python ~/.claude/skills/screenshotting/scripts/look.py --screen
+uv run ${CLAUDE_SKILL_DIR}/scripts/look.py --screen
 
 # List available windows
-~/.claude/.venv/bin/python ~/.claude/skills/screenshotting/scripts/look.py --list
+uv run ${CLAUDE_SKILL_DIR}/scripts/look.py --list
 ```
 
 ## Output

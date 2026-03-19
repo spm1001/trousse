@@ -14,9 +14,7 @@ Also handles weekly cleanup of common clutter zones (Downloads, Desktop, Drive i
 
 ## Installation
 
-```bash
-ln -s /path/to/skill-filing ~/.claude/skills/filing
-```
+Install via batterie-de-savoir marketplace: `/plugin marketplace add spm1001/batterie-de-savoir` then `/plugin install trousse`
 
 ## When Claude Uses This Skill
 

@@ -23,17 +23,13 @@ Session lifecycle (startup briefings, handoffs, tactical tracking) is handled by
 # → batterie-de-savoir → trousse
 ```
 
-### Via manual install
+### Via manual clone
 
 ```bash
 git clone https://github.com/spm1001/trousse ~/Repos/trousse
-cd ~/Repos/trousse
-./install.sh
 ```
 
-Then restart Claude Code (`/exit` → `claude`).
-
-**Verify:** `./install.sh --verify`
+The plugin system discovers skills from `skills/*/SKILL.md` automatically.
 
 ## Skills
 
@@ -73,7 +69,6 @@ trousse/
 ├── references/             # Architecture docs (not loaded automatically)
 │   └── ERROR_PATTERNS.md   #   → troubleshooting guide
 ├── tests/                  # pytest suite
-├── install.sh              # Manual installer (symlinks skills + scripts)
 └── CLAUDE.md               # Instructions Claude reads when working in this repo
 ```
 
@@ -81,16 +76,12 @@ trousse/
 
 ```bash
 cd ~/Repos/trousse && git pull
-# Symlinks mean changes take effect immediately
+# Plugin cache refreshes on next session start
 ```
 
 ## Uninstalling
 
-```bash
-./install.sh --uninstall
-```
-
-Removes symlinks. Does not delete handoff history.
+Use `/plugin uninstall trousse` to remove the plugin.
 
 ## The Kitchen
 

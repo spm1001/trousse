@@ -12,9 +12,7 @@ Audits a GitHub account and presents findings for approval before any destructiv
 
 ## Installation
 
-```bash
-ln -s /path/to/skill-github-cleanup ~/.claude/skills/cleanup-github
-```
+Install via batterie-de-savoir marketplace: `/plugin marketplace add spm1001/batterie-de-savoir` then `/plugin install trousse`
 
 ## When Claude Uses This Skill
 

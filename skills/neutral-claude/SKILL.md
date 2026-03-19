@@ -87,7 +87,7 @@ The `env -i` scrub removes `CLAUDECODE=1`, so the inner Claude doesn't know it's
 |-------|----------|
 | Global CLAUDE.md | No |
 | Project CLAUDE.md | No |
-| Custom skills (~/.claude/skills/) | No |
+| Custom skills (plugin cache) | No |
 | Built-in skills (simplify, loop, claude-api) | Yes — compiled into Claude Code |
 | Hooks | No |
 | MCP servers | No |

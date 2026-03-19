@@ -8,9 +8,7 @@ Create images using Google Imagen (Vertex AI) for presentation images and concep
 
 ## Installation
 
-```bash
-ln -s /path/to/skill-image-generation ~/.claude/skills/image-generation
-```
+Install via batterie-de-savoir marketplace: `/plugin marketplace add spm1001/batterie-de-savoir` then `/plugin install trousse`
 
 ## Status
 

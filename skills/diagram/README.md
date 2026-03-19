@@ -12,9 +12,7 @@ Enables Claude to create and refine diagrams:
 
 ## Installation
 
-```bash
-ln -s /path/to/skill-diagramming ~/.claude/skills/diagramming
-```
+Install via batterie-de-savoir marketplace: `/plugin marketplace add spm1001/batterie-de-savoir` then `/plugin install trousse`
 
 ## When Claude Uses This Skill
 

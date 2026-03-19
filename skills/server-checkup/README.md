@@ -16,9 +16,7 @@ Provides a phased workflow for server audits and maintenance:
 
 ## Installation
 
-```bash
-ln -s /path/to/skill-server-maintenance ~/.claude/skills/server-maintenance
-```
+Install via batterie-de-savoir marketplace: `/plugin marketplace add spm1001/batterie-de-savoir` then `/plugin install trousse`
 
 ## When Claude Uses This Skill
 

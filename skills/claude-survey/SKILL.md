@@ -54,7 +54,7 @@ These are the layers `neutral-claude.sh` blocks. Documented here for understandi
 |-------|-------------|-------------------------------|
 | Global `~/.claude/CLAUDE.md` | Always loaded from `$HOME` | Fake HOME has no CLAUDE.md |
 | Project `CLAUDE.md` | Loaded from CWD/parents | CWD is `/tmp` (no repo) |
-| `~/.claude/skills/` | Skill registry under `$HOME` | Fake HOME has no skills/ |
+| Plugin cache / skills | Skill registry under `$HOME` | Fake HOME has no plugins/ |
 | `~/.claude/settings.json` | Hooks config | Fake HOME has no settings |
 | `CLAUDECODE=1` env var | Nesting detection / resistance | `env -i` scrubs it |
 | Tools | Model burns turns on tool attempts | Pass `--tools ""` in survey scripts |

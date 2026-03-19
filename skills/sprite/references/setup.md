@@ -83,7 +83,7 @@ sprite exec bash -c "
   curl -LsSf https://astral.sh/uv/install.sh | sh &&
   rm -rf ~/.claude &&
   git clone --recurse-submodules https://github.com/spm1001/claude-config.git ~/.claude &&
-  ~/.claude/scripts/setup-machine.sh
+  cd ~/.claude && ./scripts/setup-machine.sh
 "
 
 # Save checkpoint

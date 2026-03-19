@@ -207,7 +207,7 @@ Naming: `YYYY-MM-DD [HH-MM] Title.md`
 Just Press Record voice memos (m4a/mp3). Organized by date: `YYYY-MM-DD/HH-MM-SS.m4a`
 
 **Action:**
-1. Transcribe with `~/.claude/scripts/transcribe-jpr.sh --new`
+1. Transcribe with the JPR transcription script (check bon plugin or local scripts)
 2. Review transcript in Work Inbox/Voice Transcripts/
 3. Audio moves to `Processed/` subfolder automatically
 

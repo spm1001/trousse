@@ -4,7 +4,7 @@ GitHub account audit and cleanup skill for Claude Code.
 
 ## Project Type
 
-Claude Code skill - installed via symlink to `~/.claude/skills/`
+Claude Code skill - installed via the trousse plugin
 
 ## Origin
 

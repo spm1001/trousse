@@ -41,7 +41,7 @@ rm /path/to/script.sh
 ln -s /correct/target.sh /path/to/script.sh
 ```
 
-**Prevention:** Run `~/.claude/scripts/check-symlinks.sh` regularly.
+**Prevention:** With the plugin system, symlinks are no longer used. Skills are discovered directly from the plugin cache.
 
 ### Pattern: Symlinks break after repo rename
 
@@ -117,7 +117,7 @@ which bd                    # Interactive
 
 **Diagnosis:** Check if the MCP uses env vars for auth.
 
-**Fix:** Use a wrapper script that loads secrets at runtime. See `~/.claude/scripts/todoist-mcp.sh` for the pattern.
+**Fix:** Use a wrapper script that loads secrets at runtime (e.g., a shell script that reads from the system keychain before launching the MCP server).
 
 ### Pattern: MCP works in one project but not another
 
@@ -194,7 +194,7 @@ When you encounter an error:
 1. **Read the error message** — often contains the answer
 2. **Check exit code** — see table above
 3. **Check this library** — pattern match against known issues
-4. **Run claude-doctor** — `~/.claude/scripts/claude-doctor.sh`
+4. **Run diagnostics** — check plugin status with `/plugin list`
 5. **Trace execution** — `bash -x script.sh` for shell scripts
 6. **Check symlinks** — `ls -la` to see if symlinks are broken
 7. **Search memory** — "have we seen this before?" via garde skill

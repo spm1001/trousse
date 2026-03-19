@@ -313,7 +313,7 @@ EXTRACTION
 
 ```bash
 # Step 2: Send to garde (scan + store + cleanup in one call)
-~/.claude/scripts/send-amp-extraction.sh "{THREAD_ID}" < /tmp/amp-extraction.json \
+~/Repos/garde-manger/scripts/send-amp-extraction.sh "{THREAD_ID}" < /tmp/amp-extraction.json \
     && rm /tmp/amp-extraction.json
 ```
 
