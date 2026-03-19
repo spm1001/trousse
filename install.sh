@@ -24,16 +24,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXPECTED_DIR="$HOME/Repos/trousse"
 PLUGIN_CACHE_PATTERN="$HOME/.claude/plugins/cache/"
 
-# Detect platform
-detect_platform() {
-    case "$(uname -s)" in
-        Darwin*) echo "macos" ;;
-        Linux*)  echo "linux" ;;
-        *)       echo "unknown" ;;
-    esac
-}
-PLATFORM=$(detect_platform)
-
 # Parse arguments
 DRY_RUN=false
 VERIFY_ONLY=false
@@ -93,18 +83,6 @@ if [[ "$UNINSTALL" == true ]]; then
     done
     ok "Removed script symlinks"
 
-    info "Removing hook symlinks..."
-    for link in ~/.claude/hooks/*.sh; do
-        [[ -L "$link" ]] || continue
-        target=$(readlink "$link")
-        if [[ "$target" == *"trousse"* ]]; then
-            rm "$link"
-        fi
-    done
-    ok "Removed hook symlinks"
-
-    echo ""
-    warn "Note: settings.json hook configuration not removed (manual cleanup if needed)"
     echo ""
     exit 0
 fi
@@ -155,54 +133,6 @@ if [[ "$VERIFY_ONLY" == true ]]; then
         fi
     done
 
-    # Check hooks (glob to match install mode)
-    info "Checking hooks..."
-    for hook in "$SCRIPT_DIR/hooks/"*.sh; do
-        [[ -f "$hook" ]] || continue
-        hook_name=$(basename "$hook")
-        if [[ -L "$HOME/.claude/hooks/$hook_name" ]]; then
-            echo "  ✓ $hook_name"
-        else
-            echo "  ✗ $hook_name (missing)"
-            ERRORS=$((ERRORS + 1))
-        fi
-    done
-
-    # Check update-all.sh
-    info "Checking update-all.sh..."
-    if [[ -f "$HOME/.claude/scripts/update-all.sh" ]]; then
-        if [[ -x "$HOME/.claude/scripts/update-all.sh" ]]; then
-            echo "  ✓ update-all.sh (present and executable)"
-        else
-            echo "  ~ update-all.sh (present but not executable)"
-            warn "Run: chmod +x ~/.claude/scripts/update-all.sh"
-        fi
-    else
-        echo "  ~ update-all.sh (missing — run install.sh to scaffold from template)"
-    fi
-
-    # Check dependencies
-    info "Checking dependencies..."
-    if command -v python3 &>/dev/null; then
-        echo "  ✓ python3"
-    else
-        echo "  ✗ python3 (required for hook registration and scripts)"
-        ERRORS=$((ERRORS + 1))
-    fi
-
-    # Check settings.json hooks
-    info "Checking hook registration..."
-    if [[ -f "$HOME/.claude/settings.json" ]]; then
-        if grep -q "hooks" "$HOME/.claude/settings.json" 2>/dev/null; then
-            echo "  ✓ hooks configured in settings.json"
-        else
-            echo "  ~ hooks not configured in settings.json"
-            warn "Hooks may not fire without registration"
-        fi
-    else
-        echo "  ~ settings.json not found"
-    fi
-
     echo ""
     if [[ $ERRORS -eq 0 ]]; then
         ok "All checks passed!"
@@ -248,30 +178,13 @@ fi
 
 # Check dependencies
 info "Checking dependencies..."
-DEPS_MISSING=false
-
-if ! command -v python3 &>/dev/null; then
-    warn "python3 not found (required for hook registration)"
-    DEPS_MISSING=true
-fi
-
-if [[ "$DEPS_MISSING" == true ]] && [[ "$DRY_RUN" != true ]]; then
-    read -p "Continue without dependencies? [y/N] " -n 1 -r
-    echo ""
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "Aborted. Install dependencies and retry."
-        exit 1
-    fi
-else
-    ok "Dependencies OK"
-fi
+ok "Dependencies OK"
 
 # Create directories
 info "Creating ~/.claude directories..."
 if [[ "$DRY_RUN" != true ]]; then
     mkdir -p ~/.claude/skills
     mkdir -p ~/.claude/scripts
-    mkdir -p ~/.claude/hooks
 fi
 ok "Directories ready"
 
@@ -311,22 +224,6 @@ NEW_SKILLS=$((SKILL_COUNT - SKILL_UPDATED))
 ok "Symlinked $SKILL_COUNT skills ($NEW_SKILLS new, $SKILL_UPDATED updated)"
 [[ $SKILL_SKIPPED -gt 0 ]] && warn "Skipped $SKILL_SKIPPED (existing directories)" || true
 
-# Wire skill-forge to skill-creator scripts (machine-dependent, not in git)
-info "Wiring skill-forge → skill-creator scripts..."
-SKILL_CREATOR="$HOME/.claude/skills/skill-creator/scripts"
-FORGE_SCRIPTS="$SCRIPT_DIR/skills/skill-forge/scripts"
-
-if [[ -d "$SKILL_CREATOR" ]]; then
-    for script_name in init_skill.py package_skill.py quick_validate.py; do
-        if [[ "$DRY_RUN" != true ]]; then
-            ln -sfn "$SKILL_CREATOR/$script_name" "$FORGE_SCRIPTS/$script_name"
-        fi
-    done
-    ok "skill-forge → skill-creator (3 scripts linked)"
-else
-    warn "skill-creator not found at $SKILL_CREATOR — skill-forge init/package/validate won't work"
-fi
-
 # Symlink scripts
 info "Symlinking scripts..."
 SCRIPT_COUNT=0
@@ -346,81 +243,6 @@ fi
 
 ok "Symlinked $SCRIPT_COUNT scripts"
 
-# Scaffold update-all.sh (copy template if not present — it's theirs to customize)
-UPDATE_TARGET="$HOME/.claude/scripts/update-all.sh"
-UPDATE_TEMPLATE="$SCRIPT_DIR/scripts/update-all.template.sh"
-if [[ ! -f "$UPDATE_TARGET" ]] && [[ -f "$UPDATE_TEMPLATE" ]]; then
-    if [[ "$DRY_RUN" != true ]]; then
-        cp "$UPDATE_TEMPLATE" "$UPDATE_TARGET"
-        chmod +x "$UPDATE_TARGET"
-    fi
-    ok "Scaffolded update-all.sh (customize at ~/.claude/scripts/update-all.sh)"
-elif [[ -f "$UPDATE_TARGET" ]]; then
-    ok "update-all.sh already exists (not overwritten)"
-fi
-
-# Symlink hooks
-info "Symlinking hooks..."
-HOOK_COUNT=0
-
-if [[ -d "$SCRIPT_DIR/hooks" ]]; then
-    for hook in "$SCRIPT_DIR/hooks/"*.sh; do
-        [[ -f "$hook" ]] || continue
-        hook_name=$(basename "$hook")
-        target="$HOME/.claude/hooks/$hook_name"
-
-        if [[ "$DRY_RUN" != true ]]; then
-            ln -sf "$hook" "$target"
-        fi
-        HOOK_COUNT=$((HOOK_COUNT + 1))
-    done
-fi
-
-ok "Symlinked $HOOK_COUNT hooks"
-
-# Register hooks in settings.json
-info "Configuring hooks in settings.json..."
-SETTINGS_FILE="$HOME/.claude/settings.json"
-
-if [[ "$DRY_RUN" != true ]]; then
-    # Create settings.json if it doesn't exist
-    if [[ ! -f "$SETTINGS_FILE" ]]; then
-        echo '{}' > "$SETTINGS_FILE"
-    fi
-
-    # Register hooks using python3 (available everywhere, no jq dependency)
-    register_hook() {
-        local event="$1" matcher="$2" hook_cmd="$3"
-        python3 << PYEOF
-import json, sys
-try:
-    with open("$SETTINGS_FILE") as f:
-        data = json.load(f)
-except (FileNotFoundError, json.JSONDecodeError):
-    data = {}
-hooks = data.setdefault("hooks", {})
-entries = hooks.get("$event", [])
-# Remove existing entry for this matcher, then add canonical one
-entries = [e for e in entries if e.get("matcher") != "$matcher"]
-entries.append({"matcher": "$matcher", "hooks": [{"type": "command", "command": "$hook_cmd"}]})
-hooks["$event"] = entries
-with open("$SETTINGS_FILE", "w") as f:
-    json.dump(data, f, indent=2)
-PYEOF
-        echo "  + $event ($hook_cmd) registered"
-    }
-
-    register_hook "SessionStart" "" "$HOME/.claude/hooks/session-start.sh"
-    register_hook "SessionEnd" "" "$HOME/.claude/hooks/session-end.sh"
-    register_hook "UserPromptSubmit" "" "$HOME/.claude/hooks/bon-tactical.sh"
-
-    # PostToolUse inline hooks (no script files)
-    register_hook "PostToolUse" "WebFetch" "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"STOP: WebFetch returns AI summaries, not raw content. For documentation you need to understand, you MUST use curl to fetch the actual page. Do not proceed with summarized documentation.\"}}'"
-
-    ok "All hooks registered"
-else
-    echo "  Would register hooks in settings.json"
-fi
 
 # Summary
 echo ""
@@ -435,21 +257,19 @@ echo ""
 echo "Installed:"
 echo "  • $SKILL_COUNT skills  → ~/.claude/skills/"
 echo "  • $SCRIPT_COUNT scripts → ~/.claude/scripts/"
-echo "  • $HOOK_COUNT hooks    → ~/.claude/hooks/"
 echo ""
 
-# What you got - explain the value
 echo -e "${BLUE}What you now have:${NC}"
 echo ""
-echo "  Session lifecycle (runs automatically):"
-echo "    • On startup: time, handoffs, and ready work shown"
-echo "    • /open  — Resume context from previous session"
-echo "    • /close — Create handoff for next session"
-echo ""
-echo "  Utilities:"
+echo "  Skills (slash commands):"
+echo "    • /titans, /review — Three-lens code review"
 echo "    • /diagram, /screenshot, /picture — Visual tools"
 echo "    • /filing — Organize files (PARA method)"
 echo "    • /server-checkup — Linux server management"
+echo "    • /skill-forge — Build and validate new skills"
+echo ""
+echo "  Session lifecycle is handled by bon, not trousse."
+echo "  Install bon separately for /open, /close, and startup briefings."
 echo ""
 
 echo -e "${YELLOW}NEXT STEP:${NC} Restart Claude Code to activate."
@@ -473,18 +293,15 @@ if [[ "$DRY_RUN" != true ]]; then
     echo ""
 fi
 
-# Optional tools (platform-aware)
-echo "Optional tools (not installed):"
+# Companion tools
+echo "Companion tools:"
 echo ""
-echo "  • bon (tactical outcome tracking)"
-echo "    uv tool install ~/Repos/bon"
-echo ""
-echo "  • todoist-gtd (GTD task management)"
-echo "    git clone https://github.com/spm1001/todoist-gtd ~/Repos/todoist-gtd"
+echo "  • bon (session lifecycle + work tracking) — recommended"
+echo "    /plugin → batterie-de-savoir → bon"
 echo ""
 echo "  • garde-manger (searchable session memory)"
-echo "    git clone https://github.com/spm1001/garde-manger ~/Repos/garde-manger"
+echo "    /plugin → batterie-de-savoir → garde-manger"
 echo ""
 echo "Or install the full suite via marketplace:"
-echo "  /plugin marketplace add spm1001/batterie-de-savoir"
+echo "  /plugin → batterie-de-savoir"
 echo ""
