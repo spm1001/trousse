@@ -1,13 +1,16 @@
 ---
 name: neutral-claude
+allowed-tools: [Bash, Read, Write]
 description: >
   Orchestrates Claude context isolation via 3-step env scrub (env -i +
   temporary HOME + /tmp CWD) that ensures zero context leakage. INVOKE BEFORE
   spawning a Claude that MUST be uncontaminated — evals, design research,
-  cold critique, or baseline comparisons. Cross-platform (Linux + macOS),
-  no containers required. Triggers on 'neutral claude', 'naive claude',
-  'isolated claude', 'clean claude instance', 'run without context',
-  'uncontaminated claude'. (user)
+  cold critique, baseline comparisons, or plugin testing. Cross-platform
+  (Linux + macOS), no containers required. The pattern (env -i + temp HOME +
+  credentials copy) is also the basis for plugin-smoke.sh test harness.
+  Triggers on 'neutral claude', 'naive claude', 'isolated claude',
+  'clean claude instance', 'run without context', 'uncontaminated claude',
+  'test plugin install', 'isolated test'. (user)
 ---
 
 # Neutral Claude
