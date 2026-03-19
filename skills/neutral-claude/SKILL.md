@@ -45,37 +45,38 @@ The spawned Claude authenticates with your existing OAuth credentials (read-only
 
 ## Usage
 
-The script lives at `~/.claude/skills/neutral-claude/../../scripts/neutral-claude.sh` — or more practically, find it relative to trousse:
+The script lives in the trousse plugin. Find it at runtime:
 
 ```bash
-SCRIPT="$(dirname "$(readlink -f ~/.claude/skills/neutral-claude/SKILL.md)")/../../scripts/neutral-claude.sh"
+SCRIPT=$(find ~/.claude/plugins/cache -path "*/trousse/*/scripts/neutral-claude.sh" 2>/dev/null | head -1)
+[ -z "$SCRIPT" ] && SCRIPT="${CLAUDE_PLUGIN_ROOT}/scripts/neutral-claude.sh"
 ```
 
 ### Quick one-shot
 
 ```bash
-neutral-claude.sh "What is the best way to structure a CLI?"
+"$SCRIPT" "What is the best way to structure a CLI?"
 ```
 
 ### With flags
 
 ```bash
-neutral-claude.sh --max-turns 1 "Reply with only: hello"
-neutral-claude.sh --max-turns 5 --dangerously-skip-permissions "Write and run a hello world script"
+"$SCRIPT" --max-turns 1 "Reply with only: hello"
+"$SCRIPT" --max-turns 5 --dangerously-skip-permissions "Write and run a hello world script"
 ```
 
 ### Stdin mode (for long prompts or piping)
 
 ```bash
-echo "Design a work tracker CLI" | neutral-claude.sh --stdin --max-turns 1
-cat spec.md | neutral-claude.sh --stdin --max-turns 3
+echo "Design a work tracker CLI" | "$SCRIPT" --stdin --max-turns 1
+cat spec.md | "$SCRIPT" --stdin --max-turns 3
 ```
 
 ### From Claude Code (OuterClaude → InnerClaude)
 
 ```bash
 # In a Bash tool call:
-/path/to/neutral-claude.sh --max-turns 1 "Your prompt here"
+"$SCRIPT" --max-turns 1 "Your prompt here"
 ```
 
 The `env -i` scrub removes `CLAUDECODE=1`, so the inner Claude doesn't know it's nested. No launch resistance.
