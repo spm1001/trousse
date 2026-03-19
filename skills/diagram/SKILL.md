@@ -1,6 +1,7 @@
 ---
 name: diagram
 description: Orchestrates diagram creation with iterative render-and-check workflow. Invoke FIRST when asked to 'create a diagram', 'Venn diagram', 'flow chart', 'architecture diagram', 'visualize this' — ensures CRAP-principled self-critique before showing user, preventing amateur layouts and low-contrast text. Composes with brand skills for styling. (user)
+allowed-tools: [Bash, Write, Read, Skill]
 ---
 
 # Diagramming

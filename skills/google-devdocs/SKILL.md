@@ -7,6 +7,7 @@ description: >
   firebase.google.com, developer.android.com, and ai.google.dev. Triggers on 'check the Google
   docs', 'look up the Firebase docs', 'what do the Cloud docs say', 'Google API documentation',
   'search Google developer docs'. (user)
+allowed-tools: [Bash]
 ---
 
 # Google Developer Docs

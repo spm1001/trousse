@@ -5,6 +5,7 @@ description: >
   Metis (craft — clarity, idiom, fit-for-purpose), Prometheus (foresight — vision, extensibility, future-Claude).
   Triggers on /titans, /review, 'review this code', 'what did I miss', 'before I ship this'.
   Use after completing substantial work, before /close. (user)
+allowed-tools: [Read, Glob, Grep, Agent]
 ---
 
 # /titans — Code Review Triad

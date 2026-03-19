@@ -1,6 +1,7 @@
 ---
 name: filing
 description: Orchestrates file cleanup with mandatory processing — reads content and extracts actions BEFORE moving files. Prevents lost waiting-fors and buried actions. MANDATORY during weekly review filing phase. Triggers on 'where should this go', 'help me tidy', 'clean up downloads', 'triage inbox'. (user)
+allowed-tools: [Bash, Read, Write, Glob, AskUserQuestion]
 ---
 
 # Filing

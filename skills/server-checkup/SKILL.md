@@ -1,6 +1,7 @@
 ---
 name: server-checkup
 description: Systematic Linux server management. Use BEFORE making changes to capture baseline, then AFTER for verification. Triggers on 'check this server', 'audit', 'set up this machine', 'security audit', 'harden this Pi', 'fresh Pi setup', 'provision this server'. (user)
+allowed-tools: [Bash, Read, Write, Edit, Glob, Grep]
 ---
 
 # Server Maintenance

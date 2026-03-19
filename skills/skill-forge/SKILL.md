@@ -1,6 +1,7 @@
 ---
 name: skill-forge
 description: Orchestrates ALL skill development — MANDATORY gate BEFORE writing or editing any SKILL.md file. Invoke FIRST when building, validating, improving, or refactoring skills. Supersedes skill-creator. Unified 6-step workflow with automated validation, CSO scoring, and subagent testing. Triggers on 'create skill', 'new skill', 'validate skill', 'check skill quality', 'improve skill discovery', 'check this skill', 'write SKILL.md', 'edit SKILL.md', 'update skill description', 'can I share this', 'scan for sharing'. (user)
+allowed-tools: [Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion]
 ---
 
 # Skill Forge

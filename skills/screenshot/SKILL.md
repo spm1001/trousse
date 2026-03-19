@@ -6,6 +6,7 @@ description: >
   'verify it worked', 'what happened'. AFTER uncertain CLI operations (backgrounded processes,
   nohup, visual changes), consider capturing to verify state. Captures windows or full screen
   to files. (user)
+allowed-tools: [Bash, Read]
 ---
 
 # Screenshotting
