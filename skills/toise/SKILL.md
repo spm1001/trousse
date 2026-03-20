@@ -270,10 +270,10 @@ Only expand checks that score C or below. A and B grades get the one-line verdic
 
 ## Anti-Patterns
 
-| Anti-pattern | Problem |
-|---|---|
-| Skipping measurement | Opinions without evidence. Run phase 1 first. |
-| Grading everything A | Sycophantic review helps nobody. The point is finding improvements. |
-| Reviewing code style | That's titans' job. Getting Real reviews architecture decisions. |
-| Proposing rewrites | The review identifies issues. Whether to rewrite is the user's call. |
-| Ignoring Claude-Readiness | The eighth check is the novel contribution. Don't skip it. |
+| Anti-pattern | Problem | Fix |
+|---|---|---|
+| Skipping measurement | Opinions without evidence | Run phase 1 first |
+| Grading everything A | Sycophantic review helps nobody | Apply the grading rubric honestly — C or below means real issues |
+| Reviewing code style | Out of scope for toise | Use titans for bugs, craft, and foresight |
+| Proposing rewrites | User's call, not reviewer's | Flag the issue and grade; leave the decision to the user |
+| Ignoring Claude-Readiness | Misses the novel contribution | Check 8 is mandatory — don't skip it |
