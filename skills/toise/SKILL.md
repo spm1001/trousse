@@ -270,7 +270,7 @@ Only expand checks that score C or below. A and B grades get the one-line verdic
 
 ## Anti-Patterns
 
-| Anti-pattern | What happens |
+| Anti-pattern | Problem |
 |---|---|
 | Skipping measurement | Opinions without evidence. Run phase 1 first. |
 | Grading everything A | Sycophantic review helps nobody. The point is finding improvements. |
