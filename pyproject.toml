@@ -21,9 +21,10 @@ build-backend = "hatchling.build"
 path = ".claude-plugin/plugin.json"
 pattern = "\"version\":\\s*\"(?P<version>[^\"]+)\""
 
-[tool.hatch.build.targets.wheel]
-packages = []
-
+# Trousse is a pure skills/hooks/docs plugin — no Python packages to ship.
+# package = false tells uv to install dependencies without building/installing
+# this project itself. Without it, hatchling fails: "Unable to determine which
+# files to ship" (no directory named 'trousse' exists).
 [tool.uv]
 package = false
 
