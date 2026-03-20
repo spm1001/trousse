@@ -21,6 +21,9 @@ build-backend = "hatchling.build"
 path = ".claude-plugin/plugin.json"
 pattern = "\"version\":\\s*\"(?P<version>[^\"]+)\""
 
+[tool.hatch.build.targets.wheel]
+packages = []
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
