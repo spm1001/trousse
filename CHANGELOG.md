@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0] - 2026-03-20
+
+Maturity realignment and versioning fix.
+
+### Changed
+- Version reset from 1.1.1 to 0.4.0 — 1.1.1 was an accidental over-increment, not reflective of stability. Trousse is a skills container; skills churn. 0.4.x is honest.
+- Switched to hatchling dynamic versioning: `plugin.json` is now the single source of truth; pyproject.toml no longer has a hardcoded version.
+- Note: existing installs at 1.1.1 will not auto-update (batterie-update only fires on version increase). Reinstall from scratch to get 0.4.0.
+
 ## [0.2.0] - 2026-03-18
 
 Batterie-wide consistency pass: docs consolidation, CI, versioning.
