@@ -37,7 +37,7 @@ The plugin system discovers skills from `skills/*/SKILL.md` — no hooks, no set
 
 ### Current Skills (17)
 
-amp-close, claude-survey, diagram, filing, github-cleanup, google-devdocs, ia-presenter, mandoline, neutral-claude, picture, review, screenshot, server-checkup, skill-forge, sprite, titans, toise
+amp-close, ardoise, claude-survey, diagram, filing, github-cleanup, google-devdocs, ia-presenter, mandoline, picture, review, screenshot, server-checkup, skill-forge, sprite, titans, toise
 
 ### Titans Review
 

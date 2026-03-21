@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
 # probe.sh — Verify Claude isolation before running a survey
-# Uses neutral-claude.sh for env-scrubbed isolation (no mv/trap dance).
+# Uses ardoise.sh for env-scrubbed isolation.
 
 set -euo pipefail
 
-# Find neutral-claude.sh (sibling in trousse/scripts/)
+# Find ardoise.sh (sibling in trousse/scripts/)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-NEUTRAL="$SCRIPT_DIR/../../../scripts/neutral-claude.sh"
-if [ ! -x "$NEUTRAL" ]; then
-  NEUTRAL="$(dirname "$SCRIPT_DIR")/../../scripts/neutral-claude.sh"
+ARDOISE="$SCRIPT_DIR/../../../scripts/ardoise.sh"
+if [ ! -x "$ARDOISE" ]; then
+  ARDOISE="$(dirname "$SCRIPT_DIR")/../../scripts/ardoise.sh"
 fi
-if [ ! -x "$NEUTRAL" ]; then
-  echo "Error: neutral-claude.sh not found" >&2
+if [ ! -x "$ARDOISE" ]; then
+  echo "Error: ardoise.sh not found" >&2
   exit 1
 fi
 
 SYSPROMPT="You are a helpful assistant. You have no tools available. Respond with text only."
 
 ask() {
-  echo "$1" | "$NEUTRAL" --stdin \
+  echo "$1" | "$ARDOISE" -p --stdin \
     --max-turns 1 \
     --tools "" \
     --system-prompt "$SYSPROMPT" \

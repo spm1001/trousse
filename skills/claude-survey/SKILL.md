@@ -27,15 +27,15 @@ Poll isolated Claude instances to discover what model weights naturally produce 
 
 ## Isolation
 
-Survey scripts use `neutral-claude.sh` (in `trousse/scripts/`) for isolation. This handles all context leakage via three mechanisms:
+Survey scripts use `ardoise.sh` (in `trousse/scripts/`) in print mode (`-p`) for isolation. This handles all context leakage via three mechanisms:
 
 | Mechanism | What it blocks |
 |-----------|---------------|
 | `env -i` | All inherited env vars including `CLAUDECODE=1` (nesting detection) |
-| `HOME=<tmpdir>` with only `.credentials.json` | CLAUDE.md, settings, hooks, skills, MCP config |
+| `HOME=<tmpdir>` with only `.credentials.json` + stripped `claude.json` | CLAUDE.md, settings, hooks, skills, MCP config |
 | `cd /tmp` | Project CLAUDE.md, git repo context |
 
-The old approach (physically `mv` CLAUDE.md aside with trap/restore) is superseded — `neutral-claude.sh` achieves the same isolation without touching real files.
+The old approach (physically `mv` CLAUDE.md aside with trap/restore) is superseded — `ardoise.sh` achieves the same isolation without touching real files.
 
 ### The `--tools` vs `--allowed-tools` Trap
 
@@ -48,9 +48,9 @@ Always use `--tools ""` for surveys.
 
 ### Background: Six Layers of Context Leakage
 
-These are the layers `neutral-claude.sh` blocks. Documented here for understanding, not because you need to handle them manually:
+These are the layers `ardoise.sh` blocks. Documented here for understanding, not because you need to handle them manually:
 
-| Layer | How it leaks | How neutral-claude.sh blocks it |
+| Layer | How it leaks | How ardoise.sh blocks it |
 |-------|-------------|-------------------------------|
 | Global `~/.claude/CLAUDE.md` | Always loaded from `$HOME` | Fake HOME has no CLAUDE.md |
 | Project `CLAUDE.md` | Loaded from CWD/parents | CWD is `/tmp` (no repo) |
@@ -176,9 +176,9 @@ High parse failure rates (>50%) mean your valid responses are a biased subsample
 |---------|---------|-----|
 | Using real tool name | Model has training data about it | Fictional name |
 | `--allowed-tools ""` | Model burns turns on tool attempts | `--tools ""` |
-| Manual `mv` CLAUDE.md | Fragile, trap can fail | Use `neutral-claude.sh` (env scrub) |
-| `--system-prompt` alone | CLAUDE.md still loads | Use `neutral-claude.sh` |
-| Testing in project directory | Project context leaks | Use `neutral-claude.sh` (runs from /tmp) |
+| Manual `mv` CLAUDE.md | Fragile, trap can fail | Use `ardoise.sh` (env scrub) |
+| `--system-prompt` alone | CLAUDE.md still loads | Use `ardoise.sh` |
+| Testing in project directory | Project context leaks | Use `ardoise.sh` (runs from /tmp) |
 | n=1 per scenario | No distribution signal | Minimum n=3, prefer n=10 |
-| Subagents instead of `claude -p` | Inherit full parent context | Always use `claude -p` via `neutral-claude.sh` |
+| Subagents instead of `claude -p` | Inherit full parent context | Always use `claude -p` via `ardoise.sh` |
 | Compound tool name | Primes model with components | Bland 2-letter name |

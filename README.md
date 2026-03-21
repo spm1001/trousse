@@ -49,7 +49,7 @@ The plugin system discovers skills from `skills/*/SKILL.md` automatically.
 | `/mandoline` | Transform raw data into clean BigQuery tables |
 | `/toise` | Architecture review (8 checks, letter grades) |
 | `/claude-survey` | Survey naive Claude instances for design research |
-| `/neutral-claude` | Spawn context-isolated Claude instances |
+| `/ardoise` | Context-isolated Claude (blank-slate testing) |
 | `/amp-close` | End-of-session ritual for Amp (CC uses bon's /close) |
 
 ## Directory Structure
@@ -62,7 +62,7 @@ trousse/
 │   ├── skill-forge/        #   → skill development + validation
 │   └── ...
 ├── scripts/                # Utility scripts used by skills
-│   ├── neutral-claude.sh   #   → context isolation for spawned Claudes
+│   ├── ardoise.sh          #   → context isolation for spawned Claudes
 │   └── bon-survey.py       #   → survey automation for claude-survey skill
 ├── hooks/
 │   └── hooks.json          #   → empty (trousse registers no hooks)

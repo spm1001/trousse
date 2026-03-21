@@ -16,7 +16,7 @@ Batterie-wide consistency pass: docs consolidation, CI, versioning.
 ### Added
 - Toise skill: architecture review for Claude-maintained software
 - Claude-survey skill for polling model instincts
-- Neutral-claude: context-isolated `claude -p` via env scrub
+- Ardoise: context-isolated Claude via env scrub (renamed from neutral-claude)
 - Mandoline skill (moved from `~/.claude/skills/`)
 
 ### Changed
@@ -31,7 +31,7 @@ Batterie-wide consistency pass: docs consolidation, CI, versioning.
 ## 2026-03-05–10 — New Skills & Survey Tooling
 
 ### Added
-- Claude-survey skill with neutral-claude isolation pattern
+- Claude-survey skill with ardoise isolation pattern
 - Universal design rules integrated into diagram skill from Anthropic PPT analysis
 - Mandoline: net rows as standard for pre-aggregated Likert tables
 - Understanding documents wired into open/close lifecycle

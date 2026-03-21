@@ -47,16 +47,16 @@ mkdir -p "$OUTDIR"
 # Copy scenarios file for reproducibility
 cp "$SCENARIOS_FILE" "$OUTDIR/scenarios.sh"
 
-# Find neutral-claude.sh (sibling in trousse/scripts/)
+# Find ardoise.sh (sibling in trousse/scripts/)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-NEUTRAL="$SCRIPT_DIR/../../../scripts/neutral-claude.sh"
-if [ ! -x "$NEUTRAL" ]; then
+ARDOISE="$SCRIPT_DIR/../../../scripts/ardoise.sh"
+if [ ! -x "$ARDOISE" ]; then
   # Fallback: try via skills symlink path
-  NEUTRAL="$(dirname "$SCRIPT_DIR")/../../scripts/neutral-claude.sh"
+  ARDOISE="$(dirname "$SCRIPT_DIR")/../../scripts/ardoise.sh"
 fi
-if [ ! -x "$NEUTRAL" ]; then
-  echo "Error: neutral-claude.sh not found" >&2
-  echo "Expected at: $SCRIPT_DIR/../../../scripts/neutral-claude.sh" >&2
+if [ ! -x "$ARDOISE" ]; then
+  echo "Error: ardoise.sh not found" >&2
+  echo "Expected at: $SCRIPT_DIR/../../../scripts/ardoise.sh" >&2
   exit 1
 fi
 
@@ -73,7 +73,7 @@ echo "Survey output: $OUTDIR"
 echo "Scenarios: ${SCENARIO_NAMES[*]}"
 echo "Runs per scenario: $RUNS"
 echo "Total invocations: $TOTAL"
-echo "Isolation: neutral-claude.sh (env scrub)"
+echo "Isolation: ardoise.sh (env scrub)"
 echo ""
 
 for scenario in "${SCENARIO_NAMES[@]}"; do
@@ -87,7 +87,7 @@ for scenario in "${SCENARIO_NAMES[@]}"; do
 
 ${JSON_INSTRUCTION}"
 
-    echo "$PROMPT" | "$NEUTRAL" --stdin \
+    echo "$PROMPT" | "$ARDOISE" -p --stdin \
       --max-turns 1 \
       --tools "" \
       --system-prompt "$SYSPROMPT" \
