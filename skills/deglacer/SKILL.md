@@ -52,6 +52,7 @@ ccconv SESSION.jsonl
 
 ```bash
 ccconv SESSION.jsonl                  # conversation text (human + assistant)
+ccconv --summary SESSION.jsonl        # human messages only (what was discussed)
 ccconv --with-tools SESSION.jsonl     # include tool call summaries
 ccconv --with-thinking SESSION.jsonl  # include thinking blocks
 ccconv --last 5 SESSION.jsonl         # last 5 turns only
@@ -61,6 +62,8 @@ ccconv --timeline SESSION.jsonl       # timestamped turn log
 ccconv --find "search term"           # search across recent sessions
 ccconv --recent                       # list recent sessions (default 20)
 ccconv --recent 10                    # list N most recent
+ccconv --today                        # list today's sessions
+ccconv --since 2026-03-25             # sessions since a date
 ```
 
 ### Combining Flags
@@ -68,6 +71,7 @@ ccconv --recent 10                    # list N most recent
 ```bash
 ccconv --with-tools --last 10 SESSION.jsonl    # recent turns with tools
 ccconv --with-tools --with-thinking --json ...  # everything, structured
+ccconv --summary --last 5 SESSION.jsonl         # quick recap of recent turns
 ```
 
 ---

@@ -443,10 +443,20 @@ def format_stats(entries: list[dict]) -> str:
 def find_sessions(
     base: Path | None = None,
     limit: int = 20,
+    since: str | None = None,
 ) -> list[dict]:
-    """Find recent CC session JSONL files."""
+    """Find recent CC session JSONL files.
+
+    Args:
+        since: ISO date string (YYYY-MM-DD). Only return sessions modified
+               on or after this date.
+    """
     if base is None:
         base = Path.home() / '.claude' / 'projects'
+
+    since_ts = None
+    if since:
+        since_ts = datetime.strptime(since, '%Y-%m-%d').timestamp()
 
     sessions = []
     for jsonl in base.rglob('*.jsonl'):
@@ -454,6 +464,8 @@ def find_sessions(
         if '/subagents/' in str(jsonl):
             continue
         stat = jsonl.stat()
+        if since_ts and stat.st_mtime < since_ts:
+            continue
         sessions.append({
             'path': str(jsonl),
             'size': stat.st_size,
@@ -464,7 +476,8 @@ def find_sessions(
     sessions.sort(key=lambda s: s['mtime'], reverse=True)
 
     # Enrich with first-line metadata
-    for s in sessions[:limit]:
+    enrich_limit = limit if limit else len(sessions)
+    for s in sessions[:enrich_limit]:
         try:
             with open(s['path'], 'r', errors='replace') as f:
                 first_line = f.readline().strip()
@@ -476,7 +489,7 @@ def find_sessions(
         except (json.JSONDecodeError, OSError):
             pass
 
-    return sessions[:limit]
+    return sessions[:limit] if limit else sessions
 
 
 def search_sessions(
@@ -529,6 +542,40 @@ def search_sessions(
     return results
 
 
+# ── Summary Format ────────────────────────────────────────────────
+
+def format_summary(entries: list[dict]) -> str:
+    """Human-messages-only summary — shows what the user asked, not what Claude said.
+
+    Good for quickly recalling what a session covered without reading
+    the full transcript.
+    """
+    lines = []
+    human_count = 0
+    for entry in entries:
+        if is_human_message(entry):
+            human_count += 1
+            text = extract_human_text(entry)
+            ts = entry.get('timestamp', '')
+            if ts:
+                ts = ts[11:16]  # HH:MM
+            # Truncate long messages
+            preview = text.replace('\n', ' ')
+            if len(preview) > 120:
+                preview = preview[:117] + '...'
+            lines.append(f'  {ts}  {preview}')
+
+    # Header with stats
+    assistant_merged = merge_assistant_entries(entries)
+    timestamps = [e.get('timestamp') for e in entries if e.get('timestamp')]
+    period = ''
+    if timestamps:
+        period = f'{timestamps[0][11:16]}–{timestamps[-1][11:16]}'
+
+    header = f'{human_count} messages, {len(assistant_merged)} turns, {period}'
+    return header + '\n' + '\n'.join(lines)
+
+
 # ── CLI ────────────────────────────────────────────────────────────
 
 def main():
@@ -542,16 +589,36 @@ def main():
     parser.add_argument('--last', type=int, metavar='N', help='Last N turns only')
     parser.add_argument('--json', action='store_true', dest='json_output', help='JSON output')
     parser.add_argument('--stats', action='store_true', help='Session statistics')
+    parser.add_argument('--summary', action='store_true', help='Human messages only (what was discussed)')
     parser.add_argument('--timeline', action='store_true', help='Timestamped turn log')
     parser.add_argument('--recent', nargs='?', type=int, const=20, metavar='N',
                         help='List N most recent sessions (default 20)')
+    parser.add_argument('--today', action='store_true', help='List today\'s sessions')
+    parser.add_argument('--since', type=str, metavar='DATE', help='Sessions since DATE (YYYY-MM-DD)')
     parser.add_argument('--find', type=str, metavar='TERM', help='Search across sessions')
 
     args = parser.parse_args()
 
+    # --today is sugar for --since today
+    if args.today:
+        args.since = datetime.now().strftime('%Y-%m-%d')
+        if args.recent is None:
+            args.recent = 100  # show all today's sessions
+
     # List recent sessions
     if args.recent is not None:
-        sessions = find_sessions(limit=args.recent)
+        sessions = find_sessions(limit=args.recent, since=args.since)
+        for s in sessions:
+            mtime = datetime.fromtimestamp(s['mtime']).strftime('%Y-%m-%d %H:%M')
+            size_kb = s['size'] / 1024
+            slug = s.get('slug', '')
+            sid = s.get('sessionId', '')[:8]
+            print(f'{mtime}  {size_kb:8.0f}K  {sid}  {slug:30s}  {s["path"]}')
+        return
+
+    # --since without --recent: list sessions since date
+    if args.since and args.recent is None and not args.find and not args.file:
+        sessions = find_sessions(limit=0, since=args.since)
         for s in sessions:
             mtime = datetime.fromtimestamp(s['mtime']).strftime('%Y-%m-%d %H:%M')
             size_kb = s['size'] / 1024
@@ -590,6 +657,8 @@ def main():
 
     if args.stats:
         print(format_stats(entries))
+    elif args.summary:
+        print(format_summary(entries))
     elif args.timeline:
         print(format_timeline(entries))
     elif args.json_output:
