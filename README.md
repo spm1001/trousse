@@ -38,7 +38,6 @@ The plugin system discovers skills from `skills/*/SKILL.md` automatically.
 | `/titans` (or `/review`) | Three-lens code review: hindsight, craft, foresight |
 | `/diagram` | Create diagrams with iterative render-and-check |
 | `/screenshot` | Capture screen to verify changes |
-| `/filing` | Organize files using PARA method |
 | `/picture` | Generate images with Google Imagen |
 | `/server-checkup` | Linux server audit and management |
 | `/github-cleanup` | Audit repos, find stale forks and deps |
@@ -47,6 +46,7 @@ The plugin system discovers skills from `skills/*/SKILL.md` automatically.
 | `/ia-presenter` | Write iA Presenter slide decks |
 | `/google-devdocs` | Look up Google developer documentation |
 | `/mandoline` | Transform raw data into clean BigQuery tables |
+| `/consomme` | BigQuery data analysis — discover, profile, analyse, validate, present |
 | `/toise` | Architecture review (8 checks, letter grades) |
 | `/claude-survey` | Survey naive Claude instances for design research |
 | `/ardoise` | Context-isolated Claude (blank-slate testing) |
