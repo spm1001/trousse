@@ -479,10 +479,21 @@ def check_register(content: str) -> list[Check]:
         'DROP', 'ALTER', 'INDEX', 'TABLE', 'VIEW', 'UNION', 'CASE', 'WHEN',
         'THEN', 'ELSE', 'END', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX',
         'DISTINCT', 'HAVING', 'PARTITION', 'OVER', 'CAST',
+        # SQL / BigQuery aggregation and analytic terms
+        'AGG', 'ARRAY', 'UNNEST', 'COALESCE', 'NULLIF', 'IFNULL', 'IIF',
+        'EXCEPT', 'INTERSECT', 'PIVOT', 'UNPIVOT', 'QUALIFY',
+        # Spreadsheet function names (Excel / Sheets)
+        'COUNTIF', 'COUNTIFS', 'SUMIF', 'SUMIFS', 'AVERAGEIF', 'AVERAGEIFS',
+        'VLOOKUP', 'HLOOKUP', 'XLOOKUP', 'INDEX', 'MATCH', 'LOOKUP',
+        'IFERROR', 'ISBLANK', 'ISNA', 'ISNUMBER', 'ISTEXT',
+        # Column / field abbreviations common in data analysis
+        'RLD', 'REC', 'AGE', 'SEX', 'DOB', 'DOD', 'REF', 'OBS', 'ADM',
         # Environment / shell conventions
         'HOME', 'PATH', 'LANG', 'USER',
         # Platform / tool names
         'CLAUDE', 'CLAUDECODE', 'TUI', 'SKILL',
+        # Security / package management
+        'SHA', 'CVE', 'PKG', 'GPG', 'PGP', 'HMAC',
         # Common short words that appear in ALL CAPS in technical docs
         'ONE', 'TWO', 'NOT', 'AND', 'FOR', 'THE', 'ALL',
     }
