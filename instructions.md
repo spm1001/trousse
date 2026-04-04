@@ -2,7 +2,7 @@
 
 Auto-loaded via `~/.claude/rules/trousse.md`.
 
-## Mandatory Gates
+## Skill Loading
 
 - **Before writing or editing any SKILL.md** → invoke `Skill(skill-forge)`.
 - **Before making any repo public** → use sharing-scanner skill first.
