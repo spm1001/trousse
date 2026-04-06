@@ -100,5 +100,5 @@ The handoff contract (`HANDOFF-CONTRACT.md`) lives in bon — it specifies bon's
 
 ### Cross-Skill Routing
 
-- **Before running jq on `~/.claude/projects/**/*.jsonl`** → load `/deglacer` first. The CC JSONL schema has dragons (triple-duty user entries, streaming-duplicated message IDs, version-dependent fields). Deglacer has the schema reference and `ccconv` tool.
+- **Before running jq on `~/.claude/projects/**/*.jsonl`** → load `/deglacer` first. The CC JSONL schema has dragons (triple-duty user entries, streaming-duplicated message IDs, version-dependent fields). Deglacer has the schema reference and `deglacer` CLI tool.
 - **Past session recall** → deglacer reads full transcripts; garde-manger searches memory summaries. Choose based on what you need.
