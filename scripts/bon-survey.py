@@ -12,11 +12,12 @@ Usage:
 
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
 
-def load_items(bon_path: Path) -> list[dict]:
+def load_items_jsonl(bon_path: Path) -> list[dict]:
     items = {}
     with open(bon_path) as f:
         for line in f:
@@ -28,14 +29,51 @@ def load_items(bon_path: Path) -> list[dict]:
     return list(items.values())
 
 
+def load_items_dolt(repo_path: Path) -> list[dict]:
+    """Load items from a Dolt-backed repo via bon list --jsonl."""
+    try:
+        result = subprocess.run(
+            ["bon", "list", "--jsonl"],
+            cwd=repo_path,
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            return []
+        items = {}
+        for line in result.stdout.strip().splitlines():
+            if line:
+                item = json.loads(line)
+                items[item["id"]] = item
+        return list(items.values())
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return []
+
+
+def get_backend(bon_dir: Path) -> str:
+    backend_file = bon_dir / "backend"
+    if backend_file.exists():
+        return backend_file.read_text().strip()
+    return "jsonl"
+
+
+def load_items(bon_dir: Path, repo_path: Path) -> list[dict]:
+    backend = get_backend(bon_dir)
+    if backend == "dolt":
+        return load_items_dolt(repo_path)
+    items_path = bon_dir / "items.jsonl"
+    if items_path.exists():
+        return load_items_jsonl(items_path)
+    return []
+
+
 def survey(repos_dir: Path) -> list[dict]:
     results = []
     for entry in sorted(repos_dir.iterdir()):
-        items_path = entry / ".bon" / "items.jsonl"
-        if not items_path.exists():
+        bon_dir = entry / ".bon"
+        if not bon_dir.is_dir():
             continue
 
-        items = load_items(items_path)
+        items = load_items(bon_dir, entry)
         open_items = [i for i in items if i.get("status") == "open"]
         done_items = [i for i in items if i.get("status") == "done"]
 
