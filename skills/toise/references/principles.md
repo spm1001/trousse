@@ -117,6 +117,7 @@ This is three constraints in service of one goal: making each piece of code inde
 - I/O isolated to boundaries (entry points, adapters), not mixed into business logic
 - State represented as explicit machines or single-authority containers
 - State transitions visible in one place, not spread across files
+- State keys declared in one place (typed dict, dataclass, schema block) so a fresh Claude can answer "what state does this app track?" without grepping
 
 **What bad looks like:**
 - Files over 1000 lines that require offset reads
@@ -124,14 +125,15 @@ This is three constraints in service of one goal: making each piece of code inde
 - State inferred from flag combinations across multiple files
 - `this.state` mutated from 12 different methods
 - "It depends on timing" — state is a race condition
+- 50+ ad-hoc key accesses on a framework state container (session_state, Redux store) with no declared schema
 
 **Polyglot test:** Can Claude make a correct change to a function without reading any other file?
 
 **Grading:**
-- **A:** >90% of files under 500 lines, core logic is pure, state has single authority
-- **B:** >80% under 500 lines, most core logic testable in isolation
-- **C:** Mixed file sizes, some pure functions but I/O is entangled in places
-- **D:** Multiple files over 1000 lines, state management scattered
+- **A:** >90% of files under 500 lines, core logic is pure, state has single authority with declared schema
+- **B:** >80% under 500 lines, most core logic testable in isolation, state authority clear even if schema undeclared
+- **C:** Mixed file sizes, some pure functions but I/O entangled in places, or state keys scattered without declaration
+- **D:** Multiple files over 1000 lines, state management scattered across files
 - **F:** Monolithic files, global mutable state, no separation of I/O from logic
 
 ---

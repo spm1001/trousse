@@ -187,6 +187,15 @@ architecture is right (that's another agent) or finding bugs (that's a third).
 4. Look at the largest files from the metrics: could they be split? Should they be?
 5. Check for dead code, unused imports, commented-out blocks
 6. If CLAUDE.md says "never do X", grep for X
+7. Check state management: is there a single authority for application state? Are state
+   keys declared or implicit? Can a fresh Claude answer "what state does this app track?"
+   without grepping? If state lives in a framework container (React state, Streamlit
+   session_state, Redux store), is the schema declared somewhere or scattered as ad-hoc
+   key accesses?
+8. Check condition completeness: for each user-facing path, does it handle the regular
+   case, the empty case, and the error case? If one path handles all three, do sibling
+   paths follow the same pattern? Flag gaps where the shape is inconsistent — a view that
+   handles errors but not empty state is a shape violation, same as mismatched imports.
 
 ## Temporal discipline
 
