@@ -1,8 +1,8 @@
 ---
 name: toise
 description: >
-  Deep clean and structural health check for Claude-maintained codebases. Three agents examine
-  shape (architecture), upkeep (convention drift), and goofs (correctness) in parallel, then
+  Deep clean and structural health check for Claude-maintained codebases. Three agents —
+  Cracks (architecture), Dustballs (convention drift), Goofs (correctness) — examine in parallel, then
   synthesise into an honest assessment. Triggers on 'toise', 'deep clean', 'health check',
   'should I be worried', 'check this codebase', 'is the architecture sound'. (user)
 allowed-tools: [Read, Glob, Grep, Bash, Agent]
@@ -83,9 +83,9 @@ All three agents share:
 
 ---
 
-#### Agent 1: Shape
+#### Agent 1: Cracks
 
-**Domain:** Architecture, boundaries, documentation quality.
+**Domain:** Architecture, boundaries, documentation quality — structural issues.
 **Principles:** 1 (self-documenting), 2 (is the pattern good?), 3 (boundaries).
 
 Construct the prompt:
@@ -147,7 +147,7 @@ Keep total output under 600 words.
 
 ---
 
-#### Agent 2: Upkeep
+#### Agent 2: Dustballs
 
 **Domain:** Convention drift, pattern consistency, accumulated cruft.
 **Principles:** 2 (is the pattern being followed?), 4 (small/pure/explicit).
@@ -214,7 +214,7 @@ Keep total output under 600 words.
 
 #### Agent 3: Goofs
 
-**Domain:** Correctness, bugs, recipe violations, things that are wrong.
+**Domain:** Correctness, bugs, recipe violations — the most fixable issues.
 **Principles:** 5 (extend by recipe), plus general correctness.
 
 Construct the prompt:
@@ -317,16 +317,16 @@ Present grouped by agent lens, using the house metaphor:
 | 4. Small/pure/explicit | B | p90 at 415; cli.py outlier at 1605 | Upkeep |
 | 5. Extend by recipe | B | Recipes present; two recent modules diverged | Goofs |
 
-### Cracks (structural — Shape agent)
+### Cracks (structural)
 Issues with architecture, boundaries, or CLAUDE.md completeness.
 1. [Finding]
 
-### Dustballs (accumulated cruft — Upkeep agent)
+### Dustballs (accumulated cruft)
 Drift, naming ghosts, convention inconsistency, dead code.
 1. [Finding]
 
-### Dodgy wiring (correctness — Goofs agent)
-Bugs, recipe violations, logic errors, things that could shock you.
+### Goofs (bugs and mistakes)
+Recipe violations, logic errors, correctness issues.
 1. [Finding]
 
 ### Proposed CLAUDE.md additions
