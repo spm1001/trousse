@@ -1,6 +1,6 @@
 ---
 name: toise
-description: Orchestrates architecture review for Claude-maintained software — 3-phase process (measure, grade, report) across 8 checks that produces letter grades with evidence, ensuring architectural debt is caught before it compounds. Invoke BEFORE adding significant complexity or when inheriting an unfamiliar repo. Triggers on 'toise review', 'review this architecture', 'is this Claude-friendly', 'check maintainability', 'before we add complexity', 'measure this codebase'. Do NOT use for pure code review (use titans). (user)
+description: Orchestrates architecture review for Claude-maintained software — 3-stage process (measure, analyse, report) that grades codebases against five principles and proposes CLAUDE.md improvements. Invoke before adding significant complexity or when inheriting an unfamiliar repo. Triggers on 'toise review', 'review this architecture', 'is this Claude-friendly', 'check maintainability', 'before we add complexity', 'measure this codebase'. Do NOT use for pure code review (use titans). (user)
 allowed-tools: [Read, Glob, Grep, Bash, Agent]
 ---
 
@@ -8,20 +8,23 @@ allowed-tools: [Read, Glob, Grep, Bash, Agent]
 
 Architecture review for Claude-maintained software.
 
-**Core thesis:** Software maintained by Claude has different architectural needs than software maintained only by humans. These needs are empirically discoverable — codebases that were rebuilt for "claude-comfort" show consistent patterns. This skill codifies those patterns as review checks.
+**Core thesis:** Claude is the primary code-touching entity in these codebases. Architecture that works for Claude encodes global decisions in discoverable artefacts so that each fresh session can do good local work without the architect in the room. Five principles capture what makes this work. This skill measures codebases against them.
 
-Grounded in Basecamp's *Getting Real* philosophy (less mass, interface first, opinionated software, fix time flex scope) and extended with **claude-maintainability** principles derived from real rebuild case studies.
+**Relationship to other artefacts:**
+- `understanding.md` is the soul — accumulated wisdom, grown through /close handoffs. Toise reads it for context but never writes to it.
+- `CLAUDE.md` is the manual — actionable guidance for Claude. Toise proposes improvements to it.
+- `principles.md` is the manifesto — the five principles and their grading rubrics.
 
-See `references/claude-maintainability.md` for the full principles with evidence.
-See `references/evidence.md` for the empirical case studies.
+See `references/principles.md` for the full principles with grading rubrics.
+See `references/evidence.md` for empirical case studies.
 
 ## When to Use
 
-- Reviewing architecture of a codebase Claude will maintain long-term
 - Inheriting an unfamiliar repo — assess before modifying
-- Before adding significant complexity (new framework, new abstraction layer, new dependency)
+- Before adding significant complexity (new framework, new abstraction layer)
 - Periodic health check on an actively-developed project
 - After a major refactor, to verify improvements landed
+- When CLAUDE.md feels stale or incomplete
 
 ## When NOT to Use
 
@@ -29,251 +32,142 @@ See `references/evidence.md` for the empirical case studies.
 - One-off scripts that won't be maintained
 - Reviewing someone else's library you consume but don't modify
 
-## The Eight Checks
+## The Five Principles
 
-Run all eight. Report each as a letter grade (A-F) with a one-line verdict and supporting evidence. Present as a table first, then expand failing checks.
+| # | Principle | Core Question |
+|---|-----------|--------------|
+| 1 | Self-documenting files | Can Claude orient in 10 seconds? |
+| 2 | One shape, everywhere | Can Claude predict sibling modules? |
+| 3 | Boundaries are the architecture | Can Claude trace impact without reading implementation? |
+| 4 | Small, pure, explicit | Can Claude change a function without reading other files? |
+| 5 | Extend by recipe | Can Claude add features by following instructions? |
 
-### 1. Mass
-
-**Question:** How much does this codebase weigh?
-
-**Check:**
-- Count runtime dependencies (package.json `dependencies`, pyproject.toml `[dependencies]`)
-- Count build pipeline stages (bundler, transpiler, minifier, CSS preprocessor)
-- Measure framework lock-in depth (can you swap the framework without rewriting?)
-- Check for dead dependencies (imported but unused)
-
-**Grading:**
-- **A:** 0-3 runtime deps, no build step or single-command build
-- **B:** 4-8 runtime deps, straightforward build
-- **C:** 9-15 runtime deps, multi-stage build
-- **D:** 16+ runtime deps or build pipeline with 3+ stages
-- **F:** Can't build without reading a wiki
-
-**Evidence:** Gueridon: 2 runtime deps, no build step (A). mise-en-space: 11 runtime deps, no build step (B). mcp-google-workspace v1 had 17 tools mapping 1:1 to APIs — mass in interface rather than dependencies.
-
-### 2. State Clarity
-
-**Question:** Can you point to where the application state lives?
-
-**Check:**
-- Is there an explicit state machine or state container? Where?
-- Grep for global mutable state (`global`, `window.`, class-level mutation, singletons)
-- Are there multiple components that independently track the same state? (Shadow state machines)
-- Can a single component answer "what state is the system in right now?"
-
-**Grading:**
-- **A:** Single explicit state authority, consumers are pure renderers
-- **B:** Explicit state, but some consumers derive local state
-- **C:** State distributed across 2-3 locations with sync logic
-- **D:** Implicit state inferred from flag combinations across files
-- **F:** "It depends on timing" — state is a race condition
-
-**Evidence:** claude-go had 5 systems implicitly encoding session state (F). Gueridon v2's StateBuilder is the single authority (A). The interim shadow state machine ("two state machines trying to agree on reality") was a C that degraded to D under edge cases.
-
-### 3. Epicenter
-
-**Question:** For each major screen/endpoint/command — is the core purpose immediately obvious?
-
-**Check:**
-- Read entry points (HTML files, route handlers, CLI commands). Is the primary content/function the structural root, or buried under chrome/middleware/abstraction?
-- Can you identify what the module DOES from its first 20 lines?
-- Are module names descriptive of purpose? (`state-builder.ts` vs `utils.ts`, `extractors/slides.py` vs `helpers.py`)
-
-**Grading:**
-- **A:** Every module's purpose is obvious from name + first 20 lines
-- **B:** Most modules are clear; 1-2 need reading further
-- **C:** Module purposes clear but buried under framework boilerplate
-- **D:** Need to read 100+ lines to understand what a module does
-- **F:** Modules named `utils`, `helpers`, `common`, `misc`
-
-### 4. Opinion
-
-**Question:** Does this software take a clear position, or try to be everything?
-
-**Check:**
-- Count preference/settings/configuration screens or options
-- Count feature flags or A/B test branches
-- Is there a stated vision ("project management is communication", "3 verbs not 17 tools")?
-- Does the CLAUDE.md or README state what this software deliberately does NOT do?
-
-**Grading:**
-- **A:** Clear vision stated, deliberate exclusions documented, zero preference screens
-- **B:** Vision clear, few configuration options, all justified
-- **C:** Some unnecessary configurability, but core is opinionated
-- **D:** Extensive preference screens, no clear position
-- **F:** Tries to please everyone, feature flags everywhere
-
-**Evidence:** Gueridon: no model picker, no thinking selector, no auth config — deliberate exclusions documented in decisions.md (A). mise: 3 verbs instead of 17 tools (A).
-
-### 5. Three States
-
-**Question:** Does every user-facing screen/endpoint handle regular, empty, and error conditions?
-
-**Check:**
-- For each screen/page/endpoint: grep for empty-state handling, error boundaries, loading states
-- Check what happens with zero data (blank slate)
-- Check what happens when the backend is unreachable
-- Check what happens with malformed input
-
-**Grading:**
-- **A:** All screens handle all three states with thoughtful UX/messages
-- **B:** Most screens handle all three; minor gaps
-- **C:** Regular state polished, empty/error states minimal
-- **D:** Error states are raw exceptions or generic "something went wrong"
-- **F:** Empty state shows broken layout; errors crash
-
-**Evidence:** Gueridon has a fourth state (reconnecting) because mobile demands it. mise has typed `MiseError` with `ErrorKind` enum and `retryable` hint.
-
-### 6. Copywriting
-
-**Question:** Are user-facing strings written with care?
-
-**Check:**
-- Extract button labels, placeholder text, error messages, empty state text
-- Flag generic strings: "Submit", "Error", "Loading...", "Something went wrong", "N/A"
-- Check whether error messages tell the user what to DO, not just what went wrong
-- Check whether empty states explain what will appear and how to get started
-
-**Grading:**
-- **A:** Every string is purposeful, errors suggest actions, empty states guide
-- **B:** Mostly good, a few generic strings
-- **C:** Functional but generic ("Error occurred", "No data")
-- **D:** Raw technical messages shown to users
-- **F:** `console.log` or stack traces visible to end users
-
-### 7. Cost of Change
-
-**Question:** How expensive is it to change this software?
-
-**Check:**
-- Measure build time (if any)
-- Measure test suite time
-- Count files that must change for a typical feature addition
-- Is there a build step between edit and seeing the result?
-- How many files would a Claude need to read to add a new feature?
-
-**Grading:**
-- **A:** Edit-and-reload, tests < 15s, typical change touches 1-3 files
-- **B:** Fast build (< 30s), tests < 60s, typical change touches 3-5 files
-- **C:** Build under 2 minutes, tests under 5 minutes
-- **D:** Build over 2 minutes or tests over 5 minutes
-- **F:** "Deploy to see if it works"
-
-**Evidence:** Gueridon: no build step, 576 tests in ~8s, typical change touches 1-2 files (A). mise: no build step, fixture-driven tests, adding a content type follows a 3-file recipe (A).
-
-### 8. Claude-Readiness
-
-**Question:** Is this codebase set up for a Claude to maintain it effectively?
-
-**Check:**
-- **CLAUDE.md quality:** Does it exist? Does it have architecture overview, module map, dependency rules, extension recipes, anti-patterns? Score 0-5 (one point each).
-- **Test coverage as spec:** Can Claude understand what the code does by reading tests? Are there fixture files for complex inputs?
-- **File size distribution:** What percentage of source files are under 500 lines? Under 800?
-- **Pure function ratio:** What fraction of core logic is in pure, testable functions vs I/O-entangled code?
-- **Framework magic depth:** How many layers of framework convention must Claude understand to trace a request end-to-end?
-- **Decisions documented:** Is there a decisions.md or ADR directory with rationale?
-- **Extension recipes:** Are "How to Add X" patterns documented?
-
-**Grading:**
-- **A:** CLAUDE.md 5/5, >80% files under 800 lines, core logic is pure functions, decisions documented, extension recipes present
-- **B:** CLAUDE.md 3-4/5, >60% files under 800 lines, most core logic testable
-- **C:** CLAUDE.md exists but thin, mixed file sizes, some pure functions
-- **D:** No CLAUDE.md, large files, logic entangled with I/O
-- **F:** No documentation, no tests, framework-dependent throughout
+Full rubrics in `references/principles.md`.
 
 ## Running the Review
 
-### Phase 1: Measure (automated)
+Three stages. Run them in order — no skipping measurement.
 
-Use grep, glob, read, and bash to gather metrics for all eight checks. Do this systematically — don't skip to opinions.
+### Stage 1: Measure
 
-```
-# Mass
-- Read package.json/pyproject.toml for dep counts
-- Check for build scripts/config (webpack, vite, esbuild, tsc)
-- Grep for unused imports
+Run the automated metrics script. This produces hard numbers before any opinions form.
 
-# State Clarity
-- Grep for state management patterns (global, singleton, useState, this.state)
-- Look for explicit state machine files
-- Check if multiple files track overlapping state
-
-# Epicenter
-- Read entry points (index.html, main.py, server.ts, cli.py)
-- Check module naming conventions
-- Read first 20 lines of each source file
-
-# Opinion
-- Grep for preference/settings/config UI
-- Count feature flags
-- Read README/CLAUDE.md for stated vision and exclusions
-
-# Three States
-- Grep for error boundary/handler patterns
-- Grep for empty state/blank slate/no-data handling
-- Check error message quality
-
-# Copywriting
-- Extract user-facing strings (button text, placeholders, error messages)
-- Flag generics
-
-# Cost of Change
-- Check build config complexity
-- Run test suite, measure time
-- Count files touched in last 10 feature commits
-
-# Claude-Readiness
-- Score CLAUDE.md against 5-point rubric
-- Measure file size distribution
-- Identify pure vs I/O-entangled modules
-- Check for decisions.md and extension recipes
+```bash
+uv run --script <path-to-skill>/references/metrics.py <repo-path>
 ```
 
-### Phase 2: Grade
+The script scans git-tracked source files and reports:
+- File size distribution (p50, p90, max, files over 500/1000 lines)
+- First-breath score (% of files with purpose visible in first 20 lines)
+- Boundary artefact checklist (CLAUDE.md, AGENTS.md, understanding.md, generated-files manifest)
+- CLAUDE.md quality (section checklist: architecture, module map, dependency rules, recipes, anti-patterns)
+- Pattern signals (test framework consistency, error handling patterns)
+- Extension recipe presence
 
-Assign letter grades using the rubrics above. Be honest — the point is to find improvement opportunities, not to validate.
+Also read these files if they exist — they provide context the agent needs:
+- `.bon/understanding.md` — project history, design rationale, landmines
+- `CLAUDE.md` / `AGENTS.md` — current guidance
 
-### Phase 3: Report
+Save the metrics output and any context files for Stage 2.
 
-Present as:
+### Stage 2: Analyse
+
+Spawn a single architecture reviewer agent. Pass it the metrics output, the principles, and any context from understanding.md.
+
+The agent's job: read the codebase, assess each principle using the metrics as a starting point but applying judgement where metrics can't reach, and produce grades with evidence.
+
+Use the Agent tool with this structure:
 
 ```
-## Getting Real Review: [project name]
+Agent({
+  description: "Architecture review against five principles",
+  prompt: <constructed below>
+})
+```
 
-| Check | Grade | Verdict |
-|-------|-------|---------|
-| Mass | B | 7 deps, no build step — lean but could trim 2 unused |
-| State Clarity | A | StateBuilder is single authority |
-| Epicenter | A | Every module named for purpose |
-| Opinion | A | Vision stated, deliberate exclusions documented |
-| Three States | B | Missing error state on settings page |
-| Copywriting | C | 4 generic error messages, empty states need work |
-| Cost of Change | A | Edit-and-reload, 8s test suite |
-| Claude-Readiness | A | CLAUDE.md 5/5, extension recipes, decisions documented |
+**Construct the prompt from these parts:**
+
+1. **Role:** "You are an architecture reviewer assessing a codebase against five principles for Claude-maintained software."
+
+2. **Principles:** Inline the content of `references/principles.md` (the full principles with grading rubrics).
+
+3. **Suppression list:** Inline the content of `references/suppression.md` (what NOT to flag).
+
+4. **Metrics output:** Paste the output from Stage 1.
+
+5. **Context:** If understanding.md exists, include it with a note: "This is the project's accumulated institutional memory. Use it to understand WHY decisions were made, but assess the current codebase — not the history."
+
+6. **Instructions:**
+
+```
+Assess this codebase against the five principles. For each principle:
+
+1. Start from the metrics — they give you the automated signal.
+2. Read key files to assess what metrics can't measure:
+   - Principle 1: Are the explanations accurate and sufficient? (read a sample of files)
+   - Principle 2: Is the dominant pattern good, or just consistent? (read 3-4 modules)
+   - Principle 3: Are boundaries in the right places? (read CLAUDE.md, module exports)
+   - Principle 4: Is state management clear, not just explicit? (read core modules)
+   - Principle 5: Are the recipes complete and correct? (try following one mentally)
+3. Assign a letter grade (A-F) using the rubrics in the principles document.
+4. Write a one-line verdict for each principle.
+5. For any principle graded C or below, write 3-5 sentences explaining the issue with specific file references.
+6. Propose specific CLAUDE.md additions that would improve the weakest principles. These should be concrete paragraphs the maintainer can accept or edit, not vague suggestions.
+
+Confidence calibration:
+- Only report findings at 0.60+ confidence.
+- Every finding must cite specific files or metrics as evidence.
+- Do not flag items on the suppression list.
+- Do not propose rewrites or major refactors — flag the issue and grade; decisions are the maintainer's.
+
+Output format:
+- Grade table (principle | grade | one-line verdict)
+- Expanded analysis for C-or-below grades
+- Proposed CLAUDE.md additions as markdown blocks
+- Keep total output under 800 words — this is a summary, not a report.
+```
+
+### Stage 3: Report
+
+Present the agent's output to the user. Format:
+
+```markdown
+## Toise Review: [project name]
+
+| Principle | Grade | Verdict |
+|-----------|-------|---------|
+| 1. Self-documenting | B | 95% first-breath score; 2 files lack rationale for design choices |
+| 2. One shape | A | Consistent pytest + exceptions pattern; justified deviations documented |
+| 3. Boundaries | C | CLAUDE.md exists but thin (2/5 sections); no extension recipes |
+| 4. Small/pure/explicit | B | p90 at 415 lines; one outlier at 1605 (cli.py) |
+| 5. Extend by recipe | D | No extension documentation; Claude would have to reverse-engineer from code |
 
 ### Priority improvements
-1. [Most impactful failing check — what to do]
-2. [Second most impactful]
-3. [Third, if any]
+
+1. **CLAUDE.md needs extension recipes** (Principle 5, grade D)
+   cli.py follows a consistent command pattern — document it as a recipe:
+   "To add a new command: define `cmd_foo()` in cli.py following the
+   `check_initialized → load_items → mutate → save_items` pattern, add
+   the subparser in `build_parser()`, and add a test in `tests/test_foo.py`."
+
+2. **CLAUDE.md architecture section** (Principle 3, grade C)
+   [proposed paragraph...]
+
+### Proposed CLAUDE.md additions
+
+[Concrete markdown blocks the user can accept/edit/reject]
 ```
 
-Only expand checks that score C or below. A and B grades get the one-line verdict only.
-
-## Composing With Other Skills
-
-| Skill | Relationship |
-|-------|-------------|
-| **titans** | Titans reviews code quality (bugs, craft, foresight). Getting Real reviews architecture and product decisions. Run both before shipping substantial work. |
-| **bon** | Improvement items from the review become bon outcomes. |
-| **mcp-builder** | When reviewing an MCP server, Getting Real's "Few verbs, small interface" check is particularly relevant. |
+Only expand principles graded C or below. A and B grades get the one-line verdict only.
 
 ## Anti-Patterns
 
-| Anti-pattern | Problem | Fix |
-|---|---|---|
-| Skipping measurement | Opinions without evidence | Run phase 1 first |
-| Grading everything A | Sycophantic review helps nobody | Apply the grading rubric honestly — C or below means real issues |
-| Reviewing code style | Out of scope for toise | Use titans for bugs, craft, and foresight |
-| Proposing rewrites | User's call, not reviewer's | Flag the issue and grade; leave the decision to the user |
-| Ignoring Claude-Readiness | Misses the novel contribution | Check 8 is mandatory — don't skip it |
+| Anti-pattern | Problem |
+|---|---|
+| Skipping measurement | Opinions without evidence. Run Stage 1 first. |
+| Grade inflation | Sycophantic review helps nobody. Apply rubrics honestly. |
+| Reviewing code style | Wrong scope — use titans for bugs, craft, idiom. |
+| Proposing rewrites | Flag and grade; decisions are the maintainer's call. |
+| Flagging generated files | Metrics script skips them. The agent should too. |
+| Generic suggestions | "Consider adding documentation" — say WHAT documentation WHERE. |
+| Ignoring understanding.md | It tells you why. Without it you'll misdiagnose. |
