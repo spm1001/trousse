@@ -1,38 +1,43 @@
 ---
 name: toise
-description: Orchestrates architecture review for Claude-maintained software — 3-stage process (measure, analyse, report) that grades codebases against five principles and proposes CLAUDE.md improvements. Invoke before adding significant complexity or when inheriting an unfamiliar repo. Triggers on 'toise review', 'review this architecture', 'is this Claude-friendly', 'check maintainability', 'before we add complexity', 'measure this codebase'. Do NOT use for pure code review (use titans). (user)
+description: >
+  Deep clean and structural health check for Claude-maintained codebases. Three agents examine
+  shape (architecture), upkeep (convention drift), and goofs (correctness) in parallel, then
+  synthesise into an honest assessment. Triggers on 'toise', 'deep clean', 'health check',
+  'should I be worried', 'check this codebase', 'is the architecture sound'. (user)
 allowed-tools: [Read, Glob, Grep, Bash, Agent]
 ---
 
 # Toise
 
-Architecture review for Claude-maintained software.
+Deep clean and structural health check for Claude-maintained software.
 
-**Core thesis:** Claude is the primary code-touching entity in these codebases. Architecture that works for Claude encodes global decisions in discoverable artefacts so that each fresh session can do good local work without the architect in the room. Five principles capture what makes this work. This skill measures codebases against them.
+**Purpose:** When you're uncertain whether the ground is solid — early foundations, mid-project drift, scale pressure — toise gives you an honest, evidence-backed answer. It finds the dustballs behind the sofa, flags drift that accumulated across sessions, and occasionally surfaces structural concerns that session-level review can't see.
 
-**Relationship to other artefacts:**
-- `understanding.md` is the soul — accumulated wisdom, grown through /close handoffs. Toise reads it for context but never writes to it.
-- `CLAUDE.md` is the manual — actionable guidance for Claude. Toise proposes improvements to it.
-- `principles.md` is the manifesto — the five principles and their grading rubrics.
+**Core thesis:** Claude is the primary code-touching entity in these codebases. Architecture that works for Claude encodes global decisions in discoverable artefacts so that each fresh session can do good local work without the architect in the room. Five principles capture what makes this work (see `references/principles.md`).
 
-See `references/principles.md` for the full principles with grading rubrics.
-See `references/evidence.md` for empirical case studies.
+**Relationship to other tools:**
+- **Toise** = periodic deep clean + structural assessment (this skill)
+- **Titans** = session-level code review (bugs, craft, idiom)
+- **understanding.md** = the soul. Toise reads it for context, never writes to it.
+- **CLAUDE.md** = the manual. Toise proposes improvements to it.
 
 ## When to Use
 
-- Inheriting an unfamiliar repo — assess before modifying
-- Before adding significant complexity (new framework, new abstraction layer)
+- Something feels off but you can't name it
+- Laying foundations early — "are we building on sand?"
+- After a rebuild or major refactor — "did the lessons land?"
 - Periodic health check on an actively-developed project
-- After a major refactor, to verify improvements landed
-- When CLAUDE.md feels stale or incomplete
+- Inheriting an unfamiliar repo — assess before modifying
+- File sizes or complexity are climbing and you're not sure if it matters
 
 ## When NOT to Use
 
-- Pure code review (bugs, style, idiom) — use titans
+- Just finished a feature and want a quick review — use titans or the /close ritual
 - One-off scripts that won't be maintained
 - Reviewing someone else's library you consume but don't modify
 
-## The Five Principles
+## The Five Principles (Lens, Not Rubric)
 
 | # | Principle | Core Question |
 |---|-----------|--------------|
@@ -42,7 +47,9 @@ See `references/evidence.md` for empirical case studies.
 | 4 | Small, pure, explicit | Can Claude change a function without reading other files? |
 | 5 | Extend by recipe | Can Claude add features by following instructions? |
 
-Full rubrics in `references/principles.md`.
+Full rubrics in `references/principles.md`. Empirical evidence in `references/evidence.md`.
+
+---
 
 ## Running the Review
 
@@ -50,115 +57,329 @@ Three stages. Run them in order — no skipping measurement.
 
 ### Stage 1: Measure
 
-Run the automated metrics script. This produces hard numbers before any opinions form.
+Run the automated metrics script. Hard numbers before opinions.
 
 ```bash
 uv run --script <path-to-skill>/references/metrics.py <repo-path>
 ```
 
-The script scans git-tracked source files and reports:
-- File size distribution (p50, p90, max, files over 500/1000 lines)
-- First-breath score (% of files with purpose visible in first 20 lines)
-- Boundary artefact checklist (CLAUDE.md, AGENTS.md, understanding.md, generated-files manifest)
-- CLAUDE.md quality (section checklist: architecture, module map, dependency rules, recipes, anti-patterns)
-- Pattern signals (test framework consistency, error handling patterns)
-- Extension recipe presence
+Save the output — all three agents will receive it.
 
-Also read these files if they exist — they provide context the agent needs:
-- `.bon/understanding.md` — project history, design rationale, landmines
+Also read these context files if they exist and save their content:
 - `CLAUDE.md` / `AGENTS.md` — current guidance
+- `.bon/understanding.md` — project history, design rationale, landmines
 
-Save the metrics output and any context files for Stage 2.
+### Stage 2: Examine
 
-### Stage 2: Analyse
+Dispatch three agents in parallel. Each examines the codebase through a different lens, using the metrics as a starting point.
 
-Spawn a single architecture reviewer agent. Pass it the metrics output, the principles, and any context from understanding.md.
+All three agents share:
+- The metrics output from Stage 1
+- The suppression list (`references/suppression.md` — inline it)
+- Context from understanding.md (if it exists)
+- The temporal discipline (below)
 
-The agent's job: read the codebase, assess each principle using the metrics as a starting point but applying judgement where metrics can't reach, and produce grades with evidence.
+**Launch all three in a single message** using the Agent tool. Use `model: "opus"` for depth.
 
-Use the Agent tool with this structure:
+---
 
-```
-Agent({
-  description: "Architecture review against five principles",
-  prompt: <constructed below>
-})
-```
+#### Agent 1: Shape
 
-**Construct the prompt from these parts:**
+**Domain:** Architecture, boundaries, documentation quality.
+**Principles:** 1 (self-documenting), 2 (is the pattern good?), 3 (boundaries).
 
-1. **Role:** "You are an architecture reviewer assessing a codebase against five principles for Claude-maintained software."
-
-2. **Principles:** Inline the content of `references/principles.md` (the full principles with grading rubrics).
-
-3. **Suppression list:** Inline the content of `references/suppression.md` (what NOT to flag).
-
-4. **Metrics output:** Paste the output from Stage 1.
-
-5. **Context:** If understanding.md exists, include it with a note: "This is the project's accumulated institutional memory. Use it to understand WHY decisions were made, but assess the current codebase — not the history."
-
-6. **Instructions:**
+Construct the prompt:
 
 ```
-Assess this codebase against the five principles. For each principle:
+You are examining the structural shape of a Claude-maintained codebase. Claude is the
+primary code-touching entity — it arrives every session fresh, reads files one at a time,
+and navigates by boundaries (CLAUDE.md, module exports, test contracts).
 
-1. Start from the metrics — they give you the automated signal.
-2. Read key files to assess what metrics can't measure:
-   - Principle 1: Are the explanations accurate and sufficient? (read a sample of files)
-   - Principle 2: Is the dominant pattern good, or just consistent? (read 3-4 modules)
-   - Principle 3: Are boundaries in the right places? (read CLAUDE.md, module exports)
-   - Principle 4: Is state management clear, not just explicit? (read core modules)
-   - Principle 5: Are the recipes complete and correct? (try following one mentally)
-3. Assign a letter grade (A-F) using the rubrics in the principles document.
-4. Write a one-line verdict for each principle.
-5. For any principle graded C or below, write 3-5 sentences explaining the issue with specific file references.
-6. Propose specific CLAUDE.md additions that would improve the weakest principles. These should be concrete paragraphs the maintainer can accept or edit, not vague suggestions.
+Your job: assess whether the architecture helps or hinders Claude's ability to do good
+work. You are not reviewing code quality or finding bugs — that's another agent's job.
 
-Confidence calibration:
-- Only report findings at 0.60+ confidence.
-- Every finding must cite specific files or metrics as evidence.
-- Do not flag items on the suppression list.
-- Do not propose rewrites or major refactors — flag the issue and grade; decisions are the maintainer's.
+## Principles (your lens)
 
-Output format:
-- Grade table (principle | grade | one-line verdict)
-- Expanded analysis for C-or-below grades
-- Proposed CLAUDE.md additions as markdown blocks
-- Keep total output under 800 words — this is a summary, not a report.
+[Inline principles 1, 2, 3 from references/principles.md — full text including grading rubrics]
+
+## Suppression list
+
+[Inline references/suppression.md]
+
+## Metrics
+
+[Paste Stage 1 output]
+
+## Context
+
+[If understanding.md exists: paste it with note "This is institutional memory. Use it to
+understand WHY decisions were made, but assess the current state."]
+
+## What to examine
+
+1. Read CLAUDE.md / AGENTS.md — is the guidance accurate, complete, and current?
+2. Read 3-5 representative source files — do they self-document?
+3. Check the dominant pattern: read 2-3 sibling modules. Could you predict one from another?
+4. Check boundary clarity: can you determine module dependencies without reading implementation?
+5. If understanding.md exists, check: does CLAUDE.md reflect the lessons it records?
+
+## Temporal discipline
+
+For every finding, ask three questions:
+- **What was missed?** — a boundary that should exist but doesn't, a pattern that drifted
+- **What could go wrong?** — a structural weakness that hasn't broken yet but will under pressure
+- **What could be better?** — an improvement that would make Claude's job easier
+
+## Output format
+
+For each principle (1, 2, 3):
+- Letter grade (A-F) using the rubrics
+- One-line verdict
+- If grade is C or below: 2-4 sentences with specific file references
+
+Then:
+- Up to 3 proposed CLAUDE.md additions — concrete paragraphs, not vague suggestions
+- Any structural concerns that cross principle boundaries
+
+Confidence: only report findings at 0.60+. Cite specific files as evidence.
+Keep total output under 600 words.
 ```
 
-### Stage 3: Report
+---
 
-Present the agent's output to the user. Format:
+#### Agent 2: Upkeep
+
+**Domain:** Convention drift, pattern consistency, accumulated cruft.
+**Principles:** 2 (is the pattern being followed?), 4 (small/pure/explicit).
+
+Construct the prompt:
+
+```
+You are examining convention adherence and maintenance quality in a Claude-maintained
+codebase. Claude starts every session fresh — inconsistencies that a human team would
+internalise over time are re-encountered as surprises by each new Claude.
+
+Your job: find where the codebase drifted from its own stated conventions, where patterns
+are inconsistent, and where things got big or tangled. You are not assessing whether the
+architecture is right (that's another agent) or finding bugs (that's a third).
+
+## Principles (your lens)
+
+[Inline principles 2, 4 from references/principles.md — full text including grading rubrics]
+
+## Suppression list
+
+[Inline references/suppression.md]
+
+## Metrics
+
+[Paste Stage 1 output]
+
+## Context
+
+[If understanding.md exists: paste with context note]
+
+## What to examine
+
+1. Read CLAUDE.md conventions — then check if the code follows them
+2. Compare test files: do they use consistent patterns (setup, assertions, naming)?
+3. Check error handling: is it uniform across modules or mixed?
+4. Look at the largest files from the metrics: could they be split? Should they be?
+5. Check for dead code, unused imports, commented-out blocks
+6. If CLAUDE.md says "never do X", grep for X
+
+## Temporal discipline
+
+For every finding, ask:
+- **What drifted?** — a convention that was followed early but abandoned recently
+- **What could go wrong?** — an inconsistency that will confuse the next Claude
+- **What could be better?** — a cleanup that would make the codebase more predictable
+
+## Output format
+
+For each principle (2, 4):
+- Letter grade (A-F) using the rubrics
+- One-line verdict
+- If grade is C or below: 2-4 sentences with specific file references
+
+Then:
+- Drift findings: specific instances where code doesn't match stated conventions
+- Cruft findings: dead code, duplication, files that grew too large
+- Each finding tagged with confidence (0.60-1.0)
+
+Keep total output under 600 words.
+```
+
+---
+
+#### Agent 3: Goofs
+
+**Domain:** Correctness, bugs, recipe violations, things that are wrong.
+**Principles:** 5 (extend by recipe), plus general correctness.
+
+Construct the prompt:
+
+```
+You are looking for things that are wrong in a Claude-maintained codebase. Not style
+issues, not architecture opinions — actual problems. Bugs, logic errors, security issues,
+dead code paths, and places where someone extended the codebase without following the
+established recipe (producing code that works but doesn't fit).
+
+## Principles (your lens)
+
+[Inline principle 5 from references/principles.md — full text including grading rubric]
+
+## Suppression list
+
+[Inline references/suppression.md]
+
+## Metrics
+
+[Paste Stage 1 output]
+
+## Context
+
+[If understanding.md exists: paste with context note]
+
+## What to examine
+
+1. If CLAUDE.md has extension recipes: check recent modules — did they follow the recipe?
+   Read the recipe, then read 2-3 modules that look like they were added later. Do they
+   match the recipe or diverge?
+2. Read core modules looking for: uncaught exceptions, missing edge cases, logic errors
+3. Check test coverage: are there modules with no corresponding test file?
+4. Look for security basics: hardcoded secrets, unsanitised input, command injection risks
+5. Check for stale references: does CLAUDE.md reference files or patterns that no longer exist?
+
+## Temporal discipline
+
+For every finding, ask:
+- **What already broke?** — a bug, a stale reference, a recipe violation that shipped
+- **What could break?** — a missing edge case, an untested path, a security gap
+- **What should be cleaned up?** — dead code, stale docs, orphaned test fixtures
+
+## Output format
+
+Principle 5:
+- Letter grade (A-F) using the rubric
+- One-line verdict
+- If grade is C or below: 2-4 sentences with specific file references
+
+Correctness findings:
+- Each finding: what's wrong, where (file:line), severity (critical/warning/note), confidence (0.60-1.0)
+- Only report findings at 0.60+ confidence with specific evidence
+- Do not flag style issues, naming preferences, or architectural opinions
+
+Keep total output under 600 words.
+```
+
+---
+
+### Stage 3: Synthesise
+
+Collect all three agent outputs. **You** (the orchestrating Claude) write the final report.
+
+#### The Honest Answer
+
+Read all findings. Step back. Write one paragraph answering: **"Should the maintainer be worried? About what?"**
+
+This is the most important part of the output. It should be:
+- Direct — "You're fine" or "Yes, worry about X"
+- Evidence-backed — cite the specific metrics or findings that support the assessment
+- Proportionate — don't catastrophise a B; don't minimise a structural crack
+- Honest — if the codebase is solid, say so without inventing concerns
+
+#### The Findings
+
+Merge and deduplicate findings from all three agents. Apply these filters:
+
+1. **Suppression:** Drop anything on the suppression list that agents missed
+2. **Confidence:** Drop findings below 0.60
+3. **Deduplication:** If two agents found the same issue, keep the more specific version
+4. **Agreement bonus:** If multiple agents flagged the same concern, elevate it
+
+Present grouped by agent lens, using the house metaphor:
 
 ```markdown
-## Toise Review: [project name]
+## Toise: [project name]
 
-| Principle | Grade | Verdict |
-|-----------|-------|---------|
-| 1. Self-documenting | B | 95% first-breath score; 2 files lack rationale for design choices |
-| 2. One shape | A | Consistent pytest + exceptions pattern; justified deviations documented |
-| 3. Boundaries | C | CLAUDE.md exists but thin (2/5 sections); no extension recipes |
-| 4. Small/pure/explicit | B | p90 at 415 lines; one outlier at 1605 (cli.py) |
-| 5. Extend by recipe | D | No extension documentation; Claude would have to reverse-engineer from code |
+### The honest answer
 
-### Priority improvements
+[One paragraph. Direct assessment backed by evidence.]
 
-1. **CLAUDE.md needs extension recipes** (Principle 5, grade D)
-   cli.py follows a consistent command pattern — document it as a recipe:
-   "To add a new command: define `cmd_foo()` in cli.py following the
-   `check_initialized → load_items → mutate → save_items` pattern, add
-   the subparser in `build_parser()`, and add a test in `tests/test_foo.py`."
+### Grades
 
-2. **CLAUDE.md architecture section** (Principle 3, grade C)
-   [proposed paragraph...]
+| Principle | Grade | Verdict | Agent |
+|-----------|-------|---------|-------|
+| 1. Self-documenting | B | 95% first-breath; 2 files lack rationale | Shape |
+| 2. One shape | A/B | Pattern is good (A) but drifting in newer modules (B) | Shape/Upkeep |
+| 3. Boundaries | C | CLAUDE.md exists but thin (2/5 sections) | Shape |
+| 4. Small/pure/explicit | B | p90 at 415; cli.py outlier at 1605 | Upkeep |
+| 5. Extend by recipe | B | Recipes present; two recent modules diverged | Goofs |
+
+### Cracks (structural — Shape agent)
+Issues with architecture, boundaries, or CLAUDE.md completeness.
+1. [Finding]
+
+### Dustballs (accumulated cruft — Upkeep agent)
+Drift, naming ghosts, convention inconsistency, dead code.
+1. [Finding]
+
+### Dodgy wiring (correctness — Goofs agent)
+Bugs, recipe violations, logic errors, things that could shock you.
+1. [Finding]
 
 ### Proposed CLAUDE.md additions
 
-[Concrete markdown blocks the user can accept/edit/reject]
+[Concrete markdown blocks from the Shape agent, ready to accept/edit/reject]
 ```
 
-Only expand principles graded C or below. A and B grades get the one-line verdict only.
+Note: Principle 2 gets two grades — Shape assesses the pattern quality, Upkeep assesses adherence. This is intentional; show both.
+
+#### Stage 4: File
+
+Create bon items from the findings so they persist beyond the session. If the target repo
+has `.bon/`, file findings as actions.
+
+**Structure:** Create one outcome for the toise run, then actions underneath grouped by lens:
+
+```bash
+# Outcome for the review
+cat <<'EOF' | bon new -q
+{
+  "title": "Toise findings: [project] ([month] [year])",
+  "brief": {
+    "why": "Toise deep clean surfaced N findings across shape/upkeep/correctness",
+    "what": "Address findings by priority — see child actions",
+    "done": "All high-priority findings resolved; low-priority triaged"
+  }
+}
+EOF
+
+# Then file each actionable finding as a child action with --how
+```
+
+Each action should include `how` — the approach to fix, not just what's wrong. The toise
+agent findings contain enough detail to write concrete `how` fields. A future Claude
+should be able to pick up any action and fix it from the brief alone.
+
+**What NOT to file:**
+- Findings below 0.60 confidence (already filtered)
+- Style preferences or architectural opinions
+- Things the maintainer explicitly rejected during the review
+
+Ask the user which findings to file. Don't file all of them silently — the review is a
+conversation, not a mandate.
+
+#### What NOT to do in synthesis
+
+- Don't add findings the agents didn't produce
+- Don't inflate grades to be nice
+- Don't list every finding — prioritise ruthlessly, cap at ~10
+- Don't write "consider" or "you might want to" — be direct
+- Don't propose rewrites or major refactors — flag and grade; decisions are the maintainer's
+
+---
 
 ## Anti-Patterns
 
@@ -166,8 +387,8 @@ Only expand principles graded C or below. A and B grades get the one-line verdic
 |---|---|
 | Skipping measurement | Opinions without evidence. Run Stage 1 first. |
 | Grade inflation | Sycophantic review helps nobody. Apply rubrics honestly. |
-| Reviewing code style | Wrong scope — use titans for bugs, craft, idiom. |
-| Proposing rewrites | Flag and grade; decisions are the maintainer's call. |
-| Flagging generated files | Metrics script skips them. The agent should too. |
 | Generic suggestions | "Consider adding documentation" — say WHAT documentation WHERE. |
 | Ignoring understanding.md | It tells you why. Without it you'll misdiagnose. |
+| Over-reporting | 30 findings is noise. Prioritise to ~10 that matter. |
+| Catastrophising Bs | A B is fine. Reserve alarm for structural concerns. |
+| Inventing concerns | If the codebase is solid, the honest answer is "you're fine." |

@@ -165,10 +165,10 @@ def check_module_names(source_files: list[Path]) -> list[str]:
 # ── Principle 3: Boundaries ─────────────────────────────────────────────────
 
 CLAUDE_MD_SECTIONS = {
-    "architecture": re.compile(r"(?i)^#+\s*(architecture|overview|structure)", re.MULTILINE),
+    "architecture": re.compile(r"(?i)^#+\s*.*\b(architecture|overview|structure)\b", re.MULTILINE),
     "module_map": re.compile(r"(?i)^#+\s*(module|directory|key (files|directories))", re.MULTILINE),
     "dependency_rules": re.compile(r"(?i)^#+\s*(dependenc|layer|import rules)", re.MULTILINE),
-    "recipes": re.compile(r"(?i)(how to add|extension|recipe|adding a new)", re.MULTILINE),
+    "recipes": re.compile(r"(?i)(how to add|extension|recipe|adding a\b)", re.MULTILINE),
     "anti_patterns": re.compile(r"(?i)(don.t|do not|never|anti.?pattern|what not)", re.MULTILINE),
 }
 
@@ -240,9 +240,9 @@ def check_extension_recipes(repo: Path) -> dict:
             recipe_patterns = [
                 re.compile(r"(?i)how to add", re.MULTILINE),
                 re.compile(r"(?i)^#+.*recipe", re.MULTILINE),
-                re.compile(r"(?i)to add a new .+:", re.MULTILINE),
+                re.compile(r"(?i)^#+.*\badding\b", re.MULTILINE),
                 re.compile(r"(?i)^#+.*extension", re.MULTILINE),
-                re.compile(r"(?i)step \d", re.MULTILINE),
+                re.compile(r"(?i)(step \d|^\d+\.\s)", re.MULTILINE),
             ]
             matches = {p.pattern: bool(p.search(content)) for p in recipe_patterns}
             has_recipes = sum(matches.values()) >= 2
