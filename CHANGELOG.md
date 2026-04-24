@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.5.8] - 2026-04-24
+
+Catalog cleanup pass — drop unused skills, trim bloated descriptions, fix toise CSO regression.
+
+### Removed
+- `amp-close` — author moved off Amp; CC-only now
+- `claude-survey` — design-research niche, rarely fired
+- `github-cleanup` — easy enough to invoke ad-hoc, didn't justify catalog space
+- `sprite` — Sprites.dev VM testing no longer in active use
+
+### Changed
+- `ardoise` description: 1500 → 425 chars (cut env-scrub mechanics, two-mode breakdown, cross-platform note). CSO score 95 → 100.
+- `mandoline` description: 1500 → 368 chars (cut 7-phase workflow listing — body content only).
+- `google-devdocs` description: 548 → 392 chars (cut curl+jq detail and full site list).
+- `ardoise` body: flipped script-locate to `${CLAUDE_PLUGIN_ROOT}` primary with `find | sort -r | head -1` fallback (was the other way round — fragile when multiple cached versions exist).
+- `ardoise` composition table: dropped dangling `sandbox` row (no such trousse skill) and `sprite` row (deleted in this release).
+- `toise` description: added timing condition (INVOKE BEFORE / WHEN) — was missing.
+- `toise` anti-patterns table: added `Fix` column to match house format.
+- `toise` synthesis section: rewrote "What NOT to do" prohibitions as positive guidance — fixes register negation.
+- `CLAUDE.md`: skill count 18 → 16, list refreshed.
+
+### Fixed
+- `toise` CSO score: 94 → 100. Brings CI green.
+
 ## [0.4.0] - 2026-03-20
 
 Maturity realignment and versioning fix.

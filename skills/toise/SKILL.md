@@ -1,10 +1,12 @@
 ---
 name: toise
 description: >
-  Deep clean and structural health check for Claude-maintained codebases. Three agents —
-  Cracks (architecture), Dustballs (convention drift), Goofs (correctness) — examine in parallel, then
-  synthesise into an honest assessment. Triggers on 'toise', 'deep clean', 'health check',
-  'should I be worried', 'check this codebase', 'is the architecture sound'. (user)
+  Deep clean and structural health check for Claude-maintained codebases. INVOKE BEFORE
+  adding significant complexity, WHEN inheriting an unfamiliar repo, or when something
+  feels off and you can't name it. Three agents — Cracks (architecture), Dustballs
+  (convention drift), Goofs (correctness) — examine in parallel, then synthesise into an
+  honest assessment. Triggers on 'toise', 'deep clean', 'health check', 'should I be
+  worried', 'check this codebase', 'is the architecture sound'. (user)
 allowed-tools: [Read, Glob, Grep, Bash, Agent]
 ---
 
@@ -380,24 +382,24 @@ should be able to pick up any action and fix it from the brief alone.
 Ask the user which findings to file. Don't file all of them silently — the review is a
 conversation, not a mandate.
 
-#### What NOT to do in synthesis
+#### Synthesis discipline
 
-- Don't add findings the agents didn't produce
-- Don't inflate grades to be nice
-- Don't list every finding — prioritise ruthlessly, cap at ~10
-- Don't write "consider" or "you might want to" — be direct
-- Don't propose rewrites or major refactors — flag and grade; decisions are the maintainer's
+- Stick to findings the agents produced — fabrication helps nobody
+- Apply grades honestly even when the result stings; sycophancy degrades the signal
+- Prioritise ruthlessly — cap at ~10 findings so the maintainer can act
+- Be direct: "X is broken at line Y" beats "you might want to consider X"
+- Flag and grade only — decisions are the maintainer's, so leave rewrites and refactor proposals to them
 
 ---
 
 ## Anti-Patterns
 
-| Anti-pattern | Problem |
-|---|---|
-| Skipping measurement | Opinions without evidence. Run Stage 1 first. |
-| Grade inflation | Sycophantic review helps nobody. Apply rubrics honestly. |
-| Generic suggestions | "Consider adding documentation" — say WHAT documentation WHERE. |
-| Ignoring understanding.md | It tells you why. Without it you'll misdiagnose. |
-| Over-reporting | 30 findings is noise. Prioritise to ~10 that matter. |
-| Catastrophising Bs | A B is fine. Reserve alarm for structural concerns. |
-| Inventing concerns | If the codebase is solid, the honest answer is "you're fine." |
+| Anti-pattern | Problem | Fix |
+|---|---|---|
+| Skipping measurement | Opinions without evidence | Run Stage 1 first; agents need numbers |
+| Grade inflation | Sycophantic review helps nobody | Apply the rubrics honestly even when it stings |
+| Generic suggestions | "Consider adding documentation" — vague | Specify WHAT documentation goes WHERE |
+| Ignoring understanding.md | Misdiagnosis — you don't know the why | Read it first and pass it to all three agents |
+| Over-reporting | 30 findings is noise the maintainer can't act on | Prioritise ruthlessly to ~10 that matter |
+| Catastrophising Bs | False alarm fatigue | Reserve alarm for structural concerns; a B is fine |
+| Inventing concerns | Pretending problems exist when they don't | If the codebase is solid, the honest answer is "you're fine" |
