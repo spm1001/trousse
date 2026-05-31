@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.9] - 2026-05-31
+
+Restore `github-cleanup` (removed in 0.5.8) — broadened from ad-hoc GitHub cleanup into a standing cross-machine repo-hygiene checkup, which now justifies the catalog slot.
+
+### Added
+- `github-cleanup` skill, with a new **Phase 0.5: cross-machine working-tree sweep** — flags uncommitted/unpushed/drift across local + ssh hosts before the GitHub-side audit
+- `scripts/repo-sweep.sh` — reusable engine (`local` / `ssh <host>` / `--no-fetch` modes); fetches by default to avoid stale-ref false "ahead" readings
+- Plugin **version-bump guard** — warns when a plugin repo has changes but no `plugin.json` bump (changes won't propagate to clients)
+
 ## [0.5.8] - 2026-04-24
 
 Catalog cleanup pass — drop unused skills, trim bloated descriptions, fix toise CSO regression.
