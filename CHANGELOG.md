@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.10] - 2026-06-11
+
+Packaging-only: top-level `scripts/` (ardoise.sh) ships in the marketplace package again — the batterie assembler's lean copy-list dropped it at the 2026-06-10 cutover, breaking the ardoise skill's `${CLAUDE_PLUGIN_ROOT}/scripts/ardoise.sh` entry point. Fix is in batterie's assemble.sh; this bump propagates it.
+
 ## [0.5.9] - 2026-05-31
 
 Restore `github-cleanup` (removed in 0.5.8) — broadened from ad-hoc GitHub cleanup into a standing cross-machine repo-hygiene checkup, which now justifies the catalog slot.
