@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.11] - 2026-06-12
+
+### Added
+- `tamis` skill — inspects which ad/martech/analytics/affiliate tags fire on any site, by driving a clean headless Chrome that bypasses ControlD DNS filtering and uBlock via DoH (IP-literal `1.1.1.1`, set by a managed policy). Captures the full network with cookies accepted, groups every host by vendor against a taxonomy, and flags unknowns for hand identification. Composes with `passe`. Ships `references/tag-taxonomy.md` (~70 vendors) and `scripts/tag_scan.py` (stdlib-only helper).
+
 ## [0.5.10] - 2026-06-11
 
 Packaging-only: top-level `scripts/` (ardoise.sh) ships in the marketplace package again — the batterie assembler's lean copy-list dropped it at the 2026-06-10 cutover, breaking the ardoise skill's `${CLAUDE_PLUGIN_ROOT}/scripts/ardoise.sh` entry point. Fix is in batterie's assemble.sh; this bump propagates it.
