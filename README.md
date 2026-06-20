@@ -10,7 +10,7 @@ A skill drawer for [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 
 ## What This Does
 
-Trousse provides 17 skills as SKILL.md files. Each one is a structured instruction set Claude reads and follows when you invoke the slash command.
+Trousse provides 18 skills as SKILL.md files. Each one is a structured instruction set Claude reads and follows when you invoke the slash command.
 
 Session lifecycle (startup briefings, handoffs, tactical tracking) is handled by [bon](https://github.com/spm1001/bon), not trousse. Trousse is purely skills.
 
@@ -19,14 +19,14 @@ Session lifecycle (startup briefings, handoffs, tactical tracking) is handled by
 ### Via plugin (recommended)
 
 ```
-/plugin
-# → batterie-de-savoir → trousse
+claude plugin marketplace add spm1001/batterie
+/plugin install trousse@batterie
 ```
 
 ### Via manual clone
 
 ```bash
-git clone https://github.com/spm1001/trousse ~/Repos/trousse
+git clone https://github.com/spm1001/trousse ~/repos/spm1001/trousse
 ```
 
 The plugin system discovers skills from `skills/*/SKILL.md` automatically.
@@ -41,22 +41,23 @@ The plugin system discovers skills from `skills/*/SKILL.md` automatically.
 | `/picture` | Generate images with Google Imagen |
 | `/server-checkup` | Linux server audit and management |
 | `/github-cleanup` | Audit repos, find stale forks and deps |
-| `/sprite` | Manage Sprites.dev remote VMs |
 | `/skill-forge` | Build and validate new skills |
+| `/scaffold` | Orchestrate new repo creation |
 | `/ia-presenter` | Write iA Presenter slide decks |
 | `/google-devdocs` | Look up Google developer documentation |
 | `/mandoline` | Transform raw data into clean BigQuery tables |
 | `/consomme` | BigQuery data analysis — discover, profile, analyse, validate, present |
 | `/toise` | Architecture review (8 checks, letter grades) |
-| `/claude-survey` | Survey naive Claude instances for design research |
 | `/ardoise` | Context-isolated Claude (blank-slate testing) |
-| `/amp-close` | End-of-session ritual for Amp (CC uses bon's /close) |
+| `/deglacer` | CC session JSONL parsing — schema reference + CLI |
+| `/peer-review` | Spawn a peer Claude on the mesh to review code |
+| `/tamis` | Identify ad/martech/analytics tags firing on a site |
 
 ## Directory Structure
 
 ```
 trousse/
-├── skills/                 # 17 skill definitions (SKILL.md files)
+├── skills/                 # 18 skill definitions (SKILL.md files)
 │   ├── titans/             #   → three-lens code review
 │   ├── diagram/            #   → diagramming workflow
 │   ├── skill-forge/        #   → skill development + validation
@@ -75,7 +76,7 @@ trousse/
 ## Updating
 
 ```bash
-cd ~/Repos/trousse && git pull
+cd ~/repos/spm1001/trousse && git pull
 # Plugin cache refreshes on next session start
 ```
 

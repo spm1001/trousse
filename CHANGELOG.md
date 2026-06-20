@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.12] - 2026-06-20
+
+### Docs
+- Post-cutover staleness sweep. Removed decommissioned garde-manger references from the plugin description ("Best with: bon, garde-manger" → "bon"), `CLAUDE.md` (past-session-recall guidance), and the `deglacer` skill (frontmatter + "When NOT to Use"). Fixed the `deglacer` skill's install path (`~/Repos/batterie/deglacer` → `git+https`) and the `CLAUDE.md` plugin-install nav path (`batterie-de-savoir` → `claude plugin marketplace add spm1001/batterie` + `trousse@batterie`). README: corrected the skills table (dropped removed sprite/claude-survey/amp-close, added deglacer/peer-review/tamis, count 17→18) and `~/Repos` path casing.
+
 ## [0.5.11] - 2026-06-12
 
 ### Added
