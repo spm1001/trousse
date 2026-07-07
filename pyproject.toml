@@ -9,7 +9,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
+    "pytest>=9.1.1",
     "pytest-xdist>=3.5",  # parallel test execution
 ]
 
@@ -36,6 +36,6 @@ addopts = "-v --tb=short"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.0",
+    "pytest>=9.1.1",
     "pytest-xdist>=3.5",
 ]
