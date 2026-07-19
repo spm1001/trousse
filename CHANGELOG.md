@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-Skill-estate slim-down (bon `trousse-pijuha`): trousse is being pared to a tight public core — public status is *earned* on genuine stranger-appeal, not the default. ITV-flavoured skills move to `mit-commons` (renamed prosaically), Sameer-wired ones to `trousse-personal`, `diagram` to the `dragram` repo, and the dead weight retires. This entry covers the **retirements** and the **move to `mit-commons`**; the `trousse-personal`/`dragram` moves and the final catalog/count update land with the suite bump.
+Skill-estate slim-down (bon `trousse-pijuha`): trousse is being pared to a tight public core — public status is *earned* on genuine stranger-appeal, not the default. ITV-flavoured skills move to `mit-commons` (renamed prosaically), Sameer-wired ones to `trousse-personal`, `diagram` to the `dragram` repo, and the dead weight retires. This ships the whole slim-down — retirements plus moves to `mit-commons`, `trousse-personal`, and the `dragram` repo. trousse's `CLAUDE.md` now carries a durable **Skill homes** rule (public is *earned* on stranger-appeal, not the default). trousse goes from 18 skills to a core of **4**: `skill-forge`, `titans` (+`/review`), `deglacer`, `ardoise`.
 
 ### Removed
 - `picture` — 0 invocations; referenced the archived `itv-styling` skill; image generation is covered elsewhere now.
