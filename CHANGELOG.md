@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+Skill-estate slim-down (bon `trousse-pijuha`): trousse is being pared to a tight public core — public status is *earned* on genuine stranger-appeal, not the default. ITV-flavoured skills move to `mit-commons` (renamed prosaically), Sameer-wired ones to `trousse-personal`, `diagram` to the `dragram` repo, and the dead weight retires. This entry covers the **retirements**; the moves and the final catalog/count update land with the suite bump.
+
+### Removed
+- `picture` — 0 invocations; referenced the archived `itv-styling` skill; image generation is covered elsewhere now.
+- `peer-review` — 0 invocations; depends on the aboyeur mesh, so not general.
+- `ia-presenter` — used once (a 3-day burst, Feb 2026); niche.
+- `github-cleanup` — 2 invocations, silent since Feb; hardcoded `hezza`; done ad-hoc by hand. (Moots field report `trousse-gasogu`.)
+- `screenshot` — dark since 21 Mar; the practice migrated to bash-render + `Read`, so the skill atrophied while the capability thrived.
+
 ## [0.5.12] - 2026-06-20
 
 ### Docs

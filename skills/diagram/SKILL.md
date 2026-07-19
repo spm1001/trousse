@@ -16,7 +16,7 @@ Create conceptual charts and diagrams as SVG, render to PNG, self-critique, iter
 
 ## When NOT to Use
 
-- Hero images or photorealistic content (use picture skill)
+- Hero images or photorealistic content
 - Simple text formatting (markdown suffices)
 - Screenshots or screen mockups (different tools)
 
