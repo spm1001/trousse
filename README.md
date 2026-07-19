@@ -37,10 +37,7 @@ The plugin system discovers skills from `skills/*/SKILL.md` automatically.
 |-------|--------------|
 | `/titans` (or `/review`) | Three-lens code review: hindsight, craft, foresight |
 | `/diagram` | Create diagrams with iterative render-and-check |
-| `/server-checkup` | Linux server audit and management |
 | `/skill-forge` | Build and validate new skills |
-| `/scaffold` | Orchestrate new repo creation |
-| `/toise` | Architecture review (8 checks, letter grades) |
 | `/ardoise` | Context-isolated Claude (blank-slate testing) |
 | `/deglacer` | CC session JSONL parsing — schema reference + CLI |
 

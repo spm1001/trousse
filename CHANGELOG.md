@@ -19,6 +19,10 @@ ITV/measurement-flavoured — team-useful, but a general installer wouldn't seek
 - `google-devdocs` → `mit-google-devdocs`
 - `snowflake-devdocs` → `mit-snowflake-devdocs`
 
+### Moved to trousse-personal
+Sameer-wired, not PII — scaffold bakes in bon; server-checkup targets his machines; toise is his codebase idiom. Now in the private drawer (`spm1001/trousse-personal` v0.2.0):
+- `scaffold`, `toise`, `server-checkup`
+
 ## [0.5.12] - 2026-06-20
 
 ### Docs
