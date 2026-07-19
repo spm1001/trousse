@@ -23,6 +23,9 @@ ITV/measurement-flavoured — team-useful, but a general installer wouldn't seek
 Sameer-wired, not PII — scaffold bakes in bon; server-checkup targets his machines; toise is his codebase idiom. Now in the private drawer (`spm1001/trousse-personal` v0.2.0):
 - `scaffold`, `toise`, `server-checkup`
 
+### Moved to the dragram repo
+- `diagram` → `spm1001/dragram/skills/diagram` — dragram is the diagramming home (interactive drag-to-place + PNG render); the prompt-to-diagram authoring skill belongs alongside the tool. itv-styling brand examples generalised. Follow-on tracked to fold diagram's CRAP critique into dragram's own review.
+
 ## [0.5.12] - 2026-06-20
 
 ### Docs
