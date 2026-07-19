@@ -40,13 +40,9 @@ The plugin system discovers skills from `skills/*/SKILL.md` automatically.
 | `/server-checkup` | Linux server audit and management |
 | `/skill-forge` | Build and validate new skills |
 | `/scaffold` | Orchestrate new repo creation |
-| `/google-devdocs` | Look up Google developer documentation |
-| `/mandoline` | Transform raw data into clean BigQuery tables |
-| `/consomme` | BigQuery data analysis — discover, profile, analyse, validate, present |
 | `/toise` | Architecture review (8 checks, letter grades) |
 | `/ardoise` | Context-isolated Claude (blank-slate testing) |
 | `/deglacer` | CC session JSONL parsing — schema reference + CLI |
-| `/tamis` | Identify ad/martech/analytics tags firing on a site |
 
 ## Directory Structure
 

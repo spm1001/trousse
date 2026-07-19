@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-Skill-estate slim-down (bon `trousse-pijuha`): trousse is being pared to a tight public core — public status is *earned* on genuine stranger-appeal, not the default. ITV-flavoured skills move to `mit-commons` (renamed prosaically), Sameer-wired ones to `trousse-personal`, `diagram` to the `dragram` repo, and the dead weight retires. This entry covers the **retirements**; the moves and the final catalog/count update land with the suite bump.
+Skill-estate slim-down (bon `trousse-pijuha`): trousse is being pared to a tight public core — public status is *earned* on genuine stranger-appeal, not the default. ITV-flavoured skills move to `mit-commons` (renamed prosaically), Sameer-wired ones to `trousse-personal`, `diagram` to the `dragram` repo, and the dead weight retires. This entry covers the **retirements** and the **move to `mit-commons`**; the `trousse-personal`/`dragram` moves and the final catalog/count update land with the suite bump.
 
 ### Removed
 - `picture` — 0 invocations; referenced the archived `itv-styling` skill; image generation is covered elsewhere now.
@@ -10,6 +10,14 @@ Skill-estate slim-down (bon `trousse-pijuha`): trousse is being pared to a tight
 - `ia-presenter` — used once (a 3-day burst, Feb 2026); niche.
 - `github-cleanup` — 2 invocations, silent since Feb; hardcoded `hezza`; done ad-hoc by hand. (Moots field report `trousse-gasogu`.)
 - `screenshot` — dark since 21 Mar; the practice migrated to bash-render + `Read`, so the skill atrophied while the capability thrived.
+
+### Moved to mit-commons (renamed, de-branded)
+ITV/measurement-flavoured — team-useful, but a general installer wouldn't seek them. Now live in `ITV/mit-commons` under prosaic `mit-` names (the commons picker-namespace invariant):
+- `consomme` → `mit-bigquery-analysis` (its 7 command-wrappers folded away — commons is skills-only)
+- `mandoline` → `mit-survey-data-prep`
+- `tamis` → `mit-tag-scanner`
+- `google-devdocs` → `mit-google-devdocs`
+- `snowflake-devdocs` → `mit-snowflake-devdocs`
 
 ## [0.5.12] - 2026-06-20
 
